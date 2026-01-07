@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShineTwoPlay - Connect & Play</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --sunshine-yellow: #FFD93D;
+            --sunshine-orange: #FFB84D;
+            --sunshine-peach: #FFA559;
+            --sunshine-light: #FFF4DC;
+            --sunshine-cream: #FFFAEF;
+            --text-dark: #4A3F35;
+            --text-medium: #8B7355;
+            --shadow-soft: rgba(255, 185, 77, 0.3);
+            --white: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, var(--sunshine-cream) 0%, var(--sunshine-light) 50%, #FFE8CC 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sunPulse 6s ease-in-out infinite;
+        }
+
+        body::before {
+            top: -50%;
+            right: -30%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(255,217,61,0.15), transparent 70%);
+        }
+
+        body::after {
+            bottom: -40%;
+            left: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255,165,89,0.1), transparent 70%);
+            animation-direction: reverse;
+        }
+
+        @keyframes sunPulse {
+            0%,100% { transform: scale(1); opacity: .5; }
+            50% { transform: scale(1.1); opacity: .3; }
+        }
+
+        .container {
+            max-width: 480px;
+            min-height: 100vh;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            padding: 20px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 16px var(--shadow-soft);
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        .logo::before {
+            content: "☀";
+            font-size: 28px;
+            animation: logoRotate 20s linear infinite;
+        }
+
+        @keyframes logoFloat {
+            50% { transform: translateY(-5px) rotate(5deg); }
+        }
+
+        @keyframes logoRotate {
+            to { transform: rotate(360deg); }
+        }
+
+        .app-name {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-orange), var(--sunshine-peach));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .username-display {
+            padding: 10px 16px;
+            background: var(--white);
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 12px rgba(255,185,77,.2);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .username-display.empty {
+            border: 2px dashed var(--sunshine-orange);
+            background: rgba(255,255,255,.7);
+            color: var(--text-medium);
+        }
+
+        /* Main */
+        .main-content {
+            flex: 1;
+            padding: 0 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .welcome-section {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .welcome-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 42px;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange), var(--sunshine-peach));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-subtitle {
+            color: var(--text-medium);
+            margin-top: 10px;
+        }
+
+        .room-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .room-box {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 28px 24px;
+            box-shadow: 0 4px 24px rgba(255,185,77,.15);
+        }
+
+        .room-box-title {
+            text-align: center;
+            font-family: 'Fredoka', sans-serif;
+            margin-bottom: 16px;
+        }
+
+        .room-input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            border: 2px solid var(--sunshine-light);
+            background: var(--sunshine-cream);
+            text-align: center;
+            letter-spacing: 2px;
+            font-size: 18px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .join-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            border: none;
+            cursor: pointer;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            box-shadow: 0 4px 16px var(--shadow-soft);
+            margin-top: 12px;
+            display: none;
+            transition: all 0.3s ease;
+        }
+
+        .join-btn.show {
+            display: block;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .join-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--shadow-soft);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: var(--text-medium);
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--sunshine-light), transparent);
+        }
+
+        .create-room-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            border: none;
+            cursor: pointer;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            box-shadow: 0 4px 16px var(--shadow-soft);
+        }
+
+        .footer {
+            padding: 20px;
+            font-size: 11px;
+            text-align: center;
+            color: var(--text-medium);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(255,244,220,.7);
+            backdrop-filter: blur(10px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 36px 28px;
+            border-radius: 28px;
+            max-width: 360px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(255,185,77,.3);
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255,185,77,.2);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255,185,77,.4);
+            transform: rotate(90deg);
+        }
+
+        .modal-title {
+            font-family: 'Fredoka', sans-serif;
+            text-align: center;
+            font-size: 26px;
+            margin-bottom: 24px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            border: 2px solid var(--sunshine-light);
+            background: var(--sunshine-cream);
+        }
+
+        .gender-options {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .gender-option {
+            flex: 1;
+            padding: 14px;
+            border-radius: 14px;
+            border: 2px solid var(--sunshine-light);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .gender-option:hover {
+            border-color: var(--sunshine-orange);
+            transform: translateY(-2px);
+        }
+
+        .gender-option.selected {
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            border-color: var(--sunshine-orange);
+        }
+
+        .modal-button {
+            margin-top: 24px;
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            border: none;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, rgba(255,217,61,0.3), rgba(255,184,77,0.3));
+            color: rgba(74,63,53,0.4);
+            cursor: not-allowed;
+            transition: all 0.3s ease;
+        }
+
+        .modal-button.enabled {
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            color: var(--text-dark);
+            cursor: pointer;
+            box-shadow: 0 4px 16px var(--shadow-soft);
+        }
+
+        .modal-button.enabled:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--shadow-soft);
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo"></div>
+            <div class="app-name">ShineTwoPlay</div>
+        </div>
+
+        <div class="username-display empty" id="usernameDisplay" onclick="openModal()">
+            <span id="usernameText">username</span> ✏️
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="welcome-section">
+            <h1 class="welcome-title">Welcome Shine</h1>
+            <p class="welcome-subtitle">Connect with a friend and play together</p>
+        </div>
+
+        <div class="room-controls">
+            <div class="room-box">
+                <h2 class="room-box-title">Join Existing Room</h2>
+                <input class="room-input" id="roomCode" placeholder="ROOM CODE" maxlength="4">
+                <button class="join-btn" id="joinBtn" onclick="joinRoom()">Join Room</button>
+            </div>
+
+            <div class="divider">or</div>
+
+            <div class="room-box">
+                <button class="create-room-btn" onclick="createRoom()">Create Room</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">🐼 © 2026 ShineTwoPlay</div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal()">✕</button>
+        <h2 class="modal-title">Set Your Profile</h2>
+        <input class="modal-input" id="modalUsername" placeholder="Enter your name">
+        <div class="gender-options">
+            <div class="gender-option" onclick="selectGender('male')">👨 Male</div>
+            <div class="gender-option" onclick="selectGender('female')">👩 Female</div>
+        </div>
+        <button class="modal-button" id="continueBtn" onclick="saveUsername()">Continue</button>
+    </div>
+</div>
+
+<script>
+let gender = null;
+let userName = null;
+
+// Load saved username on page load
+window.addEventListener('DOMContentLoaded', () => {
+    const savedName = localStorage.getItem("username");
+    if (savedName) {
+        userName = savedName;
+        document.getElementById("usernameText").innerText = savedName;
+        document.getElementById("usernameDisplay").classList.remove("empty");
+        document.querySelector(".welcome-title").innerText = "Welcome " + savedName;
+    }
+});
+
+// Room code input handler - only allow 4 digits
+document.addEventListener('DOMContentLoaded', () => {
+    const roomCodeInput = document.getElementById("roomCode");
+    const joinBtn = document.getElementById("joinBtn");
+    
+    roomCodeInput.addEventListener("input", (e) => {
+        // Only allow alphanumeric characters and convert to uppercase
+        let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        e.target.value = value;
+        
+        // Show join button when 4 characters are entered
+        if (value.length === 4) {
+            joinBtn.classList.add("show");
+        } else {
+            joinBtn.classList.remove("show");
+        }
+    });
+    
+    // Allow Enter key to join
+    roomCodeInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter" && roomCodeInput.value.length === 4) {
+            joinRoom();
+        }
+    });
+});
+
+// Modal username input handler
+document.addEventListener('DOMContentLoaded', () => {
+    const usernameInput = document.getElementById("modalUsername");
+    const continueBtn = document.getElementById("continueBtn");
+    
+    usernameInput.addEventListener("input", () => {
+        checkModalFormValidity();
+    });
+});
+
+function checkModalFormValidity() {
+    const name = document.getElementById("modalUsername").value.trim();
+    const continueBtn = document.getElementById("continueBtn");
+    
+    if (name && gender) {
+        continueBtn.classList.add("enabled");
+    } else {
+        continueBtn.classList.remove("enabled");
+    }
+}
+
+function openModal() {
+    document.getElementById("modalOverlay").classList.add("active");
+    // Reset form state
+    const continueBtn = document.getElementById("continueBtn");
+    continueBtn.classList.remove("enabled");
+}
+
+function closeModal() {
+    document.getElementById("modalOverlay").classList.remove("active");
+}
+
+function selectGender(g) {
+    gender = g;
+    document.querySelectorAll(".gender-option").forEach(x => x.classList.remove("selected"));
+    event.target.classList.add("selected");
+    checkModalFormValidity();
+}
+
+function saveUsername() {
+    const name = document.getElementById("modalUsername").value.trim();
+    if (!name || !gender) return;
+    
+    userName = name;
+    localStorage.setItem("username", name);
+    document.getElementById("usernameText").innerText = name;
+    document.getElementById("usernameDisplay").classList.remove("empty");
+    document.querySelector(".welcome-title").innerText = "Welcome " + name;
+    closeModal();
+}
+
+function joinRoom() {
+    const roomCode = document.getElementById("roomCode").value.trim();
+    
+    if (roomCode.length !== 4) {
+        alert("Please enter a 4-character room code");
+        return;
+    }
+    
+    if (!userName) {
+        openModal();
+        // Store the room code to join after setting username
+        sessionStorage.setItem("pendingRoomCode", roomCode);
+        return;
+    }
+    
+    // Redirect to room page
+    window.location.href = `/rooms/${roomCode}/?name=${encodeURIComponent(userName)}`;
+}
+
+function createRoom() {
+    if (!userName) {
+        openModal();
+        // Mark that we want to create a room after setting username
+        sessionStorage.setItem("pendingAction", "createRoom");
+        return;
+    }
+    
+    // Redirect to create room endpoint
+    window.location.href = `/create-room/?name=${encodeURIComponent(userName)}`;
+}
+
+// Check for pending actions after modal close
+const originalCloseModal = closeModal;
+closeModal = function() {
+    originalCloseModal();
+    
+    // Check if there was a pending room join
+    const pendingRoomCode = sessionStorage.getItem("pendingRoomCode");
+    if (pendingRoomCode && userName) {
+        sessionStorage.removeItem("pendingRoomCode");
+        window.location.href = `/rooms/${pendingRoomCode}/?name=${encodeURIComponent(userName)}`;
+        return;
+    }
+    
+    // Check if there was a pending room creation
+    const pendingAction = sessionStorage.getItem("pendingAction");
+    if (pendingAction === "createRoom" && userName) {
+        sessionStorage.removeItem("pendingAction");
+        window.location.href = `/create-room/?name=${encodeURIComponent(userName)}`;
+        return;
+    }
+};
+</script>
+</body>
+</html>
