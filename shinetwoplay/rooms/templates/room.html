@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Room {{ room }} | ShineTwoPlay</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sunshine-yellow: #FFD93D;
+            --sunshine-orange: #FFB84D;
+            --sunshine-peach: #FFA559;
+            --sunshine-light: #FFF4DC;
+            --sunshine-cream: #FFFAEF;
+            --text-dark: #4A3F35;
+            --text-medium: #8B7355;
+            --shadow-soft: rgba(255, 185, 77, 0.3);
+            --white: #FFFFFF;
+            --success-green: #4CAF50;
+            --error-red: #FF6B6B;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, var(--sunshine-cream) 0%, var(--sunshine-light) 50%, #FFE8CC 100%);
+            min-height: 100vh;
+            min-height: 100svh;
+            height: 100vh;
+            height: 100svh;
+            color: var(--text-dark);
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            right: -20%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255, 217, 61, 0.12) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sunPulse 6s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes sunPulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            height: 100vh;
+            height: 100svh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 1;
+            background: rgba(255, 255, 255, 0.4);
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--white);
+            box-shadow: 0 2px 12px rgba(255, 185, 77, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        body.keyboard-open .header {
+            padding: 10px 16px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--sunshine-light);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 20px;
+        }
+
+        .back-btn:hover {
+            background: var(--sunshine-yellow);
+            transform: translateX(-2px);
+        }
+
+        .room-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .room-title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .room-title-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .room-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .share-btn {
+            width: 22px;
+            height: 22px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            box-shadow: 0 2px 6px var(--shadow-soft);
+        }
+
+        .share-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 3px 10px var(--shadow-soft);
+        }
+
+        .room-code {
+            font-size: 11px;
+            color: var(--text-medium);
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .player-count {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 15px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 12px;
+            min-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        body.keyboard-open .main-content {
+            padding: 10px;
+            gap: 8px;
+        }
+
+        .top-section {
+            display: flex;
+            gap: 12px;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        body.keyboard-open .top-section {
+            gap: 8px;
+        }
+
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .players-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .player-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 12px 14px;
+            box-shadow: 0 4px 16px rgba(255, 185, 77, 0.15);
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 64px;
+            height: 64px;
+        }
+
+        body.keyboard-open .player-card {
+            min-height: 48px;
+            height: 48px;
+            padding: 8px 10px;
+            border-radius: 12px;
+        }
+
+        .player-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 185, 77, 0.25);
+        }
+
+        .player-card.waiting {
+            background: var(--sunshine-cream);
+            border: 2px dashed var(--sunshine-orange);
+            justify-content: center;
+        }
+
+        .waiting-text {
+            color: var(--text-medium);
+            font-size: 13px;
+            text-align: center;
+            font-weight: 500;
+            line-height: 1.3;
+        }
+
+        .player-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 2px 8px var(--shadow-soft);
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        body.keyboard-open .player-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 18px;
+        }
+
+        .player-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .player-name {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+        }
+
+        body.keyboard-open .player-name {
+            font-size: 13px;
+        }
+
+        .owner-badge {
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            color: var(--text-dark);
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+
+        .player-status {
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-ready .status-dot {
+            background: var(--success-green);
+        }
+
+        .status-not-ready .status-dot {
+            background: var(--error-red);
+        }
+
+        .status-ready {
+            color: var(--success-green);
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .status-not-ready {
+            color: var(--error-red);
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .game-controls-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .game-selector {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 4px 16px rgba(255, 185, 77, 0.15);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+        }
+
+        body.keyboard-open .game-selector {
+            padding: 10px;
+            border-radius: 12px;
+        }
+
+        .game-selector:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 185, 77, 0.25);
+        }
+
+        .game-selector-label {
+            font-size: 12px;
+            color: var(--text-medium);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .selected-game {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .game-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--sunshine-light), var(--sunshine-cream));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            border: 2px solid var(--sunshine-orange);
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        body.keyboard-open .game-icon {
+            width: 44px;
+            height: 44px;
+            font-size: 20px;
+            border-radius: 10px;
+        }
+
+        .game-name {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .round-selector {
+            background: var(--white);
+            border-radius: 14px;
+            padding: 14px 16px;
+            box-shadow: 0 4px 16px rgba(255, 185, 77, 0.15);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            height: 56px;
+            position: relative;
+        }
+
+        body.keyboard-open .round-selector {
+            padding: 10px 12px;
+            height: 44px;
+            border-radius: 12px;
+        }
+
+        .round-selector:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 185, 77, 0.25);
+        }
+
+        .round-selector-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .round-label {
+            font-size: 15px;
+            color: var(--text-dark);
+            font-weight: 600;
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .round-value {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-orange), var(--sunshine-peach));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .round-arrow {
+            font-size: 18px;
+            color: var(--text-medium);
+            transition: transform 0.3s ease;
+        }
+
+        .round-selector.active .round-arrow {
+            transform: rotate(180deg);
+        }
+
+        .round-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: var(--white);
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(255, 185, 77, 0.3);
+            overflow: hidden;
+            z-index: 10;
+            animation: dropdownSlide 0.3s ease;
+        }
+
+        .round-dropdown.active {
+            display: block;
+        }
+
+        @keyframes dropdownSlide {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .round-option {
+            padding: 14px 24px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-dark);
+            text-align: center;
+            border-bottom: 1px solid var(--sunshine-light);
+        }
+
+        .round-option:last-child {
+            border-bottom: none;
+        }
+
+        .round-option:hover {
+            background: var(--sunshine-cream);
+        }
+
+        .round-option.selected {
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            color: var(--text-dark);
+        }
+
+        .action-row {
+            display: flex;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 14px;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px var(--shadow-soft);
+        }
+
+        body.keyboard-open .action-btn {
+            padding: 10px;
+            font-size: 13px;
+            border-radius: 12px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            color: var(--text-dark);
+        }
+
+        .ready-btn {
+            background: linear-gradient(135deg, var(--success-green), #45a049);
+            color: white;
+        }
+
+        .not-ready-btn {
+            background: linear-gradient(135deg, var(--error-red), #ff5252);
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px var(--shadow-soft);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-container {
+            flex: 1;
+            background: var(--white);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(255, 185, 77, 0.2);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--sunshine-light);
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--sunshine-orange);
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: var(--sunshine-peach);
+        }
+
+        .chat-message {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            word-wrap: break-word;
+            animation: messageSlideIn 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        @keyframes messageSlideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .message-sender {
+            font-weight: 700;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .message-time {
+            font-size: 10px;
+            opacity: 0.5;
+            font-weight: 500;
+        }
+
+        .chat-message.own {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            color: var(--text-dark);
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.other {
+            align-self: flex-start;
+            background: var(--sunshine-light);
+            color: var(--text-dark);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-message.notification {
+            align-self: center;
+            background: rgba(255, 184, 77, 0.2);
+            color: var(--text-medium);
+            font-size: 12px;
+            font-style: italic;
+            padding: 6px 12px;
+            border-radius: 12px;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            align-self: flex-start;
+            animation: messageSlideIn 0.3s ease;
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 2px 6px var(--shadow-soft);
+        }
+
+        .typing-dots-container {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 14px;
+            background: var(--sunshine-light);
+            border-radius: 16px;
+            border-bottom-left-radius: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-medium);
+            animation: typingBounce 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+
+        .chat-input-container {
+            padding: 12px 16px;
+            background: var(--white);
+            border-top: 1px solid var(--sunshine-light);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-shrink: 0;
+            position: sticky;
+            bottom: 0;
+            z-index: 50;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--sunshine-light);
+            border-radius: 24px;
+            font-family: 'Quicksand', sans-serif;
+            font-size: 16px;
+            color: var(--text-dark);
+            background: var(--sunshine-cream);
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--sunshine-orange);
+            background: var(--white);
+            box-shadow: 0 0 0 4px rgba(255, 184, 77, 0.1);
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-medium);
+        }
+
+        .send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 20px;
+            box-shadow: 0 2px 8px var(--shadow-soft);
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px var(--shadow-soft);
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            align-items: stretch;
+            justify-content: flex-end;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .game-modal {
+            background: var(--white);
+            border-radius: 24px 0 0 24px;
+            width: 70%;
+            max-width: 320px;
+            max-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -4px 0 30px rgba(0, 0, 0, 0.2);
+            animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--sunshine-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-orange), var(--sunshine-peach));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .close-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--sunshine-light);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: var(--sunshine-orange);
+            transform: rotate(90deg);
+        }
+
+        .search-container {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--sunshine-light);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            border: 2px solid var(--sunshine-light);
+            border-radius: 12px;
+            font-family: 'Quicksand', sans-serif;
+            font-size: 16px;
+            background: var(--sunshine-cream);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%238B7355' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 12px center;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--sunshine-orange);
+            background-color: var(--white);
+        }
+
+        .games-grid {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .game-card {
+            aspect-ratio: 1;
+            background: var(--sunshine-cream);
+            border-radius: 16px;
+            border: 2px solid var(--sunshine-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 16px;
+        }
+
+        .game-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--sunshine-orange);
+            box-shadow: 0 8px 20px rgba(255, 185, 77, 0.25);
+        }
+
+        .game-card.selected {
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            border-color: var(--sunshine-orange);
+            box-shadow: 0 4px 16px var(--shadow-soft);
+        }
+
+        .game-card-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+        }
+
+        .game-card-name {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+            color: var(--text-dark);
+        }
+
+        .game-selector.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .round-selector.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .container {
+                max-width: 100%;
+            }
+
+            .main-content {
+                padding: 12px;
+                gap: 10px;
+            }
+
+            .top-section {
+                gap: 10px;
+            }
+
+            .player-card {
+                min-height: 52px;
+                height: 52px;
+                padding: 10px 12px;
+            }
+
+            .player-avatar {
+                width: 34px;
+                height: 34px;
+                font-size: 18px;
+            }
+
+            .player-name {
+                font-size: 13px;
+            }
+
+            .owner-badge {
+                font-size: 9px;
+                padding: 2px 6px;
+            }
+
+            .player-status {
+                font-size: 10px;
+                padding: 3px 6px;
+            }
+
+            .game-selector {
+                padding: 12px;
+            }
+
+            .game-selector-label {
+                font-size: 11px;
+                margin-bottom: 6px;
+            }
+
+            .game-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 22px;
+            }
+
+            .game-name {
+                font-size: 12px;
+            }
+
+            .round-selector {
+                padding: 10px 12px;
+                height: 48px;
+            }
+
+            .round-label {
+                font-size: 13px;
+            }
+
+            .round-value {
+                font-size: 20px;
+            }
+
+            .round-arrow {
+                font-size: 16px;
+            }
+
+            .action-btn {
+                padding: 12px;
+                font-size: 14px;
+            }
+
+            .game-modal {
+                width: 80%;
+                max-width: 280px;
+            }
+
+            .modal-title {
+                font-size: 18px;
+            }
+
+            .games-grid {
+                padding: 12px;
+                gap: 10px;
+            }
+
+            .game-card {
+                padding: 12px;
+            }
+
+            .game-card-icon {
+                font-size: 32px;
+                margin-bottom: 6px;
+            }
+
+            .game-card-name {
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .main-content {
+                padding: 10px;
+                gap: 8px;
+            }
+
+            .top-section {
+                gap: 8px;
+            }
+
+            .player-card {
+                min-height: 48px;
+                height: 48px;
+                padding: 8px 10px;
+            }
+
+            .player-avatar {
+                width: 30px;
+                height: 30px;
+                font-size: 16px;
+            }
+
+            .player-name {
+                font-size: 12px;
+            }
+
+            .game-selector {
+                padding: 10px;
+            }
+
+            .game-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+            }
+
+            .game-name {
+                font-size: 11px;
+            }
+
+            .round-selector {
+                padding: 8px 10px;
+                height: 44px;
+            }
+
+            .round-label {
+                font-size: 12px;
+            }
+
+            .round-value {
+                font-size: 18px;
+            }
+
+            .action-btn {
+                padding: 10px;
+                font-size: 13px;
+            }
+        }
+
+        /* Prevent zoom on input focus for iOS */
+        @supports (-webkit-touch-callout: none) {
+            input, textarea, select {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <button class="back-btn" onclick="goBack()">←</button>
+                <div class="room-info">
+                    <div class="room-title-group">
+                        <div class="room-title-row">
+                            <span class="room-title">Room</span>
+                            <button class="share-btn" onclick="shareRoom()">🔗</button>
+                        </div>
+                        <div class="room-code"><span id="roomCodeDisplay">{{ room }}</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="player-count">player <span id="playerCount">1</span>/2</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="top-section">
+                <div class="left-column">
+                    <div class="players-column" id="playersColumn">
+                        <div class="player-card waiting">
+                            <div class="waiting-text">Waiting for Opponent...</div>
+                        </div>
+                        <div class="player-card waiting">
+                            <div class="waiting-text">Waiting for Opponent...</div>
+                        </div>
+                    </div>
+
+                    <div class="action-row" id="actionRow">
+                        <button class="action-btn start-btn" id="startBtn" onclick="startGame()">Start/Ready</button>
+                    </div>
+                </div>
+
+                <div class="game-controls-column">
+                    <div class="game-selector" onclick="openGameModal()">
+                        <div class="game-selector-label">select game</div>
+                        <div class="selected-game">
+                            <div class="game-icon" id="selectedGameIcon">🎮</div>
+                            <div class="game-name" id="selectedGameName">Choose Game</div>
+                        </div>
+                    </div>
+
+                    <div class="round-selector" id="roundSelector" onclick="toggleRoundDropdown(event)">
+                        <div class="round-selector-content">
+                            <span class="round-label">round</span>
+                            <span class="round-value" id="selectedRound">1</span>
+                        </div>
+                        <span class="round-arrow">▼</span>
+                        <div class="round-dropdown" id="roundDropdown">
+                            <div class="round-option selected" onclick="selectRoundFromDropdown(1, event)">1</div>
+                            <div class="round-option" onclick="selectRoundFromDropdown(3, event)">3</div>
+                            <div class="round-option" onclick="selectRoundFromDropdown(5, event)">5</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="type a message" onkeypress="handleChatKeyPress(event)" oninput="handleTyping()">
+                    <button class="send-btn" onclick="sendMessage()">✈️</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="gameModal">
+        <div class="game-modal">
+            <div class="modal-header">
+                <div class="modal-title">Games</div>
+                <button class="close-btn" onclick="closeGameModal()">✕</button>
+            </div>
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="search" oninput="searchGames(this.value)">
+            </div>
+            <div class="games-grid" id="gamesGrid">
+                <div class="game-card" onclick="selectGame('tictactoe', 'Tic Tac Toe', '❌')">
+                    <div class="game-card-icon">❌</div>
+                    <div class="game-card-name">tic tac toe</div>
+                </div>
+                <div class="game-card" onclick="selectGame('pullrope', 'Pull Rope', '🪢')">
+                    <div class="game-card-icon">🪢</div>
+                    <div class="game-card-name">pull rope</div>
+                </div>
+                <div class="game-card" onclick="selectGame('tennis', 'Tennis', '🎾')">
+                    <div class="game-card-icon">🎾</div>
+                    <div class="game-card-name">tennis</div>
+                </div>
+                <div class="game-card" onclick="selectGame('ludo', 'Ludo', '🎲')">
+                    <div class="game-card-icon">🎲</div>
+                    <div class="game-card-name">ludo</div>
+                </div>
+                <div class="game-card" onclick="selectGame('chess', 'Chess', '♟️')">
+                    <div class="game-card-icon">♟️</div>
+                    <div class="game-card-name">chess</div>
+                </div>
+                <div class="game-card" onclick="selectGame('checkers', 'Checkers', '⚫')">
+                    <div class="game-card-icon">⚫</div>
+                    <div class="game-card-name">checkers</div>
+                </div>
+                <div class="game-card" onclick="selectGame('rps', 'Rock Paper Scissors', '✊')">
+                    <div class="game-card-icon">✊</div>
+                    <div class="game-card-name">rock paper scissors</div>
+                </div>
+                <div class="game-card" onclick="selectGame('memory', 'Memory Match', '🃏')">
+                    <div class="game-card-icon">🃏</div>
+                    <div class="game-card-name">memory match</div>
+                </div>
+                <div class="game-card" onclick="selectGame('snake', 'Snake Race', '🐍')">
+                    <div class="game-card-icon">🐍</div>
+                    <div class="game-card-name">snake race</div>
+                </div>
+                <div class="game-card" onclick="selectGame('pong', 'Pong', '🏓')">
+                    <div class="game-card-icon">🏓</div>
+                    <div class="game-card-name">pong</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ROOM = "{{ room }}";
+        const USER = "{{ username }}";
+
+        let socket = null;
+        let reconnecting = false;
+        let isOwner = false;
+        let selectedGame = null;
+        let selectedRounds = 1;
+        let isTyping = false;
+        let typingTimeout = null;
+        let players = {};
+
+        function connectWS() {
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            socket = new WebSocket(`${protocol}//${location.host}/ws/room/${ROOM}/?name=${USER}`);
+
+            socket.onopen = () => {
+                console.log('✅ WebSocket connected');
+                reconnecting = false;
+            };
+
+            socket.onclose = () => {
+                if (!reconnecting) {
+                    reconnecting = true;
+                    console.log('🔄 Reconnecting...');
+                    setTimeout(connectWS, 1000);
+                }
+            };
+
+            socket.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                const event = data.event;
+                const payload = data.data;
+
+                if (event === "player_join") updatePlayers(payload.players);
+                if (event === "player_disconnect") handlePlayerDisconnect(payload.user);
+                if (event === "ready_state") updateReadyState(payload);
+                if (event === "chat") addChatMessage(payload.user, payload.msg);
+                if (event === "typing") showTyping(payload.user);
+                if (event === "game_selected") handleGameSelected(payload.game);
+                if (event === "round_update") handleRoundUpdate(payload.round);
+                if (event === "start_game") redirectToGame(payload.game);
+                if (event === "room_state") syncRoomState(payload);
+            };
+        }
+
+        function updatePlayers(playerList) {
+            const playersColumn = document.getElementById('playersColumn');
+            playersColumn.innerHTML = '';
+            
+            playerList.forEach((player, index) => {
+                if (!players[player]) {
+                    players[player] = { ready: false };
+                }
+                
+                const card = document.createElement('div');
+                card.className = 'player-card';
+                card.id = `player-${player}`;
+                
+                const avatar = player === USER ? '🐼' : '😊';
+                const isPlayerOwner = index === 0;
+                
+                if (player === USER && isPlayerOwner) {
+                    isOwner = true;
+                }
+                
+                // Only show status for non-owners
+                const statusHTML = !isPlayerOwner ? `
+                    <div class="player-status status-not-ready">
+                        <span class="status-dot"></span>
+                        not ready
+                    </div>
+                ` : '';
+
+                card.innerHTML = `
+                    <div class="player-avatar">${avatar}</div>
+                    <div class="player-info">
+                        <span class="player-name">${player}</span>
+                        ${isPlayerOwner ? '<span class="owner-badge">owner</span>' : ''}
+                    </div>
+                    ${statusHTML}
+                `;
+                
+                playersColumn.appendChild(card);
+            });
+            
+            // Update UI based on role
+            updateUIForRole();
+            
+            // Fill remaining slots
+            while (playersColumn.children.length < 2) {
+                const waitingCard = document.createElement('div');
+                waitingCard.className = 'player-card waiting';
+                waitingCard.innerHTML = '<div class="waiting-text">Waiting for Opponent...</div>';
+                playersColumn.appendChild(waitingCard);
+            }
+            
+            document.getElementById('playerCount').textContent = playerList.length;
+        }
+
+        function handlePlayerDisconnect(user) {
+            addNotification(`${user} disconnected`);
+            delete players[user];
+        }
+
+        function updateReadyState(data) {
+            if (players[data.user]) {
+                players[data.user].ready = data.ready;
+            }
+            
+            const playerCard = document.getElementById(`player-${data.user}`);
+            if (playerCard) {
+                const statusDiv = playerCard.querySelector('.player-status');
+                if (statusDiv) {
+                    if (data.ready) {
+                        statusDiv.className = 'player-status status-ready';
+                        statusDiv.innerHTML = '<span class="status-dot"></span>ready';
+                    } else {
+                        statusDiv.className = 'player-status status-not-ready';
+                        statusDiv.innerHTML = '<span class="status-dot"></span>not ready';
+                    }
+                }
+            }
+            
+            addNotification(`${data.user} is ${data.ready ? 'ready' : 'not ready'}`);
+        }
+
+        function handleGameSelected(game) {
+            addNotification(`Game selected: ${game}`);
+        }
+
+        function handleRoundUpdate(round) {
+            selectedRounds = round;
+            document.getElementById('selectedRound').textContent = round;
+            addNotification(`Rounds set to ${round}`);
+        }
+
+        function redirectToGame(game) {
+            window.location.href = `/games/${game}/${ROOM}/`;
+        }
+
+        function syncRoomState(state) {
+            if (state.players) {
+                updatePlayers(Object.keys(state.players));
+            }
+            if (state.room && state.room.selected_game) {
+                // Update selected game display
+            }
+            if (state.room && state.room.round) {
+                selectedRounds = state.room.round;
+                document.getElementById('selectedRound').textContent = state.room.round;
+            }
+        }
+
+        function goBack() {
+            window.location.href = '/';
+        }
+
+        function shareRoom() {
+            const shareUrl = `${window.location.origin}/rooms/${ROOM}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Join my ShineTwoPlay room!',
+                    text: `Join room ${ROOM} on ShineTwoPlay`,
+                    url: shareUrl
+                }).then(() => {
+                    addNotification('Room link shared!');
+                }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(shareUrl);
+                alert(`Room link copied!\n${shareUrl}`);
+            }
+        }
+
+        function openGameModal() {
+            if (!isOwner) return; // Only owner can select game
+            document.getElementById('gameModal').classList.add('active');
+        }
+
+        function closeGameModal() {
+            document.getElementById('gameModal').classList.remove('active');
+        }
+
+        function updateUIForRole() {
+            const gameSelector = document.querySelector('.game-selector');
+            const roundSelector = document.querySelector('.round-selector');
+            const actionRow = document.getElementById('actionRow');
+            
+            if (isOwner) {
+                // Owner UI
+                gameSelector.classList.remove('disabled');
+                roundSelector.classList.remove('disabled');
+                actionRow.innerHTML = '<button class="action-btn start-btn" id="startBtn" onclick="startGame()">Start Game</button>';
+            } else {
+                // Player UI
+                gameSelector.classList.add('disabled');
+                gameSelector.onclick = null;
+                roundSelector.classList.add('disabled');
+                actionRow.innerHTML = `
+                    <button class="action-btn ready-btn" id="readyBtn" onclick="toggleReady(true)">Ready</button>
+                    <button class="action-btn not-ready-btn" id="notReadyBtn" onclick="toggleReady(false)" style="display:none;">Not Ready</button>
+                `;
+            }
+        }
+
+        function toggleReady(ready) {
+            const readyBtn = document.getElementById('readyBtn');
+            const notReadyBtn = document.getElementById('notReadyBtn');
+            
+            if (ready) {
+                readyBtn.style.display = 'none';
+                notReadyBtn.style.display = 'block';
+                socket.send(JSON.stringify({ event: "ready", ready: true }));
+            } else {
+                readyBtn.style.display = 'block';
+                notReadyBtn.style.display = 'none';
+                socket.send(JSON.stringify({ event: "ready", ready: false }));
+            }
+        }
+
+        function selectGame(gameId, name, icon) {
+            if (!isOwner) return; // Only owner can select game
+            
+            selectedGame = { id: gameId, name, icon };
+            document.getElementById('selectedGameIcon').textContent = icon;
+            document.getElementById('selectedGameName').textContent = name;
+            closeGameModal();
+            
+            socket.send(JSON.stringify({ event: "select_game", game: gameId }));
+        }
+
+        function searchGames(query) {
+            const cards = document.querySelectorAll('.game-card');
+            query = query.toLowerCase();
+            
+            cards.forEach(card => {
+                const name = card.querySelector('.game-card-name').textContent.toLowerCase();
+                card.style.display = name.includes(query) ? 'flex' : 'none';
+            });
+        }
+
+        function toggleRoundDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('roundDropdown');
+            const selector = document.getElementById('roundSelector');
+            
+            dropdown.classList.toggle('active');
+            selector.classList.toggle('active');
+        }
+
+        function selectRoundFromDropdown(rounds, event) {
+            if (!isOwner) return; // Only owner can change rounds
+            
+            event.stopPropagation();
+            selectedRounds = rounds;
+            document.getElementById('selectedRound').textContent = rounds;
+            
+            document.querySelectorAll('.round-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            document.getElementById('roundDropdown').classList.remove('active');
+            document.getElementById('roundSelector').classList.remove('active');
+            
+            socket.send(JSON.stringify({ event: "round_change", round: rounds }));
+        }
+
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('roundDropdown');
+            const selector = document.getElementById('roundSelector');
+            
+            if (dropdown && dropdown.classList.contains('active')) {
+                dropdown.classList.remove('active');
+                selector.classList.remove('active');
+            }
+        });
+
+        function startGame() {
+            if (!isOwner) return;
+            
+            if (!selectedGame) {
+                alert('Please select a game first!');
+                return;
+            }
+            
+            // Check if all players are ready
+            const allReady = Object.values(players).every(p => p.ready || p === players[Object.keys(players)[0]]);
+            if (!allReady) {
+                alert('Waiting for all players to be ready!');
+                return;
+            }
+            
+            socket.send(JSON.stringify({ event: "start_game" }));
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            socket.send(JSON.stringify({ event: "chat", msg: message }));
+            input.value = '';
+            stopTyping();
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function handleTyping() {
+            if (!isTyping) {
+                isTyping = true;
+                socket.send(JSON.stringify({ event: "typing" }));
+            }
+            
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                stopTyping();
+            }, 1000);
+        }
+
+        function stopTyping() {
+            isTyping = false;
+        }
+
+        function addChatMessage(user, msg) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = user === USER ? 'chat-message own' : 'chat-message other';
+            
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12;
+            const timeString = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="message-sender">${user === USER ? 'You' : user}</div>
+                    <div class="message-time">${timeString}</div>
+                </div>
+                <div>${msg}</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTyping(user) {
+            if (user === USER) return; // Don't show typing for own messages
+            
+            const messagesContainer = document.getElementById('chatMessages');
+            let typingIndicator = document.getElementById('typingIndicator');
+            
+            // Remove existing typing indicator if any
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+            
+            // Create new typing indicator
+            typingIndicator = document.createElement('div');
+            typingIndicator.id = 'typingIndicator';
+            typingIndicator.className = 'typing-indicator active';
+            
+            const avatar = user === USER ? '🐼' : '😊';
+            
+            typingIndicator.innerHTML = `
+                <div class="typing-avatar">${avatar}</div>
+                <div class="typing-dots-container">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(typingIndicator);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                if (typingIndicator && typingIndicator.parentNode) {
+                    typingIndicator.remove();
+                }
+            }, 3000);
+        }
+
+        function addNotification(text) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const notifDiv = document.createElement('div');
+            notifDiv.className = 'chat-message notification';
+            notifDiv.textContent = text;
+            
+            messagesContainer.appendChild(notifDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        document.getElementById('gameModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeGameModal();
+        });
+
+        // Add keyboard-open class on chat input focus for better UX
+        const chatInput = document.getElementById('chatInput');
+        if (chatInput) {
+            chatInput.addEventListener('focus', () => {
+                document.body.classList.add('keyboard-open');
+            });
+            
+            chatInput.addEventListener('blur', () => {
+                document.body.classList.remove('keyboard-open');
+            });
+        }
+
+        connectWS();
+    </script>
+</body>
+</html>
