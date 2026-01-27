@@ -22,61 +22,83 @@ class RoomConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         """Handle WebSocket connection"""
         try:
+            print("=== WebSocket Connect Started ===")
+            
             # Get room code and username from URL
             self.room_code = self.scope['url_route']['kwargs']['room_code']
+            print(f"Room code: {self.room_code}")
             
             # Extract username from query string
             query_string = self.scope['query_string'].decode()
+            print(f"Query string: {query_string}")
             params = dict(param.split('=') for param in query_string.split('&') if '=' in param)
             self.username = params.get('name', 'Guest')
+            print(f"Username: {self.username}")
             
             # Validate username length (max 8 characters)
             if len(self.username) > 8:
+                print(f"Username too long: {len(self.username)} chars")
                 await self.close(code=4000)
                 return
             
             # Check if room exists
+            print("Checking if room exists...")
             room_exists = await self.check_room_exists(self.room_code)
+            print(f"Room exists: {room_exists}")
             if not room_exists:
+                print("Room not found - closing connection")
                 await self.close(code=4004)  # Room not found
                 return
             
             # Check if room is full
+            print("Checking room capacity...")
             if is_room_full(self.room_code):
                 player_count = await self.get_player_count(self.room_code)
+                print(f"Player count: {player_count}")
                 if player_count >= 2:
+                    print("Room is full - closing connection")
                     await self.close(code=4003)  # Room full
                     return
             
-            # Check if username is already taken
-            existing_players = get_room_players(self.room_code)
-            if self.username in existing_players:
-                await self.close(code=4009)  # Username taken
+            # Check for duplicate username
+            print("Checking for duplicate username...")
+            players = get_room_players(self.room_code)
+            print(f"Existing players: {players}")
+            if self.username in players:
+                print("Duplicate username - closing connection")
+                await self.close(code=4001)  # Duplicate username
                 return
             
-            # Set room group name
+            # Accept connection
+            print("Accepting WebSocket connection...")
+            await self.accept()
+            print("WebSocket accepted!")
+            
+            # Set up room group
             self.room_group_name = f'room_{self.room_code}'
             
             # Join room group
+            print(f"Joining room group: {self.room_group_name}")
             await self.channel_layer.group_add(
                 self.room_group_name,
                 self.channel_name
             )
             
-            # Accept connection
-            await self.accept()
-            
-            # Get player data from database
+            # Get or create player
+            print("Getting or creating player...")
             player_data = await self.get_or_create_player()
+            print(f"Player data: {player_data}")
             
             # Add to Redis
+            print("Adding to Redis...")
             add_ws_connection(self.room_code, self.username)
-            update_online_status(self.room_code, self.username)
             
             # Send initial room state to this user
+            print("Sending room state...")
             await self.send_room_state()
             
             # Notify others about new player
+            print("Notifying others about new player...")
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -88,36 +110,38 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 }
             )
             
+            print("=== WebSocket Connect Completed Successfully ===")
+            
         except Exception as e:
-            print(f"Connection error: {e}")
+            print(f"!!! Connection error: {e}")
+            import traceback
+            traceback.print_exc()
             await self.close(code=4500)
 
     async def disconnect(self, close_code):
         """Handle WebSocket disconnection"""
         try:
-            # Remove from Redis
-            remove_ws_connection(self.room_code, self.username)
-            remove_typing(self.room_code, self.username)
-            
-            # Update player status in database
-            await self.update_player_online_status(False)
-            
-            # Notify others
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'player_disconnect',
-                    'user': self.username,
-                    'reason': 'connection_lost'
-                }
-            )
-            
-            # Leave room group
-            await self.channel_layer.group_discard(
-                self.room_group_name,
-                self.channel_name
-            )
-            
+            # Check if room_group_name was set (connection was successful)
+            if hasattr(self, 'room_group_name') and hasattr(self, 'room_code') and hasattr(self, 'username'):
+                # Remove from Redis
+                remove_ws_connection(self.room_code, self.username)
+                remove_typing(self.room_code, self.username)
+                
+                # Notify others about disconnect
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'player_disconnect',
+                        'user': self.username,
+                        'players': list(get_room_players(self.room_code))
+                    }
+                )
+                
+                # Leave room group
+                await self.channel_layer.group_discard(
+                    self.room_group_name,
+                    self.channel_name
+                )
         except Exception as e:
             print(f"Disconnect error: {e}")
 

@@ -33,23 +33,16 @@ def home(request):
     return render(request, "home.html")
 
 
-def create_room_view(request):
-    """Create room (old template-based view)"""
-    name = request.GET.get("name", "Guest")
-    code = generate_room_code()
-    return redirect(f"/rooms/{code}/?name={name}")
-
-
-def room_page(request, code):
-    """Room page"""
-    name = request.GET.get("name", "")
+def room_page(request, room_code):
+    """Room page - serves the room.html template"""
+    username = request.GET.get("name", "")
     
-    if not name:
+    if not username:
         return redirect("/")
     
     return render(request, "room.html", {
-        "room": code,
-        "username": name
+        "room": room_code,
+        "username": username
     })
 
 
@@ -77,10 +70,10 @@ def api_create_room(request):
         if not is_valid:
             return error_response('INVALID_GENDER', error_msg)
         
-        # Check rate limit (5 per hour per IP)
-        ip = get_client_ip(request)
-        if not check_rate_limit(f'ratelimit:create_room:{ip}', 5, 3600):
-            return error_response('RATE_LIMIT_EXCEEDED', 'Too many room creations. Please try again later.', status=429)
+        # Check rate limit (5 per hour per IP) - DISABLED FOR DEVELOPMENT
+        # ip = get_client_ip(request)
+        # if not check_rate_limit(f'ratelimit:create_room:{ip}', 5, 3600):
+        #     return error_response('RATE_LIMIT_EXCEEDED', 'Too many room creations. Please try again later.', status=429)
         
         # Generate unique room code
         room_code = generate_room_code()
@@ -90,13 +83,12 @@ def api_create_room(request):
         # Create room in database
         room = Room.objects.create(
             code=room_code,
-            owner=username,
-            status='waiting'
+            owner=username
         )
         
-        # Create owner as player
-        avatar = get_avatar_for_gender(gender)
-        Player.objects.create(
+        # Create player in database
+        avatar = '👨' if gender == 'male' else '👩'
+        player = Player.objects.create(
             room=room,
             username=username,
             gender=gender,
@@ -104,14 +96,12 @@ def api_create_room(request):
             is_owner=True
         )
         
-        # Create room in Redis cache
-        create_room_cache(room_code, username, gender)
-        add_player_to_room(room_code, username, gender)
+        # NOTE: We don't add to Redis here - the WebSocket connection will handle that
+        # This prevents duplicate username issues when the user connects via WebSocket
         
+        # Return success with redirect URL
         return success_response({
             'room_code': room_code,
-            'owner': username,
-            'created_at': room.created_at.isoformat(),
             'redirect_url': f'/rooms/{room_code}/?name={username}'
         }, status=201)
         

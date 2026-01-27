@@ -1,0 +1,341 @@
+/* Advanced Features CSS */
+
+/* Voice Recording Overlay */
+.recording-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.recording-overlay.active {
+    display: flex;
+}
+
+.recording-timer {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 48px;
+    color: var(--white);
+    font-weight: 700;
+}
+
+.recording-controls {
+    display: flex;
+    gap: 16px;
+}
+
+.recording-btn {
+    padding: 12px 24px;
+    border-radius: 24px;
+    border: none;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.recording-btn.stop {
+    background: var(--error-red);
+    color: white;
+}
+
+.recording-btn.cancel {
+    background: var(--text-medium);
+    color: white;
+}
+
+/* Image Preview */
+.image-preview {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+}
+
+.image-preview.active {
+    display: flex;
+}
+
+.image-preview img {
+    max-width: 90%;
+    max-height: 70vh;
+    border-radius: 12px;
+}
+
+.image-preview-controls {
+    display: flex;
+    gap: 16px;
+}
+
+/* Reaction Picker */
+.reaction-picker {
+    display: none;
+    position: fixed;
+    background: white;
+    padding: 12px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    z-index: 500;
+    gap: 8px;
+    flex-wrap: wrap;
+    max-width: 200px;
+}
+
+.reaction-picker.active {
+    display: flex;
+}
+
+.reaction-picker .emoji {
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.reaction-picker .emoji:hover {
+    background: var(--sunshine-light);
+    transform: scale(1.2);
+}
+
+/* Message Reactions */
+.message-reactions {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+
+.message-reactions .reaction {
+    background: var(--sunshine-light);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.message-reactions .reaction:hover {
+    background: var(--sunshine-yellow);
+    transform: scale(1.1);
+}
+
+/* Reconnect Overlay */
+.reconnect-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: var(--error-red);
+    color: white;
+    padding: 16px;
+    text-align: center;
+    z-index: 999;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.reconnect-overlay.active {
+    display: block;
+}
+
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--text-dark);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 24px;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 14px;
+    z-index: 1001;
+    opacity: 0;
+    transition: all 0.3s ease;
+    max-width: 80%;
+    text-align: center;
+}
+
+.toast.active {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.toast.error {
+    background: var(--error-red);
+}
+
+.toast.success {
+    background: var(--success-green);
+}
+
+.toast.info {
+    background: var(--sunshine-orange);
+}
+
+/* Lightbox */
+.lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 1002;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.lightbox.active {
+    display: flex;
+}
+
+.lightbox img {
+    max-width: 95%;
+    max-height: 95%;
+    border-radius: 8px;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Voice Message */
+.voice-message {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--sunshine-light);
+    border-radius: 16px;
+}
+
+.voice-message audio {
+    flex: 1;
+    height: 32px;
+}
+
+.voice-duration {
+    font-size: 12px;
+    color: var(--text-medium);
+}
+
+/* Image Message */
+.image-message {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.image-message:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+.image-message img {
+    display: block;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Message Status */
+.message-status {
+    font-size: 12px;
+    margin-left: 8px;
+    opacity: 0.7;
+}
+
+/* Input Controls */
+.input-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.attach-btn, .voice-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--sunshine-light);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.attach-btn:hover, .voice-btn:hover {
+    background: var(--sunshine-yellow);
+    transform: scale(1.1);
+}
+
+.voice-btn.recording {
+    background: var(--error-red);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Reaction Button */
+.reaction-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+    padding: 4px 8px;
+    border-radius: 8px;
+}
+
+.message:hover .reaction-btn {
+    opacity: 1;
+}
+
+.reaction-btn:hover {
+    background: var(--sunshine-light);
+}

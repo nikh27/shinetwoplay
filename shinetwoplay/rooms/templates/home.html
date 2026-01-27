@@ -432,7 +432,7 @@
     <div class="modal">
         <button class="modal-close" onclick="closeModal()">✕</button>
         <h2 class="modal-title">Set Your Profile</h2>
-        <input class="modal-input" id="modalUsername" placeholder="Enter your name">
+        <input class="modal-input" id="modalUsername" placeholder="Enter your name" maxlength="8">
         <div class="gender-options">
             <div class="gender-option" onclick="selectGender('male')">👨 Male</div>
             <div class="gender-option" onclick="selectGender('female')">👩 Female</div>
@@ -445,14 +445,16 @@
 let gender = null;
 let userName = null;
 
-// Load saved username on page load
+// Load username and gender from localStorage on page load
 window.addEventListener('DOMContentLoaded', () => {
-    const savedName = localStorage.getItem("username");
-    if (savedName) {
-        userName = savedName;
-        document.getElementById("usernameText").innerText = savedName;
+    const savedUsername = localStorage.getItem("username");
+    const savedGender = localStorage.getItem("gender");
+    if (savedUsername) {
+        userName = savedUsername;
+        gender = savedGender || "male";  // Default to male if not set
+        document.getElementById("usernameText").innerText = savedUsername;
         document.getElementById("usernameDisplay").classList.remove("empty");
-        document.querySelector(".welcome-title").innerText = "Welcome " + savedName;
+        document.querySelector(".welcome-title").innerText = "Welcome " + savedUsername;
     }
 });
 
@@ -525,8 +527,15 @@ function saveUsername() {
     const name = document.getElementById("modalUsername").value.trim();
     if (!name || !gender) return;
     
+    // Enforce 8-character limit
+    if (name.length > 8) {
+        alert("Username must be 8 characters or less");
+        return;
+    }
+    
     userName = name;
     localStorage.setItem("username", name);
+    localStorage.setItem("gender", gender);  // Save gender
     document.getElementById("usernameText").innerText = name;
     document.getElementById("usernameDisplay").classList.remove("empty");
     document.querySelector(".welcome-title").innerText = "Welcome " + name;
@@ -534,34 +543,91 @@ function saveUsername() {
 }
 
 function joinRoom() {
-    const roomCode = document.getElementById("roomCode").value.trim();
+    const roomCode = document.getElementById("roomCode").value.trim().toUpperCase();
     
     if (roomCode.length !== 4) {
         alert("Please enter a 4-character room code");
         return;
     }
     
-    if (!userName) {
+    if (!userName || !gender) {
         openModal();
         // Store the room code to join after setting username
         sessionStorage.setItem("pendingRoomCode", roomCode);
         return;
     }
     
-    // Redirect to room page
-    window.location.href = `/rooms/${roomCode}/?name=${encodeURIComponent(userName)}`;
+    // Call API to join room
+    joinRoomAPI(roomCode, userName, gender);
+}
+
+async function joinRoomAPI(roomCode, username, userGender) {
+    try {
+        const response = await fetch('/api/rooms/join/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                room_code: roomCode,
+                username: username,
+                gender: userGender
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Redirect to room page
+            window.location.href = data.data.redirect_url;
+        } else {
+            // Show error
+            alert(data.error.message || 'Failed to join room');
+        }
+    } catch (error) {
+        console.error('Error joining room:', error);
+        alert('Failed to join room. Please try again.');
+    }
 }
 
 function createRoom() {
-    if (!userName) {
+    if (!userName || !gender) {
         openModal();
         // Mark that we want to create a room after setting username
         sessionStorage.setItem("pendingAction", "createRoom");
         return;
     }
     
-    // Redirect to create room endpoint
-    window.location.href = `/create-room/?name=${encodeURIComponent(userName)}`;
+    // Call API to create room
+    createRoomAPI(userName, gender);
+}
+
+async function createRoomAPI(username, userGender) {
+    try {
+        const response = await fetch('/api/rooms/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username,
+                gender: userGender
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Redirect to room page
+            window.location.href = data.data.redirect_url;
+        } else {
+            // Show error
+            alert(data.error.message || 'Failed to create room');
+        }
+    } catch (error) {
+        console.error('Error creating room:', error);
+        alert('Failed to create room. Please try again.');
+    }
 }
 
 // Check for pending actions after modal close
@@ -571,17 +637,17 @@ closeModal = function() {
     
     // Check if there was a pending room join
     const pendingRoomCode = sessionStorage.getItem("pendingRoomCode");
-    if (pendingRoomCode && userName) {
+    if (pendingRoomCode && userName && gender) {
         sessionStorage.removeItem("pendingRoomCode");
-        window.location.href = `/rooms/${pendingRoomCode}/?name=${encodeURIComponent(userName)}`;
+        joinRoomAPI(pendingRoomCode, userName, gender);
         return;
     }
     
     // Check if there was a pending room creation
     const pendingAction = sessionStorage.getItem("pendingAction");
-    if (pendingAction === "createRoom" && userName) {
+    if (pendingAction === "createRoom" && userName && gender) {
         sessionStorage.removeItem("pendingAction");
-        window.location.href = `/create-room/?name=${encodeURIComponent(userName)}`;
+        createRoomAPI(userName, gender);
         return;
     }
 };
