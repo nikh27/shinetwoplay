@@ -338,6 +338,80 @@
             background: var(--error-red);
         }
 
+        .status-reconnecting {
+            background: rgba(255, 193, 7, 0.15);
+            color: #f59e0b;
+        }
+
+        .status-reconnecting .status-dot {
+            background: #f59e0b;
+            animation: pulse 0.8s infinite;
+        }
+
+        .player-card.clickable {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .player-card.clickable:hover {
+            background: linear-gradient(135deg, #fff8e7, #fff0c7);
+            transform: scale(1.02);
+        }
+
+        .player-card.clickable::after {
+            content: '⋮';
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: var(--text-medium);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .player-card.clickable:hover::after {
+            opacity: 1;
+        }
+
+        .player-menu {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            padding: 8px 0;
+            min-width: 160px;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .player-menu-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s ease;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+
+        .player-menu-item:hover {
+            background: var(--sunshine-cream);
+        }
+
+        .player-menu-item.danger {
+            color: var(--error-red);
+        }
+
+        .player-menu-item.danger:hover {
+            background: #fee2e2;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
         .status-ready {
             color: var(--success-green);
             background: rgba(76, 175, 80, 0.1);
@@ -643,6 +717,8 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
+            position: relative;
+            margin-bottom: 12px;
         }
 
         @keyframes messageSlideIn {
@@ -797,6 +873,7 @@
             transition: all 0.3s ease;
             font-size: 20px;
             box-shadow: 0 2px 8px var(--shadow-soft);
+            flex-shrink: 0;
         }
 
         .send-btn:hover {
@@ -807,6 +884,160 @@
         .send-btn:active {
             transform: scale(0.95);
         }
+
+        /* Media Popup Styles */
+        .media-btn-wrapper {
+            position: relative;
+        }
+
+        .media-toggle-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--sunshine-cream);
+            border: 2px solid var(--sunshine-light);
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--sunshine-orange);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .media-toggle-btn:hover {
+            background: var(--sunshine-light);
+            transform: rotate(45deg);
+        }
+
+        .media-toggle-btn.active {
+            transform: rotate(45deg);
+            background: var(--sunshine-orange);
+            color: white;
+        }
+
+        .media-popup {
+            display: none;
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            background: var(--white);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px var(--shadow-soft);
+            padding: 8px;
+            z-index: 100;
+            animation: popupSlide 0.2s ease;
+        }
+
+        .media-popup.active {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        @keyframes popupSlide {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .media-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: 'Quicksand', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .media-option:hover {
+            background: var(--sunshine-cream);
+        }
+
+        .media-icon {
+            font-size: 20px;
+        }
+
+        /* Reaction Styles - Small Corner Display */
+        .message-reactions {
+            display: flex;
+            gap: 4px;
+            position: absolute;
+            bottom: -8px;
+            right: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chat-message.own .message-reactions {
+            right: auto;
+            left: 8px;
+        }
+
+        .reaction {
+            background: var(--white);
+            border: 1px solid var(--sunshine-light);
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px var(--shadow-soft);
+            transition: all 0.2s ease;
+        }
+
+        .reaction.own {
+            background: var(--sunshine-cream);
+            border-color: var(--sunshine-orange);
+        }
+
+        .reaction:hover {
+            transform: scale(1.1);
+        }
+
+        /* Hide reaction button by default - show on long press */
+        .reaction-btn {
+            display: none;
+        }
+
+        /* Reaction picker - compact bar at bottom of chat */
+        .reaction-picker {
+            display: none;
+            position: fixed;
+            background: var(--white);
+            border-radius: 24px;
+            box-shadow: 0 2px 12px var(--shadow-soft);
+            padding: 4px 8px;
+            z-index: 300;
+            gap: 2px;
+            flex-direction: row;
+            max-width: 280px;
+        }
+
+        .reaction-picker.active {
+            display: flex;
+        }
+
+        .reaction-picker .emoji {
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .reaction-picker .emoji:hover {
+            transform: scale(1.15);
+            background: var(--sunshine-cream);
+        }
+
 
         .modal-overlay {
             display: none;
@@ -1581,8 +1812,19 @@
                 <div class="chat-messages" id="chatMessages">
                 </div>
                 <div class="chat-input-container">
-                    <button class="attach-btn" onclick="selectImage()" title="Send Image">📷</button>
-                    <button class="voice-btn" id="voiceBtn" onclick="toggleRecording()" title="Voice Message">🎤</button>
+                    <div class="media-btn-wrapper">
+                        <button class="media-toggle-btn" id="mediaToggleBtn" onclick="toggleMediaPopup()">+</button>
+                        <div class="media-popup" id="mediaPopup">
+                            <button class="media-option" onclick="selectImage(); closeMediaPopup();">
+                                <span class="media-icon">📷</span>
+                                <span>Camera</span>
+                            </button>
+                            <button class="media-option" onclick="toggleRecording(); closeMediaPopup();">
+                                <span class="media-icon">🎤</span>
+                                <span>Voice</span>
+                            </button>
+                        </div>
+                    </div>
                     <input type="text" class="chat-input" id="chatInput" placeholder="type a message" onkeypress="handleChatKeyPress(event)" oninput="handleTyping()">
                     <button class="send-btn" onclick="sendMessage()">✈️</button>
                 </div>
@@ -1647,94 +1889,143 @@
     <script>
         const ROOM = "{{ room }}";
         const USER = "{{ username }}";
+        const GENDER = "{{ gender|default:'male' }}";
 
         let socket = null;
         let reconnecting = false;
         let isOwner = false;
         let selectedGame = null;
-        let selectedRounds = 1;
+        let selectedRounds = 3;
         let isTyping = false;
         let typingTimeout = null;
         let players = {};
 
         function connectWS() {
             const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            socket = new WebSocket(`${protocol}//${location.host}/ws/room/${ROOM}/?name=${USER}`);
+            socket = new WebSocket(`${protocol}//${location.host}/ws/room/${ROOM}/?name=${USER}&gender=${GENDER}`);
 
             socket.onopen = () => {
                 console.log('✅ WebSocket connected');
                 reconnecting = false;
+                hideReconnectOverlay();
             };
 
-            socket.onclose = () => {
-                if (!reconnecting) {
+            socket.onclose = (e) => {
+                console.log(`❌ WebSocket closed: ${e.code}`);
+                if (!reconnecting && e.code !== 4004 && e.code !== 4003 && e.code !== 4001) {
                     reconnecting = true;
-                    console.log('🔄 Reconnecting...');
-                    setTimeout(connectWS, 1000);
+                    attemptReconnect();
+                } else if (e.code === 4004) {
+                    alert('Room not found or expired');
+                    window.location.href = '/';
+                } else if (e.code === 4003) {
+                    alert('Room is full');
+                    window.location.href = '/';
+                } else if (e.code === 4001) {
+                    alert('Username already taken in this room');
+                    window.location.href = '/';
                 }
             };
 
             socket.onmessage = (e) => {
                 const data = JSON.parse(e.data);
                 const event = data.event;
-                const payload = data.data;
+                const payload = data.data || data.error;
 
-                if (event === "player_join") updatePlayers(payload.players);
-                if (event === "player_disconnect") handlePlayerDisconnect(payload.user);
-                if (event === "ready_state") updateReadyState(payload);
-                if (event === "chat") addChatMessage(payload.user, payload.msg);
-                if (event === "typing") showTyping(payload.user);
-                if (event === "game_selected") handleGameSelected(payload.game);
-                if (event === "round_update") handleRoundUpdate(payload.round);
-                if (event === "start_game") redirectToGame(payload.game);
-                if (event === "room_state") syncRoomState(payload);
+                console.log('📩 WS:', event, payload);
+
+                switch(event) {
+                    case 'room_state': syncRoomState(payload); break;
+                    case 'player_join': handlePlayerJoinEvent(payload); break;
+                    case 'player_disconnect': handlePlayerDisconnectEvent(payload); break;
+                    case 'chat': handleChatEvent(payload); break;
+                    case 'voice_message': displayVoiceMessage(payload); break;
+                    case 'image_message': displayImageMessage(payload); break;
+                    case 'typing': showTyping(payload.user); break;
+                    case 'ready_state': updateReadyState(payload); break;
+                    case 'game_selected': handleGameSelectedEvent(payload); break;
+                    case 'round_update': handleRoundUpdateEvent(payload); break;
+                    case 'start_game': handleStartGameEvent(payload); break;
+                    case 'message_reaction': updateMessageReactions(payload.message_id, payload.user, payload.emoji, payload.action); break;
+                    case 'recording_voice': if(payload.user !== USER) showToast(`${payload.user} is recording...`, 'info'); break;
+                    case 'uploading_image': if(payload.user !== USER) showToast(`${payload.user} is uploading...`, 'info'); break;
+                    case 'message_confirmed': confirmMessage(payload); break;
+                    case 'pong': break;
+                    case 'error': showToast(payload.message || 'Error', 'error'); break;
+                    // New backend events
+                    case 'owner_changed': handleOwnerChangedEvent(payload); break;
+                    case 'player_kicked': handlePlayerKickedEvent(payload); break;
+                    case 'player_disconnecting': handlePlayerDisconnectingEvent(payload); break;
+                    case 'player_reconnected': handlePlayerReconnectedEvent(payload); break;
+                }
             };
         }
 
-        function updatePlayers(playerList) {
+        // ============= Player Management =============
+
+        function updatePlayers(playersData) {
             const playersColumn = document.getElementById('playersColumn');
             playersColumn.innerHTML = '';
+            players = playersData;
             
-            playerList.forEach((player, index) => {
-                if (!players[player]) {
-                    players[player] = { ready: false };
-                }
-                
+            const playerNames = Object.keys(playersData);
+            
+            playerNames.forEach((username) => {
+                const pData = playersData[username];
                 const card = document.createElement('div');
                 card.className = 'player-card';
-                card.id = `player-${player}`;
+                card.id = `player-${username}`;
                 
-                const avatar = player === USER ? '🐼' : '😊';
-                const isPlayerOwner = index === 0;
+                const avatar = pData.avatar || (pData.gender === 'female' ? '�' : '�');
+                const isPlayerOwner = pData.is_owner;
                 
-                if (player === USER && isPlayerOwner) {
+                if (username === USER && isPlayerOwner) {
                     isOwner = true;
                 }
                 
-                // Only show status for non-owners
-                const statusHTML = !isPlayerOwner ? `
-                    <div class="player-status status-not-ready">
-                        <span class="status-dot"></span>
-                        not ready
-                    </div>
-                ` : '';
+                // Check connection status (default true for backward compat)
+                const isConnected = pData.is_connected !== false;
+                
+                // Determine status display
+                let statusHTML = '';
+                if (!isConnected) {
+                    // Player is in reconnecting state
+                    statusHTML = `
+                        <div class="player-status status-reconnecting">
+                            <span class="status-dot"></span>
+                            reconnecting...
+                        </div>
+                    `;
+                } else if (!isPlayerOwner) {
+                    // Normal ready/not ready status for non-owners
+                    statusHTML = `
+                        <div class="player-status ${pData.is_ready ? 'status-ready' : 'status-not-ready'}">
+                            <span class="status-dot"></span>
+                            ${pData.is_ready ? 'ready' : 'not ready'}
+                        </div>
+                    `;
+                }
 
                 card.innerHTML = `
                     <div class="player-avatar">${avatar}</div>
                     <div class="player-info">
-                        <span class="player-name">${player}</span>
+                        <span class="player-name">${username}</span>
                         ${isPlayerOwner ? '<span class="owner-badge">owner</span>' : ''}
                     </div>
                     ${statusHTML}
                 `;
                 
                 playersColumn.appendChild(card);
+                
+                // Add click handler for owner actions (only for owner clicking on other players)
+                if (isOwner && username !== USER) {
+                    card.classList.add('clickable');
+                    card.onclick = (e) => showPlayerMenu(username, e);
+                }
             });
             
-            // Update UI based on role
             updateUIForRole();
             
-            // Fill remaining slots
             while (playersColumn.children.length < 2) {
                 const waitingCard = document.createElement('div');
                 waitingCard.className = 'player-card waiting';
@@ -1742,60 +2033,226 @@
                 playersColumn.appendChild(waitingCard);
             }
             
-            document.getElementById('playerCount').textContent = playerList.length;
+            document.getElementById('playerCount').textContent = playerNames.length;
         }
 
-        function handlePlayerDisconnect(user) {
-            addNotification(`${user} disconnected`);
-            delete players[user];
+        function handlePlayerJoinEvent(payload) {
+            updatePlayers(payload.players);
+            // Show notification for OTHER players (not for the player who just joined)
+            // The joining player's USER is in payload.user
+            if (payload.user !== USER) {
+                addNotification(`${payload.user} joined the room`);
+            }
         }
+
+        function handlePlayerDisconnectEvent(payload) {
+            // Show notification for remaining players
+            if (payload.user !== USER) {
+                addNotification(`${payload.user} left the room`);
+            }
+            if (payload.players) {
+                updatePlayers(payload.players);
+            }
+        }
+
+        // ============= New Backend Event Handlers =============
+
+        function handleOwnerChangedEvent(payload) {
+            // Update local owner status
+            if (payload.new_owner === USER) {
+                isOwner = true;
+                showToast('You are now the room owner!', 'success');
+            } else if (payload.old_owner === USER) {
+                isOwner = false;
+            }
+            
+            // Update players and add notification
+            if (payload.players) {
+                updatePlayers(payload.players);
+            }
+            addNotification(`${payload.new_owner} is now the room owner`);
+        }
+
+        function handlePlayerKickedEvent(payload) {
+            if (payload.should_disconnect) {
+                // You were kicked!
+                showToast('You were kicked from the room', 'error');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                // Someone else was kicked
+                addNotification(`${payload.user} was kicked from the room`);
+            }
+        }
+
+        function handlePlayerDisconnectingEvent(payload) {
+            // Mark player as reconnecting
+            if (payload.players) {
+                // Update the player's status to show "reconnecting..."
+                const playerCard = document.getElementById(`player-${payload.user}`);
+                if (playerCard) {
+                    const statusDiv = playerCard.querySelector('.player-status');
+                    if (statusDiv) {
+                        statusDiv.className = 'player-status status-reconnecting';
+                        statusDiv.innerHTML = '<span class="status-dot"></span>reconnecting...';
+                    } else {
+                        // Owner doesn't have status div, add one temporarily
+                        const infoDiv = playerCard.querySelector('.player-info');
+                        if (infoDiv) {
+                            const reconnectStatus = document.createElement('div');
+                            reconnectStatus.className = 'player-status status-reconnecting';
+                            reconnectStatus.innerHTML = '<span class="status-dot"></span>reconnecting...';
+                            infoDiv.appendChild(reconnectStatus);
+                        }
+                    }
+                }
+                players = payload.players;
+            }
+            addNotification(`${payload.user} disconnected (reconnecting...)`);
+        }
+
+        function handlePlayerReconnectedEvent(payload) {
+            if (payload.players) {
+                updatePlayers(payload.players);
+            }
+            if (payload.user !== USER) {
+                addNotification(`${payload.user} reconnected`);
+            }
+        }
+
+        // ============= Owner Actions =============
+
+        function transferOwnership(targetUser) {
+            if (!isOwner) {
+                showToast('Only owner can transfer ownership', 'error');
+                return;
+            }
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    event: 'transfer_ownership',
+                    target_user: targetUser
+                }));
+                closePlayerMenu();
+            }
+        }
+
+        function kickPlayer(targetUser) {
+            if (!isOwner) {
+                showToast('Only owner can kick players', 'error');
+                return;
+            }
+            if (confirm(`Are you sure you want to kick ${targetUser}?`)) {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        event: 'kick_player',
+                        target_user: targetUser
+                    }));
+                    closePlayerMenu();
+                }
+            }
+        }
+
+        function showPlayerMenu(username, event) {
+            event.stopPropagation();
+            if (!isOwner || username === USER) return;
+            
+            // Remove any existing menu
+            closePlayerMenu();
+            
+            const menu = document.createElement('div');
+            menu.className = 'player-menu';
+            menu.id = 'playerMenu';
+            menu.innerHTML = `
+                <div class="player-menu-item" onclick="transferOwnership('${username}')">
+                    👑 Make Owner
+                </div>
+                <div class="player-menu-item danger" onclick="kickPlayer('${username}')">
+                    🚫 Kick Player
+                </div>
+            `;
+            
+            // Position near the player card
+            const playerCard = document.getElementById(`player-${username}`);
+            if (playerCard) {
+                const rect = playerCard.getBoundingClientRect();
+                menu.style.position = 'absolute';
+                menu.style.top = `${rect.bottom + 5}px`;
+                menu.style.left = `${rect.left}px`;
+            }
+            
+            document.body.appendChild(menu);
+        }
+
+        function closePlayerMenu() {
+            const menu = document.getElementById('playerMenu');
+            if (menu) menu.remove();
+        }
+
+        // Close player menu on click outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.player-menu') && !e.target.closest('.player-card')) {
+                closePlayerMenu();
+            }
+        });
 
         function updateReadyState(data) {
             if (players[data.user]) {
-                players[data.user].ready = data.ready;
+                players[data.user].is_ready = data.ready;
             }
             
             const playerCard = document.getElementById(`player-${data.user}`);
             if (playerCard) {
                 const statusDiv = playerCard.querySelector('.player-status');
                 if (statusDiv) {
-                    if (data.ready) {
-                        statusDiv.className = 'player-status status-ready';
-                        statusDiv.innerHTML = '<span class="status-dot"></span>ready';
-                    } else {
-                        statusDiv.className = 'player-status status-not-ready';
-                        statusDiv.innerHTML = '<span class="status-dot"></span>not ready';
-                    }
+                    statusDiv.className = `player-status ${data.ready ? 'status-ready' : 'status-not-ready'}`;
+                    statusDiv.innerHTML = `<span class="status-dot"></span>${data.ready ? 'ready' : 'not ready'}`;
                 }
             }
             
             addNotification(`${data.user} is ${data.ready ? 'ready' : 'not ready'}`);
         }
 
-        function handleGameSelected(game) {
-            addNotification(`Game selected: ${game}`);
+        function handleGameSelectedEvent(payload) {
+            selectedGame = { id: payload.game_id, name: payload.game_name };
+            document.getElementById('selectedGameIcon').textContent = '🎮';
+            document.getElementById('selectedGameName').textContent = payload.game_name;
+            addNotification(`Game selected: ${payload.game_name}`);
         }
 
-        function handleRoundUpdate(round) {
-            selectedRounds = round;
-            document.getElementById('selectedRound').textContent = round;
-            addNotification(`Rounds set to ${round}`);
+        function handleRoundUpdateEvent(payload) {
+            selectedRounds = payload.rounds;
+            document.getElementById('selectedRound').textContent = payload.rounds;
+            addNotification(`Rounds set to ${payload.rounds}`);
         }
 
-        function redirectToGame(game) {
-            window.location.href = `/games/${game}/${ROOM}/`;
+        function handleStartGameEvent(payload) {
+            showToast('Game starting!', 'success');
+            setTimeout(() => {
+                window.location.href = payload.redirect_url;
+            }, 500);
         }
 
         function syncRoomState(state) {
+            console.log('Syncing room state:', state);
+            
             if (state.players) {
-                updatePlayers(Object.keys(state.players));
+                updatePlayers(state.players);
             }
-            if (state.room && state.room.selected_game) {
-                // Update selected game display
+            
+            if (state.room) {
+                if (state.room.selected_game) {
+                    selectedGame = { id: state.room.selected_game };
+                    document.getElementById('selectedGameName').textContent = state.room.selected_game;
+                }
+                if (state.room.rounds) {
+                    selectedRounds = state.room.rounds;
+                    document.getElementById('selectedRound').textContent = state.room.rounds;
+                }
             }
-            if (state.room && state.room.round) {
-                selectedRounds = state.room.round;
-                document.getElementById('selectedRound').textContent = state.room.round;
+            
+            if (state.messages && state.messages.length > 0) {
+                state.messages.reverse().forEach(msg => displayMessage(msg));
             }
         }
 
@@ -1821,13 +2278,52 @@
         }
 
         function openGameModal() {
-            if (!isOwner) return; // Only owner can select game
+            // Allow everyone to open modal, but selectGame will show toast for non-owners
             document.getElementById('gameModal').classList.add('active');
         }
 
         function closeGameModal() {
             document.getElementById('gameModal').classList.remove('active');
         }
+
+        // Media Popup Functions
+        function toggleMediaPopup() {
+            const popup = document.getElementById('mediaPopup');
+            const btn = document.getElementById('mediaToggleBtn');
+            popup.classList.toggle('active');
+            btn.classList.toggle('active');
+        }
+
+        function closeMediaPopup() {
+            const popup = document.getElementById('mediaPopup');
+            const btn = document.getElementById('mediaToggleBtn');
+            popup.classList.remove('active');
+            btn.classList.remove('active');
+        }
+
+        // Close popups when clicking outside
+        document.addEventListener('click', (e) => {
+            // Close media popup
+            const mediaPopup = document.getElementById('mediaPopup');
+            const mediaBtn = document.getElementById('mediaToggleBtn');
+            if (mediaPopup && !mediaPopup.contains(e.target) && !mediaBtn.contains(e.target)) {
+                closeMediaPopup();
+            }
+            
+            // Close round dropdown
+            const roundDropdown = document.getElementById('roundDropdown');
+            const roundSelector = document.getElementById('roundSelector');
+            if (roundDropdown && !roundDropdown.contains(e.target) && !roundSelector.contains(e.target)) {
+                roundDropdown.classList.remove('active');
+                roundSelector?.classList.remove('active');
+            }
+            
+            // Close reaction picker
+            const reactionPicker = document.getElementById('reactionPicker');
+            if (reactionPicker && !reactionPicker.contains(e.target)) {
+                reactionPicker.classList.remove('active');
+            }
+        });
 
         function updateUIForRole() {
             const gameSelector = document.querySelector('.game-selector');
@@ -1840,9 +2336,10 @@
                 roundSelector.classList.remove('disabled');
                 actionRow.innerHTML = '<button class="action-btn start-btn" id="startBtn" onclick="startGame()">Start Game</button>';
             } else {
-                // Player UI
-                gameSelector.classList.add('disabled');
-                gameSelector.onclick = null;
+                // Player UI - can view games but not select, can't change rounds
+                // Keep game selector clickable so they can view games (selectGame shows toast)
+                gameSelector.classList.remove('disabled');
+                // Only disable round selector
                 roundSelector.classList.add('disabled');
                 actionRow.innerHTML = `
                     <button class="action-btn ready-btn" id="readyBtn" onclick="toggleReady(true)">Ready</button>
@@ -1867,7 +2364,10 @@
         }
 
         function selectGame(gameId, name, icon) {
-            if (!isOwner) return; // Only owner can select game
+            if (!isOwner) {
+                showToast('Only room owner can select the game', 'error');
+                return;
+            }
             
             selectedGame = { id: gameId, name, icon };
             document.getElementById('selectedGameIcon').textContent = icon;
@@ -1925,17 +2425,21 @@
         });
 
         function startGame() {
-            if (!isOwner) return;
-            
-            if (!selectedGame) {
-                alert('Please select a game first!');
+            if (!isOwner) {
+                showToast('Only room owner can start the game', 'error');
                 return;
             }
             
-            // Check if all players are ready
-            const allReady = Object.values(players).every(p => p.ready || p === players[Object.keys(players)[0]]);
-            if (!allReady) {
-                alert('Waiting for all players to be ready!');
+            if (!selectedGame) {
+                showToast('Please select a game first!', 'error');
+                return;
+            }
+            
+            // Check if all non-owner players are ready
+            const playerEntries = Object.entries(players);
+            const allReady = playerEntries.every(([username, p]) => p.is_owner || p.is_ready);
+            if (!allReady && playerEntries.length > 1) {
+                showToast('Waiting for all players to be ready!', 'error');
                 return;
             }
             
@@ -1975,28 +2479,106 @@
             isTyping = false;
         }
 
-        function addChatMessage(user, msg) {
-            const messagesContainer = document.getElementById('chatMessages');
+        function handleChatEvent(payload) {
+            // Redis format: {id, type:'text', sender, content, timestamp, reactions}
+            displayMessage(payload);
+        }
+
+        function displayMessage(msg) {
+            const chatBox = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = user === USER ? 'chat-message own' : 'chat-message other';
             
-            const now = new Date();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            const displayHours = hours % 12 || 12;
-            const timeString = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+            // Handle system messages
+            if (msg.type === 'system') {
+                messageDiv.className = 'chat-message notification';
+                messageDiv.textContent = msg.content;
+                chatBox.appendChild(messageDiv);
+                chatBox.scrollTop = chatBox.scrollHeight;
+                return;
+            }
+            
+            messageDiv.className = msg.sender === USER ? 'chat-message own' : 'chat-message other';
+            messageDiv.setAttribute('data-message-id', msg.id);
+            
+            const timeString = formatTime(msg.timestamp);
+            const senderName = msg.sender === USER ? 'You' : msg.sender;
+            
+            let contentHTML = '';
+            if (msg.type === 'text') {
+                contentHTML = `<div>${escapeHtml(msg.content)}</div>`;
+            } else if (msg.type === 'voice') {
+                contentHTML = `
+                    <div class="voice-message">
+                        <audio controls src="${msg.url}"></audio>
+                        <span class="voice-duration">${formatDuration(msg.duration || 0)}</span>
+                    </div>`;
+            } else if (msg.type === 'image') {
+                contentHTML = `
+                    <div class="image-message" onclick="openLightbox('${msg.url}')">
+                        <img src="${msg.url}" alt="Image" style="max-width: 220px; border-radius: 12px;">
+                    </div>`;
+            }
+            
+            // Build reactions HTML
+            let reactionsHTML = '';
+            if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+                reactionsHTML = '<div class="message-reactions">';
+                for (const [emoji, users] of Object.entries(msg.reactions)) {
+                    const count = users.length;
+                    const isOwn = users.includes(USER);
+                    reactionsHTML += `<span class="reaction ${isOwn ? 'own' : ''}" onclick="toggleReaction('${msg.id}', '${emoji}')">${emoji} ${count > 1 ? count : ''}</span>`;
+                }
+                reactionsHTML += '</div>';
+            }
             
             messageDiv.innerHTML = `
                 <div class="message-header">
-                    <div class="message-sender">${user === USER ? 'You' : user}</div>
-                    <div class="message-time">${timeString}</div>
+                    <span class="message-sender">${senderName}</span>
+                    <span class="message-time">${timeString}</span>
                 </div>
-                <div>${msg}</div>
+                ${contentHTML}
+                ${reactionsHTML}
+                <button class="reaction-btn" onclick="showReactionPicker('${msg.id}')">😊</button>
             `;
             
-            messagesContainer.appendChild(messageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function addChatMessage(user, msg) {
+            // Legacy support - convert to new format
+            displayMessage({
+                id: Date.now().toString(),
+                type: 'text',
+                sender: user,
+                content: msg,
+                timestamp: new Date().toISOString(),
+                reactions: {}
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function confirmMessage(payload) {
+            const el = document.querySelector(`[data-temp-id="${payload.temp_id}"]`);
+            if (el) {
+                el.setAttribute('data-message-id', payload.message_id);
+                el.removeAttribute('data-temp-id');
+            }
+        }
+
+        function toggleReaction(messageId, emoji) {
+            const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
+            const reactionEl = msgEl?.querySelector(`.reaction:contains('${emoji}')`);
+            if (reactionEl?.classList.contains('own')) {
+                removeReaction(messageId, emoji);
+            } else {
+                socket.send(JSON.stringify({ event: 'react_message', message_id: messageId, emoji }));
+            }
         }
 
         function showTyping(user) {
@@ -2088,9 +2670,14 @@
             }
         }
 
+        let recordingCancelled = false;
+        let recordingStream = null;
+
         async function startRecording() {
             try {
+                recordingCancelled = false;
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                recordingStream = stream;
                 mediaRecorder = new MediaRecorder(stream);
                 audioChunks = [];
                 
@@ -2099,17 +2686,30 @@
                 };
                 
                 mediaRecorder.onstop = async () => {
+                    // Check if cancelled - don't upload if cancelled
+                    if (recordingCancelled) {
+                        recordingStream?.getTracks().forEach(track => track.stop());
+                        audioChunks = [];
+                        return;
+                    }
+                    
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
                     
                     if (duration > 60) {
                         showToast('Voice message too long. Maximum 60 seconds.', 'error');
-                        stream.getTracks().forEach(track => track.stop());
+                        recordingStream?.getTracks().forEach(track => track.stop());
+                        return;
+                    }
+                    
+                    if (duration < 1) {
+                        showToast('Voice message too short', 'error');
+                        recordingStream?.getTracks().forEach(track => track.stop());
                         return;
                     }
                     
                     await uploadVoiceMessage(audioBlob, duration);
-                    stream.getTracks().forEach(track => track.stop());
+                    recordingStream?.getTracks().forEach(track => track.stop());
                 };
                 
                 mediaRecorder.start();
@@ -2117,7 +2717,7 @@
                 
                 // Show recording UI
                 document.getElementById('recordingOverlay').classList.add('active');
-                document.getElementById('voiceBtn').classList.add('recording');
+                document.getElementById('mediaToggleBtn').classList.add('recording');
                 
                 // Start timer
                 updateRecordingTimer();
@@ -2146,18 +2746,19 @@
                 mediaRecorder.stop();
                 clearInterval(recordingTimer);
                 document.getElementById('recordingOverlay').classList.remove('active');
-                document.getElementById('voiceBtn').classList.remove('recording');
+                document.getElementById('mediaToggleBtn').classList.remove('recording');
             }
         }
 
         function cancelRecording() {
-            if (mediaRecorder) {
+            recordingCancelled = true;
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
-                audioChunks = [];
-                clearInterval(recordingTimer);
-                document.getElementById('recordingOverlay').classList.remove('active');
-                document.getElementById('voiceBtn').classList.remove('recording');
             }
+            audioChunks = [];
+            clearInterval(recordingTimer);
+            document.getElementById('recordingOverlay').classList.remove('active');
+            document.getElementById('mediaToggleBtn').classList.remove('recording');
         }
 
         function updateRecordingTimer() {
@@ -2183,17 +2784,17 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Send via WebSocket
+                    // Send via WebSocket - use url field
                     if (socket && socket.readyState === WebSocket.OPEN) {
                         socket.send(JSON.stringify({
                             event: 'voice_message',
-                            voice_url: data.data.voice_url,
+                            url: data.data.url,
                             duration: data.data.duration
                         }));
                     }
                     showToast('Voice message sent!', 'success');
                 } else {
-                    showToast(data.error.message || 'Failed to upload voice message', 'error');
+                    showToast(data.error?.message || 'Failed to upload', 'error');
                 }
             } catch (error) {
                 console.error('Voice upload error:', error);
@@ -2250,11 +2851,9 @@
             formData.append('image', selectedImage);
             formData.append('room_code', ROOM);
             
-            // Hide preview
             document.getElementById('imagePreview').classList.remove('active');
             showToast('Uploading image...', 'info');
             
-            // Send uploading indicator
             if (socket && socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify({ event: 'uploading_image' }));
             }
@@ -2268,19 +2867,17 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Send via WebSocket
+                    // Send via WebSocket - use url field
                     if (socket && socket.readyState === WebSocket.OPEN) {
                         socket.send(JSON.stringify({
                             event: 'image_message',
-                            image_url: data.data.image_url,
-                            width: data.data.width,
-                            height: data.data.height
+                            url: data.data.url
                         }));
                     }
                     selectedImage = null;
                     showToast('Image sent!', 'success');
                 } else {
-                    showToast(data.error.message || 'Failed to upload image', 'error');
+                    showToast(data.error?.message || 'Failed to upload', 'error');
                 }
             } catch (error) {
                 console.error('Image upload error:', error);
@@ -2448,7 +3045,7 @@
                     <span class="message-time">${formatTime(data.timestamp)}</span>
                 </div>
                 <div class="voice-message">
-                    <audio controls src="${data.voice_url}"></audio>
+                    <audio controls src="${data.url}"></audio>
                     <span class="voice-duration">${formatDuration(data.duration)}</span>
                 </div>
                 <button class="reaction-btn" onclick="showReactionPicker('${data.id || data.message_id}')">😊</button>
@@ -2469,8 +3066,8 @@
                     <span class="message-sender">${data.sender}</span>
                     <span class="message-time">${formatTime(data.timestamp)}</span>
                 </div>
-                <div class="image-message" onclick="openLightbox('${data.image_url}')">
-                    <img src="${data.image_url}" alt="Image" style="max-width: 220px; border-radius: 12px;">
+                <div class="image-message" onclick="openLightbox('${data.url}')">
+                    <img src="${data.url}" alt="Image" style="max-width: 220px; border-radius: 12px;">
                 </div>
                 <button class="reaction-btn" onclick="showReactionPicker('${data.id || data.message_id}')">😊</button>
             `;
@@ -2516,6 +3113,80 @@
             }, 3000);
         }
 
+        // ============= Reaction Picker Functions =============
+
+        function showReactionPicker(messageId, event) {
+            if (event) event.stopPropagation();
+            currentReactionMessageId = messageId;
+            const picker = document.getElementById('reactionPicker');
+            const chatContainer = document.getElementById('chatMessages');
+            
+            // Position the picker near the message, within chat bounds
+            const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (messageEl && chatContainer) {
+                const msgRect = messageEl.getBoundingClientRect();
+                const chatRect = chatContainer.getBoundingClientRect();
+                const pickerHeight = 36; // Approximate height
+                const pickerWidth = 280;
+                
+                // Calculate left position (center on message, but keep within chat)
+                let left = msgRect.left;
+                if (left + pickerWidth > chatRect.right) {
+                    left = chatRect.right - pickerWidth - 10;
+                }
+                if (left < chatRect.left) {
+                    left = chatRect.left + 10;
+                }
+                
+                // Position above message, but if too high, put below
+                let top = msgRect.top - pickerHeight - 5;
+                if (top < chatRect.top) {
+                    top = msgRect.bottom + 5;
+                }
+                
+                picker.style.left = `${left}px`;
+                picker.style.top = `${top}px`;
+            }
+            
+            picker.classList.add('active');
+        }
+
+        function hideReactionPicker() {
+            document.getElementById('reactionPicker').classList.remove('active');
+            currentReactionMessageId = null;
+        }
+
+        function addReaction(emoji) {
+            if (!currentReactionMessageId) return;
+            
+            // Toggle reaction (add if not exists, remove if same emoji)
+            toggleReaction(currentReactionMessageId, emoji);
+            hideReactionPicker();
+        }
+
+        function toggleReaction(messageId, emoji) {
+            // One reaction per user per message - clicking same emoji removes it
+            // Clicking different emoji replaces existing
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    event: 'react_message',
+                    message_id: messageId,
+                    emoji: emoji
+                }));
+            }
+        }
+
+        // Tap on message to show reaction picker
+        document.addEventListener('click', (e) => {
+            const messageEl = e.target.closest('.chat-message:not(.notification)');
+            if (messageEl && !e.target.closest('.reaction') && !e.target.closest('audio') && !e.target.closest('.image-message')) {
+                const messageId = messageEl.getAttribute('data-message-id');
+                if (messageId) {
+                    showReactionPicker(messageId, e);
+                }
+            }
+        });
+
         // ============= Utility Functions =============
 
         function formatTime(timestamp) {
@@ -2539,211 +3210,7 @@
             document.getElementById('lightbox').classList.remove('active');
         }
 
-        // ============= WebSocket Event Handlers (Missing Functions) =============
-
-        function handleRoomState(data) {
-            console.log('Room state received:', data);
-            // Room state is already handled by existing code
-        }
-
-        function handlePlayerJoin(data) {
-            console.log('Player joined:', data);
-            // Add notification to chat
-            const chatBox = document.getElementById('chatMessages');
-            const notif = document.createElement('div');
-            notif.className = 'chat-message notification';
-            notif.textContent = `${data.user} joined the room`;
-            chatBox.appendChild(notif);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function handlePlayerDisconnect(data) {
-            console.log('Player disconnected:', data);
-            // Add notification to chat
-            const chatBox = document.getElementById('chatMessages');
-            const notif = document.createElement('div');
-            notif.className = 'chat-message notification';
-            notif.textContent = `${data.user} left the room`;
-            chatBox.appendChild(notif);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function handleChatMessage(data) {
-            displayChatMessage(data);
-        }
-
-        function displayChatMessage(data) {
-            const chatBox = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message ${data.sender === USER ? 'own' : 'other'}`;
-            
-            if (data.temp_id) {
-                messageDiv.setAttribute('data-temp-id', data.temp_id);
-            }
-            if (data.id || data.message_id) {
-                messageDiv.setAttribute('data-message-id', data.id || data.message_id);
-            }
-            
-            messageDiv.innerHTML = `
-                <div class="message-header">
-                    <span class="message-sender">${data.sender}</span>
-                    <span class="message-time">${formatTime(data.timestamp)}</span>
-                </div>
-                <div>${data.msg}</div>
-                <button class="reaction-btn" onclick="showReactionPicker('${data.id || data.message_id}')">😊</button>
-            `;
-            
-            chatBox.appendChild(messageDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function handleTyping(data) {
-            console.log('Typing:', data);
-            // Existing typing indicator code handles this
-        }
-
-        function handleReadyState(data) {
-            console.log('Ready state:', data);
-            // Existing ready state code handles this
-        }
-
-        function handleGameSelected(data) {
-            console.log('Game selected:', data);
-            // Existing game selection code handles this
-        }
-
-        function handleRoundUpdate(data) {
-            console.log('Round update:', data);
-            // Existing round update code handles this
-        }
-
-        function handleStartGame(data) {
-            console.log('Game starting:', data);
-            showToast('Game is starting!', 'success');
-        }
-
-        // ============= Enhanced WebSocket Handler =============
-
-        // Override the existing socket.onmessage to handle all events
-        const originalConnectWS = connectWS;
-        connectWS = function() {
-            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            socket = new WebSocket(`${protocol}//${location.host}/ws/room/${ROOM}/?name=${USER}`);
-            
-            socket.onopen = () => {
-                console.log('WebSocket connected');
-                reconnectAttempts = 0;
-                hideReconnectOverlay();
-                startHeartbeat();
-                
-                // Send queued messages
-                while (messageQueue.length > 0) {
-                    const msg = messageQueue.shift();
-                    socket.send(JSON.stringify(msg));
-                }
-                
-                // Sync state
-                socket.send(JSON.stringify({ event: 'sync_state' }));
-            };
-            
-            socket.onclose = () => {
-                console.log('WebSocket disconnected');
-                stopHeartbeat();
-                attemptReconnect();
-            };
-            
-            socket.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                showToast('Connection error', 'error');
-            };
-            
-            socket.onmessage = (e) => {
-                const data = JSON.parse(e.data);
-                const event = data.event;
-                const payload = data.data || data;
-                
-                console.log('WebSocket message:', event, payload);
-                
-                switch (event) {
-                    case 'room_state':
-                        handleRoomState(payload);
-                        break;
-                    case 'player_join':
-                        handlePlayerJoin(payload);
-                        break;
-                    case 'player_disconnect':
-                        handlePlayerDisconnect(payload);
-                        break;
-                    case 'chat':
-                        handleChatMessage(payload);
-                        break;
-                    case 'voice_message':
-                        displayVoiceMessage(payload);
-                        break;
-                    case 'image_message':
-                        displayImageMessage(payload);
-                        break;
-                    case 'typing':
-                        handleTyping(payload);
-                        break;
-                    case 'ready_state':
-                        handleReadyState(payload);
-                        break;
-                    case 'game_selected':
-                        handleGameSelected(payload);
-                        break;
-                    case 'round_update':
-                        handleRoundUpdate(payload);
-                        break;
-                    case 'start_game':
-                        handleStartGame(payload);
-                        break;
-                    case 'message_reaction':
-                        updateMessageReactions(payload.message_id, payload.user, payload.emoji, payload.action);
-                        break;
-                    case 'recording_voice':
-                        if (payload.user !== USER) {
-                            showToast(`${payload.user} is recording...`, 'info');
-                        }
-                        break;
-                    case 'uploading_image':
-                        if (payload.user !== USER) {
-                            showToast(`${payload.user} is uploading an image...`, 'info');
-                        }
-                        break;
-                    case 'message_confirmed':
-                        // Update temp message with real ID
-                        const messageEl = document.querySelector(`[data-temp-id="${payload.temp_id}"]`);
-                        if (messageEl) {
-                            messageEl.setAttribute('data-message-id', payload.message_id);
-                            messageEl.removeAttribute('data-temp-id');
-                            updateMessageStatus(payload.temp_id, 'sent');
-                        }
-                        break;
-                    case 'pong':
-                        // Heartbeat response
-                        break;
-                    case 'error':
-                        showToast(payload.message || 'An error occurred', 'error');
-                        break;
-                    default:
-                        console.warn('Unknown event:', event);
-                }
-            };
-        };
-
-        // Enhanced sendMessage to use optimistic updates
-        const originalSendMessage = sendMessage;
-        sendMessage = function() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            
-            if (message) {
-                sendMessageWithOptimisticUpdate(message);
-                input.value = '';
-            }
-        };
-
+        // ============= Init =============
         connectWS();
     </script>
 

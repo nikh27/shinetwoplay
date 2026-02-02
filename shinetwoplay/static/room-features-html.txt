@@ -1,0 +1,61 @@
+<!-- Advanced Features HTML Components -->
+<!-- Add these elements to room.html body -->
+
+<!-- Recording Overlay -->
+<div class="recording-overlay" id="recordingOverlay">
+    <div class="recording-timer" id="recordingTimer">00:00</div>
+    <div class="recording-controls">
+        <button class="recording-btn stop" onclick="stopRecording()">⏹ Stop</button>
+        <button class="recording-btn cancel" onclick="cancelRecording()">✕ Cancel</button>
+    </div>
+</div>
+
+<!-- Image Preview -->
+<div class="image-preview" id="imagePreview">
+    <img src="" id="previewImg" alt="Preview">
+    <div class="image-preview-controls">
+        <button class="recording-btn stop" onclick="sendImage()">📤 Send</button>
+        <button class="recording-btn cancel" onclick="cancelImage()">✕ Cancel</button>
+    </div>
+</div>
+
+<!-- Reaction Picker -->
+<div class="reaction-picker" id="reactionPicker" onclick="hideReactionPicker()">
+    <div class="emoji" onclick="event.stopPropagation(); addReaction('❤️')">❤️</div>
+    <div class="emoji" onclick="event.stopPropagation(); addReaction('😂')">😂</div>
+    <div class="emoji" onclick="event.stopPropagation(); addReaction('👍')">👍</div>
+    <div class="emoji" onclick="event.stopPropagation(); addReaction('🎉')">🎉</div>
+    <div class="emoji" onclick="event.stopPropagation(); addReaction('😮')">😮</div>
+    <div class="emoji" onclick="event.stopPropagation(); addReaction('😍')">😍</div>
+    <div class="emoji" onclick="event.stopPropagation(); addReaction('🔥')">🔥</div>
+    <div class="emoji" onclick="event.stopPropagation(); addReaction('💯')">💯</div>
+</div>
+
+<!-- Reconnect Overlay -->
+<div class="reconnect-overlay" id="reconnectOverlay">
+    <div class="spinner"></div>
+    <span style="margin-left: 12px;">Reconnecting...</span>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast"></div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    <img src="" id="lightboxImg" alt="Full size" onclick="event.stopPropagation()">
+</div>
+
+<!-- Update chat input container to include voice and image buttons -->
+<!--
+Replace existing chat-input-container with:
+
+<div class="chat-input-container">
+    <div class="input-controls">
+        <button class="attach-btn" onclick="selectImage()" title="Send Image">📷</button>
+        <button class="voice-btn" id="voiceBtn" onclick="toggleRecording()" title="Voice Message">🎤</button>
+        <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
+        <button class="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+</div>
+-->
