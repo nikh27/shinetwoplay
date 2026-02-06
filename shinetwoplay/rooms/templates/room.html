@@ -1465,22 +1465,155 @@
             gap: 16px;
         }
 
-        /* Reaction Picker */
+        /* Reaction Picker - Ultra Compact Design */
         .reaction-picker {
             display: none;
             position: fixed;
             background: white;
-            padding: 12px;
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            padding: 6px 8px;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
             z-index: 500;
-            gap: 8px;
-            flex-wrap: wrap;
-            max-width: 240px;
+            flex-direction: row;
+            align-items: center;
+            gap: 2px;
+            max-width: calc(100vw - 20px);
+            left: 10px !important;
+            right: 10px !important;
+            width: auto !important;
         }
 
         .reaction-picker.active {
             display: flex;
+            animation: pickerPop 0.2s ease-out;
+        }
+
+        @keyframes pickerPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .quick-reactions {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            flex: 1;
+            justify-content: space-around;
+        }
+
+        .quick-emoji {
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 8px;
+            transition: all 0.15s ease;
+            user-select: none;
+            background: transparent;
+            border: 2px solid transparent;
+        }
+
+        .quick-emoji:hover {
+            background: var(--sunshine-light);
+            transform: scale(1.1);
+        }
+
+        .quick-emoji:active {
+            transform: scale(0.9);
+        }
+
+        .quick-emoji.selected {
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            border-color: var(--sunshine-peach);
+        }
+
+        /* Animated Quick Emojis */
+        .quick-emoji.animated {
+            animation: emojiWiggle 2.5s ease-in-out infinite;
+        }
+
+        .quick-emoji:nth-child(1) { animation-delay: 0s; }
+        .quick-emoji:nth-child(2) { animation-delay: 0.15s; }
+        .quick-emoji:nth-child(3) { animation-delay: 0.3s; }
+        .quick-emoji:nth-child(4) { animation-delay: 0.45s; }
+        .quick-emoji:nth-child(5) { animation-delay: 0.6s; }
+
+        @keyframes emojiWiggle {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(-3deg) scale(1.02); }
+            75% { transform: rotate(3deg) scale(1.02); }
+        }
+
+        /* Love emoji heart beat */
+        .quick-emoji.love-beat:hover {
+            animation: heartBeat 0.5s ease-in-out;
+        }
+
+        @keyframes heartBeat {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.15); }
+            50% { transform: scale(1.08); }
+            75% { transform: scale(1.2); }
+        }
+
+        .more-emojis-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, var(--sunshine-light), var(--sunshine-peach));
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px var(--shadow-soft);
+            flex-shrink: 0;
+        }
+
+        .more-emojis-btn:hover {
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        /* Full Emoji Picker Container */
+        .emoji-picker-container {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 8px;
+            margin-top: 4px;
+        }
+
+        .emoji-picker-container.active {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 2px;
+        }
+
+        .emoji-grid .emoji-item {
+            font-size: 18px;
+            padding: 4px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.1s ease;
+        }
+
+        .emoji-grid .emoji-item:hover {
+            background: var(--sunshine-light);
+            transform: scale(1.15);
         }
 
         .reaction-picker .emoji {
@@ -1497,27 +1630,43 @@
             transform: scale(1.2);
         }
 
-        /* Message Reactions */
+        /* Message Reactions - Compact */
         .message-reactions {
             display: flex;
-            gap: 6px;
-            margin-top: 6px;
+            gap: 4px;
+            margin-top: 4px;
             flex-wrap: wrap;
         }
 
         .message-reactions .reaction {
             background: var(--sunshine-light);
-            padding: 4px 10px;
-            border-radius: 14px;
-            font-size: 14px;
+            padding: 2px 1px;
+            border-radius: 10px;
+            font-size: 12px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
             user-select: none;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .message-reactions .reaction .reaction-count {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-dark);
         }
 
         .message-reactions .reaction:hover {
             background: var(--sunshine-yellow);
-            transform: scale(1.1);
+            transform: scale(1.05);
+        }
+
+        /* Highlight user's own reaction */
+        .message-reactions .reaction.own {
+            background: linear-gradient(135deg, var(--sunshine-light), var(--sunshine-peach));
+            border-color: var(--sunshine-orange);
         }
 
         /* Reconnect Overlay */
@@ -1733,9 +1882,10 @@
             cursor: pointer;
             opacity: 0;
             transition: all 0.2s ease;
-            padding: 6px 10px;
-            border-radius: 10px;
-            margin-top: 4px;
+            padding: 4px;
+            border-radius: 50%;
+            margin-top: 2px;
+            align-self: flex-start;
         }
 
         .chat-message:hover .reaction-btn {
@@ -1744,6 +1894,41 @@
 
         .reaction-btn:hover {
             background: var(--sunshine-light);
+        }
+
+        /* Message Reactions Container */
+        .message-reactions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+            width: 100%;
+        }
+
+        .reaction {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 12px;
+            border: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .reaction.own {
+            background: #fff4e0;
+            border-color: var(--sunshine-orange);
+            color: var(--text-dark);
+        }
+
+        .reaction:hover {
+            transform: scale(1.05);
+            background: var(--white);
         }
     </style>
 </head>
@@ -1946,7 +2131,7 @@
                     case 'game_selected': handleGameSelectedEvent(payload); break;
                     case 'round_update': handleRoundUpdateEvent(payload); break;
                     case 'start_game': handleStartGameEvent(payload); break;
-                    case 'message_reaction': updateMessageReactions(payload.message_id, payload.user, payload.emoji, payload.action); break;
+                    case 'message_reaction': updateMessageReactions(payload.message_id, payload.user, payload.emoji, payload.action, payload.old_emoji); break;
                     case 'recording_voice': if(payload.user !== USER) showToast(`${payload.user} is recording...`, 'info'); break;
                     case 'uploading_image': if(payload.user !== USER) showToast(`${payload.user} is uploading...`, 'info'); break;
                     case 'message_confirmed': confirmMessage(payload); break;
@@ -2081,10 +2266,16 @@
                     window.location.href = '/';
                 }, 2000);
             } else {
-                // Someone else was kicked
+                // Someone else was kicked - update player list immediately
+                if (payload.players) {
+                    updatePlayers(payload.players);
+                }
                 addNotification(`${payload.user} was kicked from the room`);
             }
         }
+
+        // Track reconnection timeouts for cleanup
+        const reconnectionTimeouts = {};
 
         function handlePlayerDisconnectingEvent(payload) {
             // Mark player as reconnecting
@@ -2110,9 +2301,34 @@
                 players = payload.players;
             }
             addNotification(`${payload.user} disconnected (reconnecting...)`);
+            
+            // Set timeout to remove player after grace period (30 seconds)
+            const gracePeriod = (payload.grace_period || 30) * 1000;
+            const disconnectedUser = payload.user;
+            
+            // Clear any existing timeout for this user
+            if (reconnectionTimeouts[disconnectedUser]) {
+                clearTimeout(reconnectionTimeouts[disconnectedUser]);
+            }
+            
+            reconnectionTimeouts[disconnectedUser] = setTimeout(() => {
+                // Remove player from frontend if they haven't reconnected
+                if (players[disconnectedUser] && players[disconnectedUser].is_connected === false) {
+                    delete players[disconnectedUser];
+                    updatePlayers(players);
+                    addNotification(`${disconnectedUser} left the room (timeout)`);
+                }
+                delete reconnectionTimeouts[disconnectedUser];
+            }, gracePeriod);
         }
 
         function handlePlayerReconnectedEvent(payload) {
+            // Clear the reconnection timeout for this user
+            if (reconnectionTimeouts[payload.user]) {
+                clearTimeout(reconnectionTimeouts[payload.user]);
+                delete reconnectionTimeouts[payload.user];
+            }
+            
             if (payload.players) {
                 updatePlayers(payload.players);
             }
@@ -2526,7 +2742,7 @@
                 for (const [emoji, users] of Object.entries(msg.reactions)) {
                     const count = users.length;
                     const isOwn = users.includes(USER);
-                    reactionsHTML += `<span class="reaction ${isOwn ? 'own' : ''}" onclick="toggleReaction('${msg.id}', '${emoji}')">${emoji} ${count > 1 ? count : ''}</span>`;
+                    reactionsHTML += `<span class="reaction ${isOwn ? 'own' : ''}" data-emoji="${emoji}" data-count="${count}" onclick="toggleReaction('${msg.id}', '${emoji}')">${emoji} <span class="reaction-count">${count > 1 ? count : ''}</span></span>`;
                 }
                 reactionsHTML += '</div>';
             }
@@ -2571,13 +2787,80 @@
             }
         }
 
-        function toggleReaction(messageId, emoji) {
+        function updateMessageReactions(messageId, user, emoji, action, oldEmoji) {
+            console.log('updateMessageReactions called:', { messageId, user, emoji, action, oldEmoji });
             const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
-            const reactionEl = msgEl?.querySelector(`.reaction:contains('${emoji}')`);
-            if (reactionEl?.classList.contains('own')) {
-                removeReaction(messageId, emoji);
-            } else {
-                socket.send(JSON.stringify({ event: 'react_message', message_id: messageId, emoji }));
+            if (!msgEl) {
+                console.warn('Message element not found for ID:', messageId);
+                return;
+            }
+
+            let reactionsContainer = msgEl.querySelector('.message-reactions');
+            if (!reactionsContainer) {
+                console.log('Creating new reactions container');
+                reactionsContainer = document.createElement('div');
+                reactionsContainer.className = 'message-reactions';
+                // Insert before the reaction button
+                const reactionBtn = msgEl.querySelector('.reaction-btn');
+                if (reactionBtn) {
+                     msgEl.insertBefore(reactionsContainer, reactionBtn);
+                } else {
+                     msgEl.appendChild(reactionsContainer);
+                }
+            }
+
+            // Helper to get reaction element by data attribute
+            const getReactionEl = (e) => reactionsContainer.querySelector(`.reaction[data-emoji="${e}"]`);
+
+            const isMe = user === USER;
+
+            // Handle 'replaced' (first remove old, then add new)
+            if (action === 'replaced') {
+                 if (oldEmoji) handleRemove(oldEmoji);
+                 handleAdd(emoji);
+            } else if (action === 'removed') {
+                handleRemove(emoji);
+            } else if (action === 'added') {
+                handleAdd(emoji);
+            }
+
+            function handleAdd(e) {
+                let el = getReactionEl(e);
+                if (el) {
+                    // Update count
+                    let count = parseInt(el.dataset.count || 0) + 1;
+                    el.dataset.count = count;
+                    el.innerHTML = `${e} <span class="reaction-count">${count > 1 ? count : ''}</span>`;
+                    if (isMe) el.classList.add('own');
+                } else {
+                    // Create new
+                    el = document.createElement('span');
+                    el.className = `reaction ${isMe ? 'own' : ''}`;
+                    el.dataset.count = 1;
+                    el.dataset.emoji = e;
+                    el.innerHTML = `${e} <span class="reaction-count"></span>`;
+                    el.onclick = () => toggleReaction(messageId, e);
+                    reactionsContainer.appendChild(el);
+                }
+            }
+
+            function handleRemove(e) {
+                let el = getReactionEl(e);
+                if (el) {
+                    let count = parseInt(el.dataset.count || 1) - 1;
+                    if (isMe) el.classList.remove('own');
+                    
+                    if (count <= 0) {
+                        el.remove();
+                        // Remove container if empty
+                        if (reactionsContainer.children.length === 0) {
+                             reactionsContainer.remove();
+                        }
+                    } else {
+                        el.dataset.count = count;
+                        el.innerHTML = `${e} <span class="reaction-count">${count > 1 ? count : ''}</span>`;
+                    }
+                }
             }
         }
 
@@ -3076,30 +3359,7 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function updateMessageReactions(messageId, user, emoji, action) {
-            const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
-            if (!messageEl) return;
-            
-            let reactionsEl = messageEl.querySelector('.message-reactions');
-            if (!reactionsEl) {
-                reactionsEl = document.createElement('div');
-                reactionsEl.className = 'message-reactions';
-                messageEl.appendChild(reactionsEl);
-            }
-            
-            if (action === 'add') {
-                const reactionSpan = document.createElement('span');
-                reactionSpan.className = 'reaction';
-                reactionSpan.textContent = emoji;
-                reactionSpan.onclick = () => removeReaction(messageId, emoji);
-                reactionsEl.appendChild(reactionSpan);
-            } else if (action === 'remove') {
-                const reactions = reactionsEl.querySelectorAll('.reaction');
-                reactions.forEach(r => {
-                    if (r.textContent === emoji) r.remove();
-                });
-            }
-        }
+
 
         // ============= Toast Notifications =============
 
@@ -3121,13 +3381,16 @@
             const picker = document.getElementById('reactionPicker');
             const chatContainer = document.getElementById('chatMessages');
             
+            // Highlight current emoji if user already reacted
+            highlightCurrentEmoji(messageId);
+            
             // Position the picker near the message, within chat bounds
             const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
             if (messageEl && chatContainer) {
                 const msgRect = messageEl.getBoundingClientRect();
                 const chatRect = chatContainer.getBoundingClientRect();
-                const pickerHeight = 36; // Approximate height
-                const pickerWidth = 280;
+                const pickerHeight = 44;
+                const pickerWidth = 200;
                 
                 // Calculate left position (center on message, but keep within chat)
                 let left = msgRect.left;
@@ -3151,9 +3414,41 @@
             picker.classList.add('active');
         }
 
+        function highlightCurrentEmoji(messageId) {
+            const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
+            const quickEmojis = document.querySelectorAll('.quick-emoji');
+            
+            // Clear all selections
+            quickEmojis.forEach(el => el.classList.remove('selected'));
+            
+            if (!messageEl) return;
+            
+            // Find user's current reaction on this message
+            const userReaction = messageEl.querySelector('.reaction.own');
+            if (userReaction) {
+                const currentEmoji = userReaction.dataset.emoji;
+                // Highlight matching quick emoji
+                quickEmojis.forEach(el => {
+                    if (el.dataset.emoji === currentEmoji) {
+                        el.classList.add('selected');
+                    }
+                });
+            }
+        }
+
         function hideReactionPicker() {
             document.getElementById('reactionPicker').classList.remove('active');
+            // Close full emoji picker too
+            const fullPicker = document.getElementById('fullEmojiPicker');
+            if (fullPicker) fullPicker.classList.remove('active');
+            // Clear selection highlight
+            document.querySelectorAll('.quick-emoji').forEach(el => el.classList.remove('selected'));
             currentReactionMessageId = null;
+        }
+
+        function toggleFullEmojiPicker() {
+            const container = document.getElementById('fullEmojiPicker');
+            container.classList.toggle('active');
         }
 
         function addReaction(emoji) {
@@ -3176,8 +3471,18 @@
             }
         }
 
+        // Close reaction picker when clicking outside
+        document.addEventListener('click', (e) => {
+            const picker = document.getElementById('reactionPicker');
+            if (picker.classList.contains('active') && !e.target.closest('#reactionPicker')) {
+                hideReactionPicker();
+            }
+        });
+
         // Tap on message to show reaction picker
         document.addEventListener('click', (e) => {
+            if (e.target.closest('#reactionPicker')) return; // Don't interfere with picker
+            
             const messageEl = e.target.closest('.chat-message:not(.notification)');
             if (messageEl && !e.target.closest('.reaction') && !e.target.closest('audio') && !e.target.closest('.image-message')) {
                 const messageId = messageEl.getAttribute('data-message-id');
@@ -3234,16 +3539,60 @@
         </div>
     </div>
 
-    <!-- Reaction Picker -->
-    <div class="reaction-picker" id="reactionPicker" onclick="hideReactionPicker()">
-        <div class="emoji" onclick="event.stopPropagation(); addReaction('❤️')">❤️</div>
-        <div class="emoji" onclick="event.stopPropagation(); addReaction('😂')">😂</div>
-        <div class="emoji" onclick="event.stopPropagation(); addReaction('👍')">👍</div>
-        <div class="emoji" onclick="event.stopPropagation(); addReaction('🎉')">🎉</div>
-        <div class="emoji" onclick="event.stopPropagation(); addReaction('😮')">😮</div>
-        <div class="emoji" onclick="event.stopPropagation(); addReaction('😍')">😍</div>
-        <div class="emoji" onclick="event.stopPropagation(); addReaction('🔥')">🔥</div>
-        <div class="emoji" onclick="event.stopPropagation(); addReaction('💯')">💯</div>
+    <!-- Reaction Picker - 5 Animated Emojis + More -->
+    <div class="reaction-picker" id="reactionPicker">
+        <div class="quick-reactions" onclick="event.stopPropagation()">
+            <div class="quick-emoji animated" data-emoji="🐼" onclick="addReaction('🐼')" title="Panda">🐼</div>
+            <div class="quick-emoji animated love-beat" data-emoji="💕" onclick="addReaction('💕')" title="Love">💕</div>
+            <div class="quick-emoji animated" data-emoji="✨" onclick="addReaction('✨')" title="Sparkle">✨</div>
+            <div class="quick-emoji animated" data-emoji="😢" onclick="addReaction('😢')" title="Sad">😢</div>
+            <div class="quick-emoji animated" data-emoji="😂" onclick="addReaction('😂')" title="Laugh">😂</div>
+            <div class="more-emojis-btn" onclick="toggleFullEmojiPicker()" title="More">+</div>
+        </div>
+        <div class="emoji-picker-container" id="fullEmojiPicker" onclick="event.stopPropagation()">
+            <div class="emoji-grid">
+                <span class="emoji-item" onclick="addReaction('😀')">😀</span>
+                <span class="emoji-item" onclick="addReaction('😁')">😁</span>
+                <span class="emoji-item" onclick="addReaction('🤣')">🤣</span>
+                <span class="emoji-item" onclick="addReaction('😊')">😊</span>
+                <span class="emoji-item" onclick="addReaction('😇')">😇</span>
+                <span class="emoji-item" onclick="addReaction('😉')">😉</span>
+                <span class="emoji-item" onclick="addReaction('😍')">😍</span>
+                <span class="emoji-item" onclick="addReaction('🥰')">🥰</span>
+                <span class="emoji-item" onclick="addReaction('😘')">😘</span>
+                <span class="emoji-item" onclick="addReaction('😜')">😜</span>
+                <span class="emoji-item" onclick="addReaction('😎')">😎</span>
+                <span class="emoji-item" onclick="addReaction('🤩')">🤩</span>
+                <span class="emoji-item" onclick="addReaction('🥳')">🥳</span>
+                <span class="emoji-item" onclick="addReaction('☺️')">☺️</span>
+                <span class="emoji-item" onclick="addReaction('😭')">😭</span>
+                <span class="emoji-item" onclick="addReaction('😱')">😱</span>
+                <span class="emoji-item" onclick="addReaction('🤔')">🤔</span>
+                <span class="emoji-item" onclick="addReaction('🤭')">🤭</span>
+                <span class="emoji-item" onclick="addReaction('❤️')">❤️</span>
+                <span class="emoji-item" onclick="addReaction('🧡')">🧡</span>
+                <span class="emoji-item" onclick="addReaction('💛')">💛</span>
+                <span class="emoji-item" onclick="addReaction('💚')">💚</span>
+                <span class="emoji-item" onclick="addReaction('💙')">💙</span>
+                <span class="emoji-item" onclick="addReaction('💜')">💜</span>
+                <span class="emoji-item" onclick="addReaction('👏')">👏</span>
+                <span class="emoji-item" onclick="addReaction('🙌')">🙌</span>
+                <span class="emoji-item" onclick="addReaction('👍')">👍</span>
+                <span class="emoji-item" onclick="addReaction('🙏')">🙏</span>
+                <span class="emoji-item" onclick="addReaction('💪')">💪</span>
+                <span class="emoji-item" onclick="addReaction('🎉')">🎉</span>
+                <span class="emoji-item" onclick="addReaction('🏆')">🏆</span>
+                <span class="emoji-item" onclick="addReaction('⭐')">⭐</span>
+                <span class="emoji-item" onclick="addReaction('🔥')">🔥</span>
+                <span class="emoji-item" onclick="addReaction('💯')">💯</span>
+                <span class="emoji-item" onclick="addReaction('🎮')">🎮</span>
+                <span class="emoji-item" onclick="addReaction('🐱')">🐱</span>
+                <span class="emoji-item" onclick="addReaction('🐶')">🐶</span>
+                <span class="emoji-item" onclick="addReaction('🐻')">🐻</span>
+                <span class="emoji-item" onclick="addReaction('🦊')">🦊</span>
+                <span class="emoji-item" onclick="addReaction('🦄')">🦄</span>
+            </div>
+        </div>
     </div>
 
     <!-- Reconnect Overlay -->

@@ -126,19 +126,54 @@ def get_player(code: str, username: str) -> dict:
 def get_players(code: str) -> dict:
     """
     Get all players in room.
+    Also cleans up players whose grace period has expired.
+    If owner is removed, transfers ownership to another player.
     Returns: {username: player_data, ...}
     """
     raw = redis_client.hgetall(f'room:{code}:players')
-    return {username: json.loads(data) for username, data in raw.items()}
+    players = {username: json.loads(data) for username, data in raw.items()}
+    
+    # Clean up players whose grace period has expired
+    players_to_remove = []
+    owner_removed = False
+    
+    for username, data in players.items():
+        # If player is disconnected (is_connected=False)
+        if data.get('is_connected') == False:
+            # Check if grace period marker exists
+            if not redis_client.exists(f'room:{code}:disconnected:{username}'):
+                # Grace period expired - mark for removal
+                players_to_remove.append(username)
+                if data.get('is_owner'):
+                    owner_removed = True
+    
+    # Remove expired players from Redis
+    for username in players_to_remove:
+        redis_client.hdel(f'room:{code}:players', username)
+        del players[username]
+    
+    # If owner was removed, transfer ownership to remaining connected player
+    if owner_removed and players:
+        # Find first connected player
+        for username, data in players.items():
+            if data.get('is_connected', True):  # Default true for backwards compat
+                # Transfer ownership
+                data['is_owner'] = True
+                redis_client.hset(f'room:{code}:players', username, json.dumps(data))
+                # Update room info
+                redis_client.hset(f'room:{code}:info', 'owner', username)
+                break
+    
+    return players
 
 
 def get_player_count(code: str) -> int:
-    """Get number of players in room"""
-    return redis_client.hlen(f'room:{code}:players')
+    """Get number of players in room (after cleanup of expired players)"""
+    return len(get_players(code))
 
 
 def is_room_full(code: str) -> bool:
-    """Check if room has 2 players"""
+    """Check if room has 2 active players"""
     return get_player_count(code) >= 2
 
 
@@ -177,8 +212,23 @@ def mark_player_disconnected(code: str, username: str):
 
 
 def is_player_in_grace_period(code: str, username: str) -> bool:
-    """Check if player is in reconnection grace period"""
-    return redis_client.exists(f'room:{code}:disconnected:{username}') > 0
+    """
+    Check if player is in reconnection grace period.
+    If player is disconnected but grace period marker expired, clean them up.
+    """
+    marker_exists = redis_client.exists(f'room:{code}:disconnected:{username}') > 0
+    
+    if marker_exists:
+        return True
+    
+    # Check if player is marked as disconnected but grace period expired
+    player_data = get_player(code, username)
+    if player_data and player_data.get('is_connected') == False:
+        # Grace period expired - clean up this player
+        remove_player(code, username)
+        return False
+    
+    return False
 
 
 def reconnect_player(code: str, username: str) -> dict:

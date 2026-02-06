@@ -456,6 +456,30 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById("usernameDisplay").classList.remove("empty");
         document.querySelector(".welcome-title").innerText = "Welcome " + savedUsername;
     }
+    
+    // Check for join parameter (from shared link)
+    const urlParams = new URLSearchParams(window.location.search);
+    const joinRoomCode = urlParams.get('join');
+    const error = urlParams.get('error');
+    
+    if (error === 'room_not_found') {
+        alert('Room not found or has expired');
+    }
+    
+    if (joinRoomCode) {
+        // Pre-fill room code
+        document.getElementById("roomCode").value = joinRoomCode;
+        document.getElementById("joinBtn").classList.add("show");
+        
+        // If user already has username, join directly
+        if (userName && gender) {
+            joinRoomAPI(joinRoomCode, userName, gender);
+        } else {
+            // Open modal to get username, then join
+            sessionStorage.setItem("pendingRoomCode", joinRoomCode);
+            openModal();
+        }
+    }
 });
 
 // Room code input handler - only allow 4 digits

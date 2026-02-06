@@ -73,25 +73,25 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 await self.close(code=4005)  # Player was kicked
                 return
             
-            # Check if this is a reconnection (player in grace period)
-            is_reconnecting = is_player_in_grace_period(self.room_code, self.username)
+            # Check if player already exists in room (could be reconnecting)
+            existing_player = player_exists(self.room_code, self.username)
+            is_reconnecting = False
+            player_data = None
             
-            if is_reconnecting:
-                # Reconnection - player exists but was disconnected
-                player_data = reconnect_player(self.room_code, self.username)
-                if not player_data:
-                    # Grace period expired, treat as new connection
-                    is_reconnecting = False
-            
-            if not is_reconnecting:
-                # New connection - check room capacity and duplicate username
+            if existing_player:
+                # Player exists - check if they're in grace period (disconnected but can reconnect)
+                if is_player_in_grace_period(self.room_code, self.username):
+                    # Reconnection - restore their connection
+                    player_data = reconnect_player(self.room_code, self.username)
+                    is_reconnecting = True
+                else:
+                    # Player exists and is connected - duplicate username
+                    await self.close(code=4001)  # Duplicate username
+                    return
+            else:
+                # New player - check room capacity
                 if is_room_full(self.room_code):
                     await self.close(code=4003)  # Room full
-                    return
-                
-                # Check duplicate username (only for new connections)
-                if player_exists(self.room_code, self.username):
-                    await self.close(code=4001)  # Duplicate username
                     return
             
             # Accept connection
@@ -181,17 +181,14 @@ class RoomConsumer(AsyncWebsocketConsumer):
         """
         Handle WebSocket disconnection with grace period for reconnection.
         Player data is kept for 30 seconds to allow reconnection.
+        Owner keeps ownership during grace period.
         """
         try:
             if hasattr(self, 'room_group_name') and hasattr(self, 'room_code') and hasattr(self, 'username'):
-                # Check if disconnecting player is owner
-                room_info = get_room_info(self.room_code)
-                is_owner = room_info.get('owner') == self.username
-                
                 # Mark player as disconnected (grace period) instead of removing
                 mark_player_disconnected(self.room_code, self.username)
                 
-                # Add system message for disconnect (temporary)
+                # Add system message for disconnect
                 add_system_message(
                     self.room_code,
                     f'{self.username} disconnected',
@@ -201,40 +198,9 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 # Count connected players (excluding those in grace period)
                 connected_count = get_connected_player_count(self.room_code)
                 
-                if connected_count == 0:
-                    # No connected players - but don't destroy yet, wait for grace period
-                    # Room will be cleaned up by Redis TTL if no one reconnects
-                    pass
-                else:
-                    # Auto-transfer ownership if owner left and other connected player exists
-                    if is_owner:
-                        new_owner = get_next_owner(self.room_code, self.username)
-                        if new_owner:
-                            # Check if new owner is actually connected
-                            new_owner_data = get_player(self.room_code, new_owner)
-                            if new_owner_data and new_owner_data.get('is_connected', True):
-                                transfer_ownership(self.room_code, new_owner)
-                                
-                                # Add system message for ownership transfer
-                                add_system_message(
-                                    self.room_code,
-                                    f'{new_owner} is now the room owner',
-                                    'owner_changed'
-                                )
-                                
-                                # Broadcast ownership change
-                                players = get_players(self.room_code)
-                                await self.channel_layer.group_send(
-                                    self.room_group_name,
-                                    {
-                                        'type': 'broadcast_owner_changed',
-                                        'old_owner': self.username,
-                                        'new_owner': new_owner,
-                                        'players': {k: v for k, v in players.items()}
-                                    }
-                                )
-                    
+                if connected_count > 0:
                     # Notify remaining players about disconnect (with grace period info)
+                    # DO NOT transfer ownership - owner keeps it during grace period
                     players = get_players(self.room_code)
                     await self.channel_layer.group_send(
                         self.room_group_name,
@@ -692,8 +658,14 @@ class RoomConsumer(AsyncWebsocketConsumer):
             await self.send_error('PLAYER_NOT_FOUND', 'Target player not in room')
             return
         
-        # Add to kicked list
+        # Add to kicked list (prevents rejoining)
         kick_player(self.room_code, target_user)
+        
+        # Clear any disconnection marker
+        clear_disconnection_marker(self.room_code, target_user)
+        
+        # Remove player from room immediately
+        remove_player(self.room_code, target_user)
         
         # Add system message
         add_system_message(
@@ -702,13 +674,15 @@ class RoomConsumer(AsyncWebsocketConsumer):
             'player_kicked'
         )
         
-        # Broadcast kick (the kicked player's WebSocket will receive this and should disconnect)
+        # Broadcast kick with updated player list
+        players = get_players(self.room_code)
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'broadcast_player_kicked',
                 'user': target_user,
-                'kicked_by': self.username
+                'kicked_by': self.username,
+                'players': {k: v for k, v in players.items()}
             }
         )
 
@@ -812,7 +786,8 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 'message_id': event['message_id'],
                 'user': event['user'],
                 'emoji': event['emoji'],
-                'action': event['action']
+                'action': event['action'],
+                'old_emoji': event.get('old_emoji')
             }
         }))
 

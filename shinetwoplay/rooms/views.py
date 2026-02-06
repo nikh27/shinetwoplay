@@ -45,8 +45,13 @@ def room_page(request, room_code):
     username = request.GET.get("name", "")
     gender = request.GET.get("gender", "male")
     
+    # Check if room exists
+    if not room_exists(room_code):
+        return redirect("/?error=room_not_found")
+    
     if not username:
-        return redirect("/")
+        # Redirect to home with room code so user can enter name and join
+        return redirect(f"/?join={room_code}")
     
     return render(request, "room.html", {
         "room": room_code,
@@ -136,13 +141,22 @@ def api_join_room(request):
         if not room_exists(room_code):
             return error_response('ROOM_NOT_FOUND', 'Room does not exist', status=404)
         
-        # Check if room is full
-        if is_room_full(room_code):
-            return error_response('ROOM_FULL', 'Room is full (2/2 players)', status=403)
+        # Check if this is a reconnection attempt
+        # If player exists and is in grace period, allow them to reconnect
+        from .redis_client import is_player_in_grace_period
         
-        # Check if username is taken
-        if player_exists(room_code, username):
-            return error_response('USERNAME_TAKEN', 'Username already taken in this room')
+        is_reconnecting = player_exists(room_code, username) and is_player_in_grace_period(room_code, username)
+        
+        if not is_reconnecting:
+            # Not a reconnection - check room capacity and username availability
+            
+            # Check if room is full
+            if is_room_full(room_code):
+                return error_response('ROOM_FULL', 'Room is full (2/2 players)', status=403)
+            
+            # Check if username is taken (by a connected player)
+            if player_exists(room_code, username):
+                return error_response('USERNAME_TAKEN', 'Username already taken in this room')
         
         # Get room info
         room_info = get_room_info(room_code)
@@ -152,7 +166,8 @@ def api_join_room(request):
             'room_code': room_code,
             'owner': room_info.get('owner', ''),
             'players': list(players.keys()),
-            'redirect_url': f'/rooms/{room_code}/?name={username}&gender={gender}'
+            'redirect_url': f'/rooms/{room_code}/?name={username}&gender={gender}',
+            'is_reconnecting': is_reconnecting
         })
         
     except json.JSONDecodeError:
