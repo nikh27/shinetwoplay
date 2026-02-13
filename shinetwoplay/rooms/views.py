@@ -212,7 +212,7 @@ def api_get_room(request, room_code):
             'owner': room_info.get('owner', ''),
             'players': players_data,
             'selected_game': room_info.get('selected_game', ''),
-            'rounds': int(room_info.get('rounds', 3)),
+            'rounds': int(room_info.get('rounds', 1)),
             'status': room_info.get('status', 'waiting'),
             'created_at': room_info.get('created_at', '')
         })

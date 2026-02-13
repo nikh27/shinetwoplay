@@ -46,9 +46,10 @@ def generate_room_code(length=4):
 
 def get_avatar_for_gender(gender):
     """
-    Get avatar emoji based on gender
+    Get avatar identifier based on gender.
+    Frontend renders SVG based on gender string.
     """
-    return '👨' if gender == 'male' else '👩'
+    return gender
 
 
 def get_client_ip(request):

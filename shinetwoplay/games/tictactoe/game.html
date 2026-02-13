@@ -34,7 +34,7 @@
     
     <!-- Messages toggle button (corner) -->
     <button class="ttt-chat-toggle" id="ttt-chat-toggle" onclick="toggleGameMessages()">
-        💬
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
         <span class="ttt-chat-badge" id="ttt-chat-badge" style="display:none;">0</span>
     </button>
 
@@ -56,7 +56,7 @@
     <!-- Pause overlay (shown when opponent disconnects) -->
     <div class="ttt-pause-overlay" id="ttt-pause-overlay" style="display:none;">
         <div class="ttt-pause-content">
-            <div class="ttt-pause-icon">⏸️</div>
+            <div class="ttt-pause-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></div>
             <h3>Game Paused</h3>
             <p>Waiting for <strong id="ttt-disconnected-player">opponent</strong> to reconnect...</p>
             <div class="ttt-countdown" id="ttt-countdown">30</div>
@@ -67,7 +67,7 @@
     <!-- Round result overlay -->
     <div class="ttt-result-overlay" id="ttt-result-overlay" style="display:none;">
         <div class="ttt-result-content">
-            <div class="ttt-result-icon" id="ttt-result-icon">🏆</div>
+            <div class="ttt-result-icon" id="ttt-result-icon"><img src="/static/games/icons/trophy.png" alt="trophy" style="width:64px;height:64px;"></div>
             <h2 id="ttt-result-text">You Win!</h2>
             <p id="ttt-result-subtext">Next round starting...</p>
         </div>
@@ -605,13 +605,13 @@ class TicTacToeGame extends BaseGame {
         const subtext = document.getElementById('ttt-result-subtext');
         
         if (isDraw) {
-            icon.textContent = '🤝';
+            icon.innerHTML = '<img src="/static/games/icons/handshake.png" alt="draw" style="width:64px;height:64px;">';
             text.textContent = "It's a Draw!";
         } else if (isWinner) {
-            icon.textContent = '🏆';
+            icon.innerHTML = '<img src="/static/games/icons/trophy.png" alt="win" style="width:64px;height:64px;">';
             text.textContent = 'You Win!';
         } else {
-            icon.textContent = '😔';
+            icon.innerHTML = '<img src="/static/games/icons/sad_face.png" alt="loss" style="width:64px;height:64px;">';
             text.textContent = 'You Lose!';
         }
         
@@ -664,13 +664,13 @@ class TicTacToeGame extends BaseGame {
         const subtext = document.getElementById('ttt-result-subtext');
         
         if (isDraw) {
-            icon.textContent = '🤝';
+            icon.innerHTML = '<img src="/static/games/icons/handshake.png" alt="draw" style="width:64px;height:64px;">';
             text.textContent = "Game Draw!";
         } else if (isWinner) {
-            icon.textContent = '🎉';
+            icon.innerHTML = '<img src="/static/games/icons/celebration.png" alt="win" style="width:64px;height:64px;">';
             text.textContent = 'You Won the Game!';
         } else {
-            icon.textContent = '😢';
+            icon.innerHTML = '<img src="/static/games/icons/sad_face.png" alt="loss" style="width:64px;height:64px;">';
             text.textContent = 'Game Over';
         }
         

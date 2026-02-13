@@ -442,17 +442,28 @@ class RoomConsumer(AsyncWebsocketConsumer):
         """Handle typing indicator"""
         set_typing(self.room_code, self.username)
         
+        # Get player gender for avatar
+        player = get_player(self.room_code, self.username)
+        gender = player.get('gender', 'male') if player else 'male'
+        
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'broadcast_typing',
-                'user': self.username
+                'user': self.username,
+                'gender': gender
             }
         )
 
     async def handle_stop_typing(self, data):
         """Handle stop typing"""
-        pass  # Typing auto-expires
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'broadcast_stop_typing',
+                'user': self.username
+            }
+        )
 
     async def handle_ready(self, data):
         """Handle ready state toggle"""
@@ -993,6 +1004,14 @@ class RoomConsumer(AsyncWebsocketConsumer):
         if event['user'] != self.username:  # Don't send to self
             await self.send(text_data=json.dumps({
                 'event': 'typing',
+                'data': {'user': event['user'], 'gender': event.get('gender', 'male')}
+            }))
+
+    async def broadcast_stop_typing(self, event):
+        """Send stop typing indicator"""
+        if event['user'] != self.username:
+            await self.send(text_data=json.dumps({
+                'event': 'stop_typing',
                 'data': {'user': event['user']}
             }))
 
@@ -1223,7 +1242,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
                     'code': self.room_code,
                     'owner': room_info.get('owner', ''),
                     'selected_game': room_info.get('selected_game', ''),
-                    'rounds': int(room_info.get('rounds', 3)),
+                    'rounds': int(room_info.get('rounds', 1)),
                     'status': room_info.get('status', 'waiting')
                 },
                 'players': players,

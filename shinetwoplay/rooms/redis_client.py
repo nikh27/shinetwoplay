@@ -39,7 +39,7 @@ def create_room(code: str, owner: str, gender: str) -> dict:
     Create a new room in Redis.
     Called by API when user creates a room.
     """
-    avatar = '👨' if gender == 'male' else '👩'
+    avatar = gender  # Frontend renders SVG based on gender
     created_at = time.strftime('%Y-%m-%dT%H:%M:%SZ')
     
     # Set room exists marker with TTL
@@ -49,7 +49,7 @@ def create_room(code: str, owner: str, gender: str) -> dict:
     room_info = {
         'owner': owner,
         'selected_game': '',
-        'rounds': '3',
+        'rounds': '1',
         'status': 'waiting',
         'created_at': created_at
     }
@@ -90,7 +90,7 @@ def add_player(code: str, username: str, gender: str, is_owner: bool = False) ->
     Add player to room.
     Called when WebSocket connects.
     """
-    avatar = '👨' if gender == 'male' else '👩'
+    avatar = gender  # Frontend renders SVG based on gender
     
     player_data = {
         'gender': gender,
