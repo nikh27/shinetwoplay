@@ -492,6 +492,13 @@
             border: 2px solid var(--sunshine-orange);
             flex-shrink: 0;
             transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .game-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         body.keyboard-open .game-icon {
@@ -1173,18 +1180,19 @@
         }
 
         .game-card {
-            background: var(--sunshine-cream);
+            width: 120px;
+            height: 120px;
             border-radius: 16px;
-            border: 2px solid var(--sunshine-light);
+            border: 2.5px solid var(--sunshine-light);
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            align-items: flex-end;
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            padding: 16px;
-            max-width: 140px;
+            position: relative;
+            overflow: hidden;
             justify-self: center;
+            background: var(--sunshine-cream);
         }
 
         .game-card:hover {
@@ -1194,22 +1202,47 @@
         }
 
         .game-card.selected {
-            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
             border-color: var(--sunshine-orange);
-            box-shadow: 0 4px 16px var(--shadow-soft);
+            box-shadow: 0 0 0 3px var(--sunshine-yellow), 0 4px 16px var(--shadow-soft);
         }
 
         .game-card-icon {
-            font-size: 40px;
-            margin-bottom: 8px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 52px;
+        }
+
+        .game-card-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 0;
         }
 
         .game-card-name {
+            position: relative;
+            z-index: 1;
             font-family: 'Fredoka', sans-serif;
-            font-weight: 600;
-            font-size: 14px;
+            font-weight: 700;
+            font-size: 12px;
             text-align: center;
             color: var(--text-dark);
+            background: rgba(255, 255, 255, 0.85);
+            padding: 4px 10px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            text-transform: capitalize;
+            backdrop-filter: blur(4px);
+            max-width: 90%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .game-selector.disabled {
@@ -1320,16 +1353,16 @@
             }
 
             .game-card {
-                padding: 12px;
+                width: 100px;
+                height: 100px;
             }
 
             .game-card-icon {
-                font-size: 32px;
-                margin-bottom: 6px;
+                font-size: 42px;
             }
 
             .game-card-name {
-                font-size: 12px;
+                font-size: 10px;
             }
         }
 
@@ -2050,8 +2083,8 @@
                 <input type="text" class="search-input" placeholder="search" oninput="searchGames(this.value)">
             </div>
             <div class="games-grid" id="gamesGrid">
-                <div class="game-card" onclick="selectGame('tictactoe', 'Tic Tac Toe', '<img src=&quot;/static/games/tictactoe.png&quot; alt=&quot;tictactoe&quot; style=&quot;width:32px;height:32px;border-radius:6px;&quot;>')">
-                    <div class="game-card-icon"><img src="/static/games/tictactoe.png" alt="tictactoe" style="width:32px;height:32px;border-radius:6px;"></div>
+                <div class="game-card" onclick="selectGame('tictactoe', 'Tic Tac Toe', '<img src=&quot;/static/games/tictactoe.png&quot; alt=&quot;tictactoe&quot;>')">
+                    <div class="game-card-icon"><img src="/static/games/tictactoe.png" alt="tictactoe"></div>
                     <div class="game-card-name">tic tac toe</div>
                 </div>
                 <div class="game-card" onclick="selectGame('pullrope', 'Pull Rope', '🪢')">
@@ -2508,7 +2541,7 @@
 
         // Map game IDs to their icons (image or emoji)
         const gameIcons = {
-            'tictactoe': '<img src="/static/games/tictactoe.png" alt="tictactoe" style="width:28px;height:28px;border-radius:6px;">'
+            'tictactoe': '<img src="/static/games/tictactoe.png" alt="tictactoe">'
         };
 
         function handleGameSelectedEvent(payload) {
