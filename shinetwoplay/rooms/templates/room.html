@@ -2105,45 +2105,6 @@
             overflow: auto;
         }
         
-        /* Chat panel during game - uses body class since chat is outside overlay */
-        body.game-active .chat-container {
-            position: fixed;
-            right: -100%;
-            top: 0;
-            bottom: 0;
-            width: 85%;
-            max-width: 350px;
-            z-index: 1100;
-            transition: right 0.3s ease;
-            box-shadow: -4px 0 20px rgba(0,0,0,0.2);
-            border-radius: 0;
-        }
-        
-        /* When chat is open - higher specificity selector */
-        body.game-active.game-chat-open .chat-container {
-            right: 0 !important;
-        }
-        
-        /* Fallback for just game-chat-open */
-        body.game-chat-open .chat-container {
-            right: 0 !important;
-        }
-        
-        /* Dark overlay behind chat */
-        .chat-backdrop {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.4);
-            z-index: 1050;
-        }
-        
-        body.game-chat-open .chat-backdrop {
-            display: block;
-        }
     </style>
 
     <script>
@@ -2605,26 +2566,8 @@
         function handleGameLoadedEvent(payload) {
             console.log('🎮 Game loaded:', payload.game_id);
             
-            // Add game-active class to body for chat styling
+            // Add game-active class to body
             document.body.classList.add('game-active');
-            
-            // MOVE chat container to body level for proper z-index stacking
-            const chatContainer = document.querySelector('.chat-container');
-            if (chatContainer && !chatContainer.dataset.movedToBody) {
-                chatContainer.dataset.originalParent = chatContainer.parentElement.id || 'main-content';
-                document.body.appendChild(chatContainer);
-                chatContainer.dataset.movedToBody = 'true';
-                console.log('Moved chat container to body level');
-            }
-            
-            // Add chat backdrop if not exists
-            if (!document.getElementById('chatBackdrop')) {
-                const backdrop = document.createElement('div');
-                backdrop.id = 'chatBackdrop';
-                backdrop.className = 'chat-backdrop';
-                backdrop.onclick = () => closeChatPanel();
-                document.body.appendChild(backdrop);
-            }
             
             // Inject game HTML into overlay
             const container = document.getElementById('gameContainer');
@@ -2651,9 +2594,7 @@
             showToast('Game started!', 'success');
         }
         
-        function closeChatPanel() {
-            document.body.classList.remove('game-chat-open');
-        }
+
         
         function handleGameUpdateEvent(payload) {
             if (currentGame) {
@@ -2693,9 +2634,8 @@
                         currentGame = null;
                     }
                     
-                    // Remove game-active class (chat styling)
+                    // Remove game-active class
                     document.body.classList.remove('game-active');
-                    document.body.classList.remove('game-chat-open');
                     
                     // Hide overlay
                     document.getElementById('gameOverlay').style.display = 'none';
@@ -3077,6 +3017,11 @@
             
             chatBox.appendChild(messageDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // If game is active and has a chat handler, forward the message
+            if (typeof window.onGameChatMessage === 'function') {
+                window.onGameChatMessage(msg);
+            }
         }
 
         function addChatMessage(user, msg) {
