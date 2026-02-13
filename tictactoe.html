@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🐼 Panda Tic Tac Toe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bubblegum+Sans&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            position: fixed;
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            padding-top: env(safe-area-inset-top, 15px);
+            padding-bottom: env(safe-area-inset-bottom, 15px);
+            transition: background 0.5s ease;
+        }
+
+        .bg-player-x {
+            background: linear-gradient(135deg, #ff6b6b 0%, #c0392b 50%, #8e2424 100%);
+        }
+
+        .bg-player-o {
+            background: linear-gradient(135deg, #4fc3f7 0%, #2980b9 50%, #1a5276 100%);
+        }
+
+        .title-font {
+            font-family: 'Bubblegum Sans', cursive;
+        }
+
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float-up 3s ease-out forwards;
+            z-index: 1;
+        }
+
+        @keyframes float-up {
+            0% { transform: translateY(0) scale(1); opacity: 0.8; }
+            100% { transform: translateY(-100vh) scale(0); opacity: 0; }
+        }
+
+        /* Player Indicators - Smaller */
+        .players-container {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .player-indicator {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            opacity: 0.5;
+            transform: scale(0.9);
+        }
+
+        .player-indicator.active {
+            opacity: 1;
+            transform: scale(1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .player-x {
+            background: rgba(255,255,255,0.95);
+            color: #e74c3c;
+        }
+
+        .player-o {
+            background: rgba(255,255,255,0.95);
+            color: #3498db;
+        }
+
+        .score-num {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        /* Panda Container - Smaller & Interactive */
+        .panda-container {
+            position: relative;
+            width: 100px;
+            height: 110px;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .panda {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            animation: panda-bounce 2s ease-in-out infinite;
+            transition: transform 0.2s;
+        }
+
+        .panda-container:active .panda {
+            transform: scale(0.9);
+        }
+
+        @keyframes panda-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .panda-body {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 65px;
+            height: 55px;
+            background: linear-gradient(180deg, #f5f5f0 0%, #e8e8e0 100%);
+            border-radius: 32px 32px 28px 28px;
+            box-shadow: inset -8px 0 15px rgba(0,0,0,0.1), 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .panda-belly {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 35px;
+            height: 28px;
+            background: linear-gradient(180deg, #fafafa 0%, #f0f0e8 100%);
+            border-radius: 50%;
+        }
+
+        .panda-head {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 68px;
+            background: linear-gradient(180deg, #ffffff 0%, #f5f5f0 50%, #e8e8e0 100%);
+            border-radius: 40px 40px 35px 35px;
+            box-shadow: inset -8px 0 18px rgba(0,0,0,0.08), 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .panda-ear {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            border-radius: 50%;
+        }
+
+        .panda-ear.left { top: -3px; left: 5px; transform: rotate(-15deg); }
+        .panda-ear.right { top: -3px; right: 5px; transform: rotate(15deg); }
+
+        .panda-eye-patch {
+            position: absolute;
+            width: 25px;
+            height: 28px;
+            background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+            border-radius: 50% 50% 45% 45%;
+            top: 18px;
+        }
+
+        .panda-eye-patch.left { left: 10px; transform: rotate(-10deg); }
+        .panda-eye-patch.right { right: 10px; transform: rotate(10deg); }
+
+        .panda-eye {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            top: 25px;
+        }
+
+        .panda-eye.left { left: 17px; }
+        .panda-eye.right { right: 17px; }
+
+        .panda-pupil {
+            position: absolute;
+            width: 7px;
+            height: 7px;
+            background: #1a1a1a;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.15s ease;
+        }
+
+        .panda-pupil::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            top: 1px;
+            left: 1px;
+        }
+
+        .panda-nose {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 14px;
+            height: 9px;
+            background: #1a1a1a;
+            border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
+        }
+
+        .panda-mouth {
+            position: absolute;
+            top: 47px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 18px;
+            height: 8px;
+            border-bottom: 2px solid #1a1a1a;
+            border-radius: 0 0 50% 50%;
+            transition: all 0.2s ease;
+        }
+
+        .panda-blush {
+            position: absolute;
+            width: 14px;
+            height: 7px;
+            background: rgba(255, 150, 170, 0.6);
+            border-radius: 50%;
+            top: 40px;
+            filter: blur(2px);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .panda-blush.left { left: 3px; }
+        .panda-blush.right { right: 3px; }
+
+        .panda-arm {
+            position: absolute;
+            width: 22px;
+            height: 38px;
+            background: linear-gradient(90deg, #2a2a2a 0%, #1a1a1a 100%);
+            border-radius: 11px;
+            bottom: 15px;
+        }
+
+        .panda-arm.left {
+            left: 3px;
+            transform: rotate(20deg);
+            transform-origin: top center;
+            animation: wave-left 2s ease-in-out infinite;
+        }
+
+        .panda-arm.right {
+            right: 3px;
+            transform: rotate(-20deg);
+            transform-origin: top center;
+            animation: wave-right 2s ease-in-out infinite 0.5s;
+        }
+
+        @keyframes wave-left {
+            0%, 100% { transform: rotate(20deg); }
+            50% { transform: rotate(30deg); }
+        }
+
+        @keyframes wave-right {
+            0%, 100% { transform: rotate(-20deg); }
+            50% { transform: rotate(-30deg); }
+        }
+
+        /* Panda Interactive States */
+        .panda.poked {
+            animation: panda-poked 0.5s ease-in-out !important;
+        }
+
+        .panda.poked .panda-blush {
+            opacity: 1;
+        }
+
+        .panda.poked .panda-mouth {
+            width: 12px;
+            height: 10px;
+            border: none;
+            background: #1a1a1a;
+            border-radius: 50%;
+        }
+
+        @keyframes panda-poked {
+            0% { transform: scale(1) rotate(0); }
+            25% { transform: scale(0.85) rotate(-10deg); }
+            50% { transform: scale(1.1) rotate(5deg); }
+            75% { transform: scale(0.95) rotate(-3deg); }
+            100% { transform: scale(1) rotate(0); }
+        }
+
+        .panda.dizzy .panda-pupil {
+            animation: spin-eyes 0.3s linear infinite;
+        }
+
+        @keyframes spin-eyes {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(2px, -2px); }
+            50% { transform: translate(-2px, 2px); }
+            75% { transform: translate(2px, 2px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .panda.excited {
+            animation: panda-jump 0.4s ease-in-out infinite !important;
+        }
+
+        .panda.excited .panda-arm.left,
+        .panda.excited .panda-arm.right {
+            animation: excited-wave 0.2s ease-in-out infinite !important;
+        }
+
+        .panda.excited .panda-mouth {
+            width: 14px;
+            height: 10px;
+            border: none;
+            background: #1a1a1a;
+            border-radius: 50%;
+        }
+
+        .panda.excited .panda-blush {
+            opacity: 1;
+        }
+
+        @keyframes excited-wave {
+            0%, 100% { transform: rotate(40deg); }
+            50% { transform: rotate(-40deg); }
+        }
+
+        @keyframes panda-jump {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-15px) scale(1.1); }
+        }
+
+        .panda.sad .panda-mouth {
+            border-bottom: none;
+            border-top: 2px solid #1a1a1a;
+            border-radius: 50% 50% 0 0;
+            top: 50px;
+        }
+
+        .panda.sad {
+            animation: sad-sway 1.5s ease-in-out infinite !important;
+        }
+
+        @keyframes sad-sway {
+            0%, 100% { transform: translateY(0) rotate(-3deg); }
+            50% { transform: translateY(3px) rotate(3deg); }
+        }
+
+        .panda.thinking .panda-pupil {
+            animation: look-around 2s ease-in-out infinite;
+        }
+
+        @keyframes look-around {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(-2px, -1px); }
+            50% { transform: translate(2px, 0); }
+            75% { transform: translate(0, 2px); }
+        }
+
+        /* Speech Bubble */
+        .speech-bubble {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%) scale(0);
+            background: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.2);
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            z-index: 20;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 7px solid white;
+        }
+
+        .speech-bubble.show {
+            transform: translateX(-50%) scale(1);
+        }
+
+        /* Hearts floating from panda */
+        .heart {
+            position: absolute;
+            font-size: 16px;
+            animation: float-heart 1s ease-out forwards;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        @keyframes float-heart {
+            0% { transform: translateY(0) scale(0); opacity: 1; }
+            50% { transform: translateY(-30px) scale(1.2); opacity: 1; }
+            100% { transform: translateY(-60px) scale(0.8); opacity: 0; }
+        }
+
+        /* 3D Game Board */
+        .game-board-container {
+            perspective: 600px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-height: 50vh;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(6px, 2vw, 10px);
+            padding: clamp(10px, 3vw, 15px);
+            background: rgba(255,255,255,0.15);
+            border-radius: 20px;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.4),
+                inset 0 2px 10px rgba(255, 255, 255, 0.2);
+            transform: rotateX(5deg);
+            transition: transform 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-board.shake {
+            animation: board-shake 0.4s ease-in-out;
+        }
+
+        @keyframes board-shake {
+            0%, 100% { transform: rotateX(5deg) rotateY(0); }
+            25% { transform: rotateX(5deg) rotateY(-8deg); }
+            75% { transform: rotateX(5deg) rotateY(8deg); }
+        }
+
+        .cell {
+            width: clamp(70px, 22vw, 90px);
+            height: clamp(70px, 22vw, 90px);
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 
+                4px 4px 12px rgba(0, 0, 0, 0.25),
+                inset 0 2px 4px rgba(255,255,255,0.8);
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 100%);
+            border-radius: 15px 15px 0 0;
+            pointer-events: none;
+        }
+
+        .cell:active:not(.taken) {
+            transform: scale(0.92);
+        }
+
+        .cell.taken {
+            cursor: default;
+        }
+
+        .cell.winner {
+            animation: winner-glow 0.6s ease-in-out infinite alternate;
+            background: linear-gradient(145deg, #fff9e6, #ffd700);
+        }
+
+        @keyframes winner-glow {
+            0% { box-shadow: 4px 4px 12px rgba(0,0,0,0.25), 0 0 15px rgba(255, 215, 0, 0.6); transform: scale(1); }
+            100% { box-shadow: 4px 4px 12px rgba(0,0,0,0.25), 0 0 30px rgba(255, 215, 0, 0.9); transform: scale(1.05); }
+        }
+
+        /* Marks */
+        .mark {
+            font-size: clamp(36px, 10vw, 48px);
+            font-weight: 700;
+            animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .mark-x {
+            color: #e74c3c;
+            text-shadow: 2px 2px 0 #c0392b, 3px 3px 8px rgba(231, 76, 60, 0.4);
+        }
+
+        .mark-o {
+            color: #3498db;
+            text-shadow: 2px 2px 0 #2980b9, 3px 3px 8px rgba(52, 152, 219, 0.4);
+        }
+
+        @keyframes pop-in {
+            0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+            60% { transform: scale(1.25) rotate(10deg); }
+            100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+
+        /* Win/Draw Overlay */
+        .game-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .game-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .winner-text {
+            font-size: clamp(32px, 10vw, 48px);
+            font-weight: 700;
+            margin-bottom: 20px;
+            animation: winner-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            text-align: center;
+        }
+
+        @keyframes winner-bounce {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.15); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Overlay Panda - Bigger */
+        .overlay-panda-container {
+            transform: scale(1.4);
+            margin: 20px 0;
+        }
+
+        /* Reset Button */
+        .reset-btn {
+            background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
+            color: #333;
+            padding: clamp(12px, 4vw, 18px) clamp(30px, 10vw, 50px);
+            border-radius: 50px;
+            font-size: clamp(16px, 5vw, 22px);
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5), 0 3px 0 #cc9900;
+            transition: all 0.2s;
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .reset-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 10px rgba(255, 215, 0, 0.5), 0 1px 0 #cc9900;
+        }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            top: -20px;
+            z-index: 101;
+            animation: confetti-fall linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Tap hint */
+        .tap-hint {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            color: rgba(255,255,255,0.6);
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body class="bg-player-x">
+    <!-- Main Game Container -->
+    <div class="flex flex-col items-center w-full h-full justify-between">
+        
+        <!-- Title & Score -->
+        <div class="text-center">
+            <h1 class="title-font text-xl text-white drop-shadow-lg mb-2">🐼 Panda Tic Tac Toe</h1>
+            
+            <!-- Player Indicators -->
+            <div class="players-container">
+                <div class="player-indicator player-x active" id="indicator-x">
+                    ✕ P1: <span class="score-num" id="score-x">0</span>
+                </div>
+                <div class="player-indicator player-o" id="indicator-o">
+                    ○ P2: <span class="score-num" id="score-o">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panda Character -->
+        <div class="panda-container" id="panda-container">
+            <div class="speech-bubble" id="speech-bubble">Tap me! 🐼</div>
+            <div class="panda thinking" id="panda">
+                <div class="panda-body">
+                    <div class="panda-belly"></div>
+                </div>
+                <div class="panda-arm left"></div>
+                <div class="panda-arm right"></div>
+                <div class="panda-head">
+                    <div class="panda-ear left"></div>
+                    <div class="panda-ear right"></div>
+                    <div class="panda-eye-patch left"></div>
+                    <div class="panda-eye-patch right"></div>
+                    <div class="panda-eye left">
+                        <div class="panda-pupil" id="pupil-left"></div>
+                    </div>
+                    <div class="panda-eye right">
+                        <div class="panda-pupil" id="pupil-right"></div>
+                    </div>
+                    <div class="panda-blush left"></div>
+                    <div class="panda-blush right"></div>
+                    <div class="panda-nose"></div>
+                    <div class="panda-mouth"></div>
+                </div>
+            </div>
+            <div class="tap-hint">tap the panda!</div>
+        </div>
+
+        <!-- Game Board -->
+        <div class="game-board-container">
+            <div class="game-board" id="game-board">
+                <div class="cell" data-index="0"></div>
+                <div class="cell" data-index="1"></div>
+                <div class="cell" data-index="2"></div>
+                <div class="cell" data-index="3"></div>
+                <div class="cell" data-index="4"></div>
+                <div class="cell" data-index="5"></div>
+                <div class="cell" data-index="6"></div>
+                <div class="cell" data-index="7"></div>
+                <div class="cell" data-index="8"></div>
+            </div>
+        </div>
+
+        <!-- Spacer -->
+        <div style="height: 20px;"></div>
+    </div>
+
+    <!-- Win/Draw Overlay -->
+    <div class="game-overlay" id="game-overlay">
+        <div class="winner-text" id="winner-text"></div>
+        <div class="overlay-panda-container">
+            <div class="panda-container">
+                <div class="panda excited" id="overlay-panda">
+                    <div class="panda-body">
+                        <div class="panda-belly"></div>
+                    </div>
+                    <div class="panda-arm left"></div>
+                    <div class="panda-arm right"></div>
+                    <div class="panda-head">
+                        <div class="panda-ear left"></div>
+                        <div class="panda-ear right"></div>
+                        <div class="panda-eye-patch left"></div>
+                        <div class="panda-eye-patch right"></div>
+                        <div class="panda-eye left">
+                            <div class="panda-pupil"></div>
+                        </div>
+                        <div class="panda-eye right">
+                            <div class="panda-pupil"></div>
+                        </div>
+                        <div class="panda-blush left" style="opacity:1"></div>
+                        <div class="panda-blush right" style="opacity:1"></div>
+                        <div class="panda-nose"></div>
+                        <div class="panda-mouth"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="reset-btn" id="play-again-btn">🎮 Play Again!</button>
+    </div>
+
+    <script>
+        // Game State
+        let board = Array(9).fill(null);
+        let currentPlayer = 'X';
+        let gameActive = true;
+        let scores = { X: 0, O: 0 };
+        let pandaTapCount = 0;
+        let lastTapTime = 0;
+
+        // Win Patterns
+        const winPatterns = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        // Panda Phrases
+        const phrases = {
+            tap: ["Hehe! 😊", "That tickles!", "Hello! 👋", "More! More!", "Haha! 🤭", "Wheee!", "Hi friend!", "Aww! 💕"],
+            doubleTap: ["Woohoo! 🎉", "So fun!", "Again! 🐼", "Yippee!", "Love it! 💖"],
+            manyTaps: ["I'm dizzy! 😵", "Slow down!", "Hahaha!", "Stop it! 😂", "Too much!"],
+            move: ["Nice! 👍", "Ooh! 😮", "Good one!", "Hmm... 🤔", "Wow!", "Cool move!"],
+            winX: ["P1 wins! 🎉", "Amazing! 💖", "Red team! 🔴"],
+            winO: ["P2 wins! 🎊", "Blue wins! 💙", "Go blue! 🔵"],
+            draw: ["It's a tie! 🤝", "So close! 😅", "Try again!"],
+            start: ["Let's go! 🎮", "Ready! 🐼", "Game on! ✨"]
+        };
+
+        // DOM Elements
+        const cells = document.querySelectorAll('.cell');
+        const gameBoard = document.getElementById('game-board');
+        const panda = document.getElementById('panda');
+        const pandaContainer = document.getElementById('panda-container');
+        const overlayPanda = document.getElementById('overlay-panda');
+        const speechBubble = document.getElementById('speech-bubble');
+        const indicatorX = document.getElementById('indicator-x');
+        const indicatorO = document.getElementById('indicator-o');
+        const gameOverlay = document.getElementById('game-overlay');
+        const winnerText = document.getElementById('winner-text');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const scoreX = document.getElementById('score-x');
+        const scoreO = document.getElementById('score-o');
+        const pupilLeft = document.getElementById('pupil-left');
+        const pupilRight = document.getElementById('pupil-right');
+
+        // Background color change
+        function updateBackground() {
+            document.body.classList.remove('bg-player-x', 'bg-player-o');
+            document.body.classList.add(currentPlayer === 'X' ? 'bg-player-x' : 'bg-player-o');
+        }
+
+        // Create particle effect
+        function createParticle(x, y, color) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = x + 'px';
+            particle.style.top = y + 'px';
+            particle.style.backgroundColor = color;
+            document.body.appendChild(particle);
+            setTimeout(() => particle.remove(), 3000);
+        }
+
+        // Create floating hearts
+        function createHeart(x, y) {
+            const heart = document.createElement('div');
+            heart.className = 'heart';
+            heart.textContent = ['❤️', '💕', '💖', '🩷', '💗'][Math.floor(Math.random() * 5)];
+            heart.style.left = x + 'px';
+            heart.style.top = y + 'px';
+            document.body.appendChild(heart);
+            setTimeout(() => heart.remove(), 1000);
+        }
+
+        // Show speech bubble
+        let speechTimeout;
+        function showSpeech(category) {
+            clearTimeout(speechTimeout);
+            const phraseList = phrases[category];
+            const phrase = phraseList[Math.floor(Math.random() * phraseList.length)];
+            speechBubble.textContent = phrase;
+            speechBubble.classList.add('show');
+            
+            speechTimeout = setTimeout(() => {
+                speechBubble.classList.remove('show');
+            }, 1500);
+        }
+
+        // Set panda state
+        function setPandaState(state) {
+            panda.className = 'panda ' + state;
+        }
+
+        // Panda eye follow touch
+        function moveEyes(x, y) {
+            const pandaRect = pandaContainer.getBoundingClientRect();
+            const pandaCenterX = pandaRect.left + pandaRect.width / 2;
+            const pandaCenterY = pandaRect.top + pandaRect.height / 3;
+            
+            const angle = Math.atan2(y - pandaCenterY, x - pandaCenterX);
+            const distance = Math.min(3, Math.hypot(x - pandaCenterX, y - pandaCenterY) / 50);
+            
+            const eyeX = Math.cos(angle) * distance;
+            const eyeY = Math.sin(angle) * distance;
+            
+            pupilLeft.style.transform = `translate(${eyeX}px, ${eyeY}px)`;
+            pupilRight.style.transform = `translate(${eyeX}px, ${eyeY}px)`;
+        }
+
+        // Panda tap interaction
+        function handlePandaTap(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const now = Date.now();
+            const timeDiff = now - lastTapTime;
+            lastTapTime = now;
+            
+            // Create hearts
+            const rect = pandaContainer.getBoundingClientRect();
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    createHeart(
+                        rect.left + Math.random() * rect.width,
+                        rect.top + Math.random() * 30
+                    );
+                }, i * 100);
+            }
+            
+            if (timeDiff < 300) {
+                // Double tap
+                pandaTapCount++;
+                if (pandaTapCount > 5) {
+                    setPandaState('dizzy');
+                    showSpeech('manyTaps');
+                    setTimeout(() => {
+                        if (!gameActive) return;
+                        setPandaState('thinking');
+                        pandaTapCount = 0;
+                    }, 2000);
+                } else {
+                    setPandaState('poked');
+                    showSpeech('doubleTap');
+                    setTimeout(() => {
+                        if (!gameActive || panda.classList.contains('dizzy')) return;
+                        setPandaState('thinking');
+                    }, 500);
+                }
+            } else {
+                pandaTapCount = 1;
+                setPandaState('poked');
+                showSpeech('tap');
+                setTimeout(() => {
+                    if (!gameActive || panda.classList.contains('dizzy')) return;
+                    setPandaState('thinking');
+                }, 500);
+            }
+        }
+
+        // Update turn indicators
+        function updateIndicators() {
+            if (currentPlayer === 'X') {
+                indicatorX.classList.add('active');
+                indicatorO.classList.remove('active');
+            } else {
+                indicatorO.classList.add('active');
+                indicatorX.classList.remove('active');
+            }
+            updateBackground();
+        }
+
+        // Create confetti
+        function createConfetti() {
+            const colors = ['#ff6b9d', '#4fc3f7', '#ffd700', '#4a8f6d', '#ff4778', '#29b6f6', '#e74c3c', '#3498db'];
+            for (let i = 0; i < 40; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                    confetti.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+                    document.body.appendChild(confetti);
+                    confetti.addEventListener('animationend', () => confetti.remove());
+                }, i * 40);
+            }
+        }
+
+        // Check for winner
+        function checkWinner() {
+            for (const pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    return { winner: board[a], pattern };
+                }
+            }
+            if (board.every(cell => cell !== null)) {
+                return { winner: 'draw', pattern: null };
+            }
+            return null;
+        }
+
+        // Handle cell click
+        function handleCellClick(e) {
+            if (!gameActive) return;
+            
+            const cell = e.currentTarget;
+            const index = parseInt(cell.dataset.index);
+
+            if (board[index]) return;
+
+            // Make move
+            board[index] = currentPlayer;
+            cell.innerHTML = `<span class="mark mark-${currentPlayer.toLowerCase()}">${currentPlayer === 'X' ? '✕' : '○'}</span>`;
+            cell.classList.add('taken');
+
+            // Create particles
+            const rect = cell.getBoundingClientRect();
+            const color = currentPlayer === 'X' ? '#e74c3c' : '#3498db';
+            for (let i = 0; i < 5; i++) {
+                createParticle(
+                    rect.left + rect.width / 2 + (Math.random() - 0.5) * 30,
+                    rect.top + rect.height / 2,
+                    color
+                );
+            }
+
+            // Shake board
+            gameBoard.classList.add('shake');
+            setTimeout(() => gameBoard.classList.remove('shake'), 400);
+
+            // Check for winner
+            const result = checkWinner();
+            
+            if (result) {
+                gameActive = false;
+                
+                if (result.winner === 'draw') {
+                    setPandaState('sad');
+                    showSpeech('draw');
+                    overlayPanda.className = 'panda sad';
+                    winnerText.innerHTML = `<span style="color: #ffd700;">It's a Draw! 🤝</span>`;
+                } else {
+                    scores[result.winner]++;
+                    if (result.winner === 'X') {
+                        scoreX.textContent = scores.X;
+                    } else {
+                        scoreO.textContent = scores.O;
+                    }
+                    
+                    result.pattern.forEach(idx => {
+                        cells[idx].classList.add('winner');
+                    });
+                    
+                    setPandaState('excited');
+                    showSpeech(result.winner === 'X' ? 'winX' : 'winO');
+                    overlayPanda.className = 'panda excited';
+                    
+                    const color = result.winner === 'X' ? '#ff6b6b' : '#4fc3f7';
+                    const playerNum = result.winner === 'X' ? '1' : '2';
+                    winnerText.innerHTML = `<span style="color: ${color};">Player ${playerNum} Wins! 🎉</span>`;
+                    
+                    createConfetti();
+                }
+                
+                setTimeout(() => {
+                    gameOverlay.classList.add('show');
+                }, 700);
+            } else {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                updateIndicators();
+                
+                if (Math.random() < 0.4) {
+                    showSpeech('move');
+                }
+            }
+        }
+
+        // Reset game
+        function resetGame() {
+            board = Array(9).fill(null);
+            currentPlayer = 'X';
+            gameActive = true;
+            pandaTapCount = 0;
+            
+            cells.forEach(cell => {
+                cell.innerHTML = '';
+                cell.classList.remove('taken', 'winner');
+            });
+            
+            updateIndicators();
+            gameOverlay.classList.remove('show');
+            setPandaState('thinking');
+            showSpeech('start');
+        }
+
+        // Event Listeners
+        cells.forEach(cell => {
+            cell.addEventListener('click', handleCellClick);
+            cell.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                handleCellClick(e);
+            }, { passive: false });
+        });
+
+        // Panda interaction
+        pandaContainer.addEventListener('click', handlePandaTap);
+        pandaContainer.addEventListener('touchend', handlePandaTap, { passive: false });
+
+        // Eye tracking
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                moveEyes(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+
+        document.addEventListener('mousemove', (e) => {
+            moveEyes(e.clientX, e.clientY);
+        });
+
+        // Play again button - FIXED
+        playAgainBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resetGame();
+        });
+        
+        playAgainBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resetGame();
+        }, { passive: false });
+
+        // Prevent scroll
+        document.addEventListener('touchmove', (e) => {
+            if (e.target.closest('.game-overlay') || e.target.closest('.game-board')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Initial setup
+        showSpeech('start');
+        updateIndicators();
+        updateBackground();
+    </script>
+</body>
+</html>

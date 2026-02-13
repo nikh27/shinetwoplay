@@ -569,3 +569,71 @@ def check_rate_limit(key: str, limit: int, window: int) -> bool:
     
     redis_client.incr(key)
     return True
+
+
+# ============= Game State Functions =============
+# Key: room:{code}:game_state (JSON string)
+GAME_STATE_TTL = 3600  # Same as room TTL
+
+def set_game_state(code: str, state: dict):
+    """
+    Store complete game state in Redis.
+    
+    Args:
+        code: Room code
+        state: Game state dictionary
+    """
+    redis_client.setex(
+        f'room:{code}:game_state',
+        GAME_STATE_TTL,
+        json.dumps(state)
+    )
+
+
+def get_game_state(code: str) -> dict:
+    """
+    Get current game state from Redis.
+    
+    Args:
+        code: Room code
+        
+    Returns:
+        Game state dictionary or None if not found
+    """
+    data = redis_client.get(f'room:{code}:game_state')
+    return json.loads(data) if data else None
+
+
+def update_game_state(code: str, updates: dict):
+    """
+    Partial update to game state.
+    Merges updates with existing state.
+    
+    Args:
+        code: Room code
+        updates: Dictionary of fields to update
+    """
+    state = get_game_state(code) or {}
+    state.update(updates)
+    set_game_state(code, state)
+
+
+def clear_game_state(code: str):
+    """
+    Clear game state when game ends.
+    
+    Args:
+        code: Room code
+    """
+    redis_client.delete(f'room:{code}:game_state')
+
+
+def game_state_exists(code: str) -> bool:
+    """Check if game state exists for room"""
+    return redis_client.exists(f'room:{code}:game_state') > 0
+
+
+def refresh_game_state_ttl(code: str):
+    """Refresh TTL on game state"""
+    redis_client.expire(f'room:{code}:game_state', GAME_STATE_TTL)
+

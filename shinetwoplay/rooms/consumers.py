@@ -36,8 +36,17 @@ from .redis_client import (
     kick_player, is_player_kicked,
     # Reconnection functions
     mark_player_disconnected, is_player_in_grace_period,
-    reconnect_player, clear_disconnection_marker, get_connected_player_count
+    reconnect_player, clear_disconnection_marker, get_connected_player_count,
+    # Game state functions
+    get_game_state, set_game_state, clear_game_state, game_state_exists
 )
+
+# Game handler imports
+try:
+    from games import get_handler, GAME_REGISTRY
+except ImportError:
+    get_handler = lambda x: None
+    GAME_REGISTRY = {}
 
 
 class RoomConsumer(AsyncWebsocketConsumer):
@@ -120,6 +129,56 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 # Send room state
                 await self.send_room_state()
                 
+                # Check if there's an active game
+                game_state = get_game_state(self.room_code)
+                if game_state:
+                    # Remove from disconnected players
+                    disconnected = game_state.get('disconnected_players', [])
+                    if self.username in disconnected:
+                        disconnected.remove(self.username)
+                        game_state['disconnected_players'] = disconnected
+                    
+                    # If no one is disconnected anymore, resume game
+                    if len(disconnected) == 0:
+                        game_state['paused'] = False
+                    
+                    set_game_state(self.room_code, game_state)
+                    
+                    # Get game info
+                    room_info = get_room_info(self.room_code)
+                    game_id = room_info.get('selected_game', '')
+                    total_rounds = int(room_info.get('rounds', 1))
+                    
+                    # Send game state to reconnecting player
+                    handler = get_handler(game_id)
+                    if handler:
+                        try:
+                            game_html = handler.get_template()
+                            await self.send(text_data=json.dumps({
+                                'event': 'game_loaded',
+                                'data': {
+                                    'game_id': game_id,
+                                    'game_name': handler.game_name,
+                                    'game_html': game_html,
+                                    'game_state': game_state,
+                                    'round': game_state.get('current_round', 1),
+                                    'total_rounds': total_rounds
+                                }
+                            }))
+                        except Exception as e:
+                            print(f"Error sending game state on reconnect: {e}")
+                    
+                    # Broadcast game resumed to everyone
+                    if not game_state.get('paused'):
+                        await self.channel_layer.group_send(
+                            self.room_group_name,
+                            {
+                                'type': 'broadcast_game_resumed',
+                                'resumed_by': self.username,
+                                'game_state': game_state
+                            }
+                        )
+                
                 # Notify others about reconnection
                 players = get_players(self.room_code)
                 await self.channel_layer.group_send(
@@ -182,6 +241,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
         Handle WebSocket disconnection with grace period for reconnection.
         Player data is kept for 30 seconds to allow reconnection.
         Owner keeps ownership during grace period.
+        If in a game, pause the game.
         """
         try:
             if hasattr(self, 'room_group_name') and hasattr(self, 'room_code') and hasattr(self, 'username'):
@@ -194,6 +254,27 @@ class RoomConsumer(AsyncWebsocketConsumer):
                     f'{self.username} disconnected',
                     'disconnect'
                 )
+                
+                # Check if in active game - if so, pause it
+                game_state = get_game_state(self.room_code)
+                if game_state:
+                    # Update game state to paused
+                    game_state['paused'] = True
+                    game_state['disconnected_players'] = game_state.get('disconnected_players', [])
+                    if self.username not in game_state['disconnected_players']:
+                        game_state['disconnected_players'].append(self.username)
+                    set_game_state(self.room_code, game_state)
+                    
+                    # Notify other player about game pause
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'broadcast_game_paused',
+                            'paused_by': self.username,
+                            'game_state': game_state,
+                            'countdown': 30
+                        }
+                    )
                 
                 # Count connected players (excluding those in grace period)
                 connected_count = get_connected_player_count(self.room_code)
@@ -250,6 +331,8 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 # Owner management events
                 'transfer_ownership': self.handle_transfer_ownership,
                 'kick_player': self.handle_kick_player,
+                # Game events
+                'game_move': self.handle_game_move,
             }
             
             handler = handlers.get(event)
@@ -459,7 +542,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
         )
 
     async def handle_start_game(self, data):
-        """Handle start game (owner only)"""
+        """Handle start game (owner only) - Now uses game handlers"""
         room_info = get_room_info(self.room_code)
         
         # Check owner
@@ -468,34 +551,207 @@ class RoomConsumer(AsyncWebsocketConsumer):
             return
         
         # Check game selected
-        if not room_info.get('selected_game'):
+        game_id = room_info.get('selected_game')
+        if not game_id:
             await self.send_error('NO_GAME', 'Select a game first')
             return
         
         # Check all players ready
         players = get_players(self.room_code)
+        player_list = list(players.keys())
+        
         for username, pdata in players.items():
             if username != room_info.get('owner') and not pdata.get('is_ready'):
                 await self.send_error('NOT_READY', 'All players must be ready')
                 return
         
-        # Update status
+        # Get game handler
+        handler = get_handler(game_id)
+        if not handler:
+            # Fallback to old redirect behavior
+            update_room_info(self.room_code, 'status', 'playing')
+            add_system_message(self.room_code, 'Game started!', 'game_started')
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'broadcast_start_game',
+                    'game': game_id,
+                    'redirect_url': f'/games/{game_id}/{self.room_code}/'
+                }
+            )
+            return
+        
+        # Initialize game using handler
+        total_rounds = int(room_info.get('rounds', 1))
+        game_state = handler.initialize(self.room_code, player_list, total_rounds)
+        
+        # Load game template
+        try:
+            game_html = handler.get_template()
+        except FileNotFoundError as e:
+            await self.send_error('GAME_TEMPLATE_ERROR', str(e))
+            return
+        
+        # Update room status
         update_room_info(self.room_code, 'status', 'playing')
         
         # Add system message
         add_system_message(self.room_code, 'Game started!', 'game_started')
         
-        game_id = room_info.get('selected_game')
-        
-        # Broadcast
+        # Broadcast game loaded with HTML and initial state
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                'type': 'broadcast_start_game',
-                'game': game_id,
-                'redirect_url': f'/games/{game_id}/{self.room_code}/'
+                'type': 'broadcast_game_loaded',
+                'game_id': game_id,
+                'game_name': handler.game_name,
+                'game_html': game_html,
+                'game_state': game_state,
+                'round': 1,
+                'total_rounds': total_rounds
             }
         )
+
+    async def handle_game_move(self, data):
+        """Handle game move from a player"""
+        action = data.get('action')
+        move_data = data.get('data', {})
+        
+        # Get current game state
+        game_state = get_game_state(self.room_code)
+        if not game_state:
+            await self.send_error('NO_GAME', 'No active game')
+            return
+        
+        # Check if game is paused
+        if game_state.get('paused'):
+            await self.send_error('GAME_PAUSED', 'Game is paused')
+            return
+        
+        # Get room info and handler
+        room_info = get_room_info(self.room_code)
+        game_id = room_info.get('selected_game')
+        handler = get_handler(game_id)
+        
+        if not handler:
+            await self.send_error('NO_HANDLER', f'No handler for game: {game_id}')
+            return
+        
+        # Process the move
+        result = handler.handle_move(self.room_code, self.username, action, move_data)
+        
+        if result.get('error'):
+            await self.send_error('INVALID_MOVE', result['error'])
+            return
+        
+        new_state = result.get('state')
+        
+        import asyncio
+        import time
+
+        # Always broadcast the move logic first (so users see the last mark)
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'broadcast_game_update',
+                'game_state': new_state
+            }
+        )
+        
+        # Check for round end
+        if result.get('round_ended'):
+            # Don't sleep here - send immediately so it reaches everyone
+            
+            # Add timestamp for synced display
+            current_time = int(time.time() * 1000)
+            reveal_at = current_time + 1000  # Show 1 second from now
+            
+            # Broadcast round result
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'broadcast_round_ended',
+                    'round_winner': result.get('round_winner'),
+                    'scores': new_state.get('scores', {}),
+                    'game_state': new_state,
+                    'timestamp': current_time,
+                    'reveal_at': reveal_at,     # <--- When to show overlay
+                    'display_ms': 3000          # Show result for 3 seconds
+                }
+            )
+            
+            # Spawn background task for delayed game flow to unblock the consumer
+            # This ensures the sender can receive the round_ended message immediately
+            asyncio.create_task(self.game_flow_background_task(result, handler))
+
+    async def game_flow_background_task(self, result, handler):
+        """
+        Handle delayed intervals between rounds/game end.
+        Run in background to avoid blocking the WebSocket consumer receive loop.
+        """
+        try:
+            import time
+            import asyncio
+            # Check for game end
+            if result.get('game_ended'):
+                # Wait for Reveal (1s) + Display (3s) = 4s total
+                await asyncio.sleep(4)
+                
+                # Game completely ended
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'broadcast_game_ended',
+                        'game_winner': result.get('game_winner'),
+                        'final_scores': result.get('final_scores', {}),
+                        'reason': 'completed',
+                        'timestamp': int(time.time() * 1000),
+                        'display_ms': 5000  # Show game over for 5 seconds
+                    }
+                )
+                
+                # Wait for game over screen
+                await asyncio.sleep(5)
+                
+                # Reset room to waiting state
+                update_room_info(self.room_code, 'status', 'waiting')
+                
+                # Reset player ready states
+                players = get_players(self.room_code)
+                for username in players.keys():
+                    set_player_ready(self.room_code, username, False)
+                
+                # Clear game state
+                clear_game_state(self.room_code)
+                
+                # Broadcast players not ready
+                players = get_players(self.room_code)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'broadcast_players_not_ready',
+                        'players': {k: v for k, v in players.items()}
+                    }
+                )
+            else:
+                # Start next round after delay
+                # Wait for Reveal (1s) + Display (3s) = 4s total
+                await asyncio.sleep(4)
+                
+                next_result = handler.start_next_round(self.room_code)
+                next_state = next_result.get('state')
+                
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'broadcast_round_started',
+                        'round': next_state.get('current_round'),
+                        'total_rounds': next_state.get('total_rounds'),
+                        'game_state': next_state
+                    }
+                )
+        except Exception as e:
+            print(f"Error in game flow background task: {e}")
 
     async def handle_react_message(self, data):
         """
@@ -857,6 +1113,98 @@ class RoomConsumer(AsyncWebsocketConsumer):
             'data': {
                 'user': event['user'],
                 'players': event['players']
+            }
+        }))
+
+    # ============= Game Broadcast Handlers =============
+
+    async def broadcast_game_loaded(self, event):
+        """Send game loaded event with HTML and initial state"""
+        await self.send(text_data=json.dumps({
+            'event': 'game_loaded',
+            'data': {
+                'game_id': event['game_id'],
+                'game_name': event['game_name'],
+                'game_html': event['game_html'],
+                'game_state': event['game_state'],
+                'round': event['round'],
+                'total_rounds': event['total_rounds']
+            }
+        }))
+
+    async def broadcast_game_update(self, event):
+        """Send game state update"""
+        await self.send(text_data=json.dumps({
+            'event': 'game_update',
+            'data': {
+                'game_state': event['game_state']
+            }
+        }))
+
+    async def broadcast_round_ended(self, event):
+        """Send round ended event"""
+        await self.send(text_data=json.dumps({
+            'event': 'round_ended',
+            'data': {
+                'round_winner': event['round_winner'],
+                'scores': event['scores'],
+                'game_state': event['game_state'],
+                'timestamp': event.get('timestamp'),
+                'display_ms': event.get('display_ms', 2000)
+            }
+        }))
+
+    async def broadcast_round_started(self, event):
+        """Send round started event"""
+        await self.send(text_data=json.dumps({
+            'event': 'round_started',
+            'data': {
+                'round': event['round'],
+                'total_rounds': event['total_rounds'],
+                'game_state': event['game_state']
+            }
+        }))
+
+    async def broadcast_game_ended(self, event):
+        """Send game ended event"""
+        await self.send(text_data=json.dumps({
+            'event': 'game_ended',
+            'data': {
+                'game_winner': event['game_winner'],
+                'final_scores': event['final_scores'],
+                'reason': event.get('reason', 'completed'),
+                'timestamp': event.get('timestamp'),
+                'display_ms': event.get('display_ms', 3000)
+            }
+        }))
+
+    async def broadcast_players_not_ready(self, event):
+        """Send players not ready event after game ends"""
+        await self.send(text_data=json.dumps({
+            'event': 'players_not_ready',
+            'data': {
+                'players': event['players']
+            }
+        }))
+
+    async def broadcast_game_paused(self, event):
+        """Send game paused event when player disconnects"""
+        await self.send(text_data=json.dumps({
+            'event': 'game_paused',
+            'data': {
+                'paused_by': event['paused_by'],
+                'game_state': event['game_state'],
+                'countdown': event['countdown']
+            }
+        }))
+
+    async def broadcast_game_resumed(self, event):
+        """Send game resumed event when player reconnects"""
+        await self.send(text_data=json.dumps({
+            'event': 'game_resumed',
+            'data': {
+                'resumed_by': event['resumed_by'],
+                'game_state': event['game_state']
             }
         }))
 

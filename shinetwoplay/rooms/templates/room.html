@@ -2071,6 +2071,81 @@
         </div>
     </div>
 
+    <!-- Game Overlay - Displayed when game is active -->
+    <div id="gameOverlay" class="game-overlay" style="display:none;">
+        <div class="game-overlay-content" id="gameContainer">
+            <!-- Game HTML is injected here -->
+        </div>
+    </div>
+
+    <style>
+        /* Game Overlay Styles */
+        .game-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--sunshine-cream);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .game-overlay-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: auto;
+        }
+        
+        /* Chat panel during game - uses body class since chat is outside overlay */
+        body.game-active .chat-container {
+            position: fixed;
+            right: -100%;
+            top: 0;
+            bottom: 0;
+            width: 85%;
+            max-width: 350px;
+            z-index: 1100;
+            transition: right 0.3s ease;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.2);
+            border-radius: 0;
+        }
+        
+        /* When chat is open - higher specificity selector */
+        body.game-active.game-chat-open .chat-container {
+            right: 0 !important;
+        }
+        
+        /* Fallback for just game-chat-open */
+        body.game-chat-open .chat-container {
+            right: 0 !important;
+        }
+        
+        /* Dark overlay behind chat */
+        .chat-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 1050;
+        }
+        
+        body.game-chat-open .chat-backdrop {
+            display: block;
+        }
+    </style>
+
     <script>
         const ROOM = "{{ room }}";
         const USER = "{{ username }}";
@@ -2142,6 +2217,15 @@
                     case 'player_kicked': handlePlayerKickedEvent(payload); break;
                     case 'player_disconnecting': handlePlayerDisconnectingEvent(payload); break;
                     case 'player_reconnected': handlePlayerReconnectedEvent(payload); break;
+                    // Game events
+                    case 'game_loaded': handleGameLoadedEvent(payload); break;
+                    case 'game_update': handleGameUpdateEvent(payload); break;
+                    case 'round_ended': handleRoundEndedEvent(payload); break;
+                    case 'round_started': handleRoundStartedEvent(payload); break;
+                    case 'game_ended': handleGameEndedEvent(payload); break;
+                    case 'players_not_ready': handlePlayersNotReadyEvent(payload); break;
+                    case 'game_paused': handleGamePausedEvent(payload); break;
+                    case 'game_resumed': handleGameResumedEvent(payload); break;
                 }
             };
         }
@@ -2443,10 +2527,244 @@
         }
 
         function handleStartGameEvent(payload) {
-            showToast('Game starting!', 'success');
+            // Old redirect behavior (fallback)
+            if (payload.redirect_url) {
+                showToast('Game starting!', 'success');
+                setTimeout(() => {
+                    window.location.href = payload.redirect_url;
+                }, 500);
+            }
+        }
+
+        // ============= Game System =============
+        
+        // Base Game class - all game UIs extend this
+        class BaseGame {
+            constructor() {
+                this.gameMode = "turn_based";
+                this.inputInterval = null;
+                this.currentInput = { keys: [], mouse: { x: 0, y: 0 } };
+            }
+            
+            // Initialize game with state
+            init(state) {
+                console.log('BaseGame init - override in subclass');
+            }
+            
+            // Update game with new state
+            update(state) {
+                console.log('BaseGame update - override in subclass');
+            }
+            
+            // Called when round ends
+            onRoundEnd(result) {
+                console.log('BaseGame onRoundEnd - override in subclass');
+            }
+            
+            // Called when game ends
+            onGameEnd(result) {
+                console.log('BaseGame onGameEnd - override in subclass');
+            }
+            
+            // Send a move to server (turn-based)
+            sendMove(action, data) {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        event: 'game_move',
+                        action: action,
+                        data: data
+                    }));
+                }
+            }
+            
+            // Cleanup when game ends
+            destroy() {
+                this.stopInputStreaming();
+            }
+            
+            // For real-time games - continuous input
+            startInputStreaming() {
+                if (this.gameMode !== "real_time") return;
+                // Setup input listeners and streaming
+            }
+            
+            stopInputStreaming() {
+                if (this.inputInterval) {
+                    clearInterval(this.inputInterval);
+                    this.inputInterval = null;
+                }
+            }
+        }
+        
+        // Current active game instance
+        let currentGame = null;
+        
+        // Registry of game classes (populated by game.html scripts)
+        window.GameClasses = window.GameClasses || {};
+        
+        function handleGameLoadedEvent(payload) {
+            console.log('🎮 Game loaded:', payload.game_id);
+            
+            // Add game-active class to body for chat styling
+            document.body.classList.add('game-active');
+            
+            // MOVE chat container to body level for proper z-index stacking
+            const chatContainer = document.querySelector('.chat-container');
+            if (chatContainer && !chatContainer.dataset.movedToBody) {
+                chatContainer.dataset.originalParent = chatContainer.parentElement.id || 'main-content';
+                document.body.appendChild(chatContainer);
+                chatContainer.dataset.movedToBody = 'true';
+                console.log('Moved chat container to body level');
+            }
+            
+            // Add chat backdrop if not exists
+            if (!document.getElementById('chatBackdrop')) {
+                const backdrop = document.createElement('div');
+                backdrop.id = 'chatBackdrop';
+                backdrop.className = 'chat-backdrop';
+                backdrop.onclick = () => closeChatPanel();
+                document.body.appendChild(backdrop);
+            }
+            
+            // Inject game HTML into overlay
+            const container = document.getElementById('gameContainer');
+            container.innerHTML = payload.game_html;
+            
+            // Show overlay
+            document.getElementById('gameOverlay').style.display = 'flex';
+            
+            // Execute any scripts in the injected HTML
+            const scripts = container.querySelectorAll('script');
+            scripts.forEach(script => {
+                const newScript = document.createElement('script');
+                newScript.textContent = script.textContent;
+                document.body.appendChild(newScript);
+            });
+            
+            // Wait a bit for scripts to register, then init game
             setTimeout(() => {
-                window.location.href = payload.redirect_url;
-            }, 500);
+                const GameClass = window.GameClasses[payload.game_id] || BaseGame;
+                currentGame = new GameClass();
+                currentGame.init(payload.game_state);
+            }, 100);
+            
+            showToast('Game started!', 'success');
+        }
+        
+        function closeChatPanel() {
+            document.body.classList.remove('game-chat-open');
+        }
+        
+        function handleGameUpdateEvent(payload) {
+            if (currentGame) {
+                currentGame.update(payload.game_state);
+            }
+        }
+        
+        function handleRoundEndedEvent(payload) {
+            console.log('🏆 Round ended:', payload);
+            if (currentGame && currentGame.onRoundEnd) {
+                currentGame.onRoundEnd(payload);
+            }
+        }
+        
+        function handleRoundStartedEvent(payload) {
+            console.log('🔄 Round started:', payload);
+            if (currentGame) {
+                currentGame.update(payload.game_state);
+            }
+        }
+        
+        function handleGameEndedEvent(payload) {
+            console.log('🎮 Game ended:', payload);
+            
+            if (currentGame) {
+                if (currentGame.onGameEnd) {
+                    currentGame.onGameEnd(payload);
+                }
+                
+                // Use server-provided display time or default
+                const displayMs = payload.display_ms || 3000;
+                
+                // Wait for result display, then close overlay
+                setTimeout(() => {
+                    if (currentGame) {
+                        currentGame.destroy();
+                        currentGame = null;
+                    }
+                    
+                    // Remove game-active class (chat styling)
+                    document.body.classList.remove('game-active');
+                    document.body.classList.remove('game-chat-open');
+                    
+                    // Hide overlay
+                    document.getElementById('gameOverlay').style.display = 'none';
+                    document.getElementById('gameContainer').innerHTML = '';
+                    
+                    showToast('Game finished! Returning to lobby...', 'info');
+                }, displayMs);
+            }
+        }
+        
+        function handlePlayersNotReadyEvent(payload) {
+            console.log('Players reset to not ready:', payload);
+            updatePlayers(payload.players);
+        }
+        
+        // Game pause/reconnection countdown timer
+        let pauseCountdownTimer = null;
+        let pauseCountdownValue = 30;
+        
+        function handleGamePausedEvent(payload) {
+            console.log('⏸️ Game paused:', payload);
+            
+            if (currentGame) {
+                currentGame.update(payload.game_state);
+            }
+            
+            // Start countdown timer
+            pauseCountdownValue = payload.countdown || 30;
+            
+            if (pauseCountdownTimer) {
+                clearInterval(pauseCountdownTimer);
+            }
+            
+            pauseCountdownTimer = setInterval(() => {
+                pauseCountdownValue--;
+                
+                // Update countdown display in game UI
+                if (currentGame && currentGame.updateCountdown) {
+                    currentGame.updateCountdown(pauseCountdownValue);
+                }
+                
+                // Check for timeout
+                if (pauseCountdownValue <= 0) {
+                    clearInterval(pauseCountdownTimer);
+                    pauseCountdownTimer = null;
+                    
+                    // Opponent didn't return - they forfeit
+                    // The server will handle this when timer expires
+                    console.log('Timeout - opponent forfeited');
+                }
+            }, 1000);
+            
+            showToast(`${payload.paused_by} disconnected. Waiting for reconnection...`, 'warning');
+        }
+        
+        function handleGameResumedEvent(payload) {
+            console.log('▶️ Game resumed:', payload);
+            
+            // Clear countdown timer
+            if (pauseCountdownTimer) {
+                clearInterval(pauseCountdownTimer);
+                pauseCountdownTimer = null;
+            }
+            
+            if (currentGame) {
+                currentGame.update(payload.game_state);
+            }
+            
+            showToast(`${payload.resumed_by} reconnected! Game resumed.`, 'success');
         }
 
         function syncRoomState(state) {
