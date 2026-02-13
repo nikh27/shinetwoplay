@@ -531,9 +531,28 @@ function checkModalFormValidity() {
 
 function openModal() {
     document.getElementById("modalOverlay").classList.add("active");
-    // Reset form state
-    const continueBtn = document.getElementById("continueBtn");
-    continueBtn.classList.remove("enabled");
+    
+    // Pre-fill with existing data
+    const input = document.getElementById("modalUsername");
+    if (userName) {
+        input.value = userName;
+    }
+    
+    // Pre-select saved gender
+    if (gender) {
+        document.querySelectorAll(".gender-option").forEach(el => el.classList.remove("selected"));
+        // Find matching gender option and highlight it
+        const genderOptions = document.querySelectorAll(".gender-option");
+        genderOptions.forEach(opt => {
+            if ((gender === 'male' && opt.textContent.includes('Male')) ||
+                (gender === 'female' && opt.textContent.includes('Female'))) {
+                opt.classList.add("selected");
+            }
+        });
+    }
+    
+    // Check if form is already valid (existing user editing)
+    checkModalFormValidity();
 }
 
 function closeModal() {
