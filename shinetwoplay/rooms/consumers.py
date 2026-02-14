@@ -333,6 +333,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 'kick_player': self.handle_kick_player,
                 # Game events
                 'game_move': self.handle_game_move,
+                'game_exit': self.handle_game_exit,
             }
             
             handler = handlers.get(event)
@@ -694,6 +695,49 @@ class RoomConsumer(AsyncWebsocketConsumer):
             # Spawn background task for delayed game flow to unblock the consumer
             # This ensures the sender can receive the round_ended message immediately
             asyncio.create_task(self.game_flow_background_task(result, handler))
+
+    async def handle_game_exit(self, data):
+        """Handle game exit - both players return to lobby"""
+        import time
+        
+        # Reset room to waiting state
+        update_room_info(self.room_code, 'status', 'waiting')
+        
+        # Clear game state
+        clear_game_state(self.room_code)
+        
+        # Reset player ready states
+        room_players = get_players(self.room_code)
+        for username in room_players.keys():
+            set_player_ready(self.room_code, username, False)
+        
+        # Add system message
+        add_system_message(
+            self.room_code,
+            f'{self.username} cancelled the game',
+            'game_cancelled'
+        )
+        
+        # Broadcast game cancelled
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'broadcast_game_cancelled',
+                'reason': 'player_exit',
+                'cancelled_by': self.username,
+                'message': f'{self.username} left the game',
+            }
+        )
+        
+        # Broadcast updated players (ready states reset)
+        room_players = get_players(self.room_code)
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'broadcast_players_not_ready',
+                'players': {k: v for k, v in room_players.items()}
+            }
+        )
 
     async def game_flow_background_task(self, result, handler):
         """
@@ -1194,6 +1238,17 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 'reason': event.get('reason', 'completed'),
                 'timestamp': event.get('timestamp'),
                 'display_ms': event.get('display_ms', 3000)
+            }
+        }))
+
+    async def broadcast_game_cancelled(self, event):
+        """Send game cancelled event — both players return to lobby"""
+        await self.send(text_data=json.dumps({
+            'event': 'game_cancelled',
+            'data': {
+                'reason': event.get('reason', 'player_exit'),
+                'cancelled_by': event.get('cancelled_by', ''),
+                'message': event.get('message', 'Game cancelled'),
             }
         }))
 
