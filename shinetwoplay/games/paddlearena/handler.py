@@ -67,10 +67,15 @@ class PaddleArenaHandler(BaseGameHandler):
             winner_role = data.get('winner')  # 'P1', 'P2', or 'draw'
             if winner_role in ('P1', 'P2'):
                 winner_user = state['players'][winner_role]
-                state['scores'][winner_user] = state['scores'].get(winner_user, 0) + 1
                 state['round_winner'] = winner_user
             else:
                 state['round_winner'] = 'draw'
+
+            # Use client-reported scores (client is authoritative for PaddleArena)
+            p1_user = state['players']['P1']
+            p2_user = state['players']['P2']
+            state['scores'][p1_user] = data.get('p1_score', state['scores'].get(p1_user, 0))
+            state['scores'][p2_user] = data.get('p2_score', state['scores'].get(p2_user, 0))
 
             return self._handle_round_end(room_code, state, state['round_winner'])
 
@@ -78,10 +83,12 @@ class PaddleArenaHandler(BaseGameHandler):
 
     def _handle_round_end(self, room_code: str, state: Dict, winner: str) -> Dict:
         """Handle end of a round"""
+        # Increment round counter
+        state['current_round'] += 1
         current_round = state['current_round']
         total_rounds = state['total_rounds']
 
-        if current_round >= total_rounds:
+        if current_round > total_rounds:
             scores = state['scores']
             players_list = list(scores.keys())
 
@@ -113,20 +120,14 @@ class PaddleArenaHandler(BaseGameHandler):
             }
 
     def start_next_round(self, room_code: str) -> Dict:
-        """Start the next round"""
+        """Start the next round — current_round already incremented in _handle_round_end"""
         state = get_game_state(room_code)
         if not state:
             return {'error': 'Game not found'}
 
-        state['current_round'] += 1
         state['round_winner'] = None
-
-        # Swap P1 and P2 roles each round
-        players = state['players']
-        state['players'] = {
-            'P1': players['P2'],
-            'P2': players['P1'],
-        }
+        # Don't increment current_round here — already done in _handle_round_end
+        # Don't swap P1/P2 — PaddleArena keeps roles fixed
 
         set_game_state(room_code, state)
         return {'state': state, 'round_started': True}

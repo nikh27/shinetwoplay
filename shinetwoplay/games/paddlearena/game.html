@@ -757,9 +757,14 @@
         update(state) { this.state=state; }
         onRoundEnd(result) {
             this._waitingForServer = false;
+            
+            /* Check if all rounds are done by looking at game_state */
+            const gs = result && result.game_state;
+            const cr = gs ? gs.current_round : 0;
+            const tr = gs ? gs.total_rounds : 999;
             this._updateRoundBadge();
             
-            if (result && result.game_ended) {
+            if (cr > tr) {
                 /* All rounds done — show final result */
                 this.playing = false;
                 if(this._inputTimer) clearInterval(this._inputTimer);
@@ -778,8 +783,15 @@
             }, SERVE_DELAY);
         }
         onGameEnd(result) {
+            /* Server says game is fully over — show result and exit */
             this.playing = false;
-            this._showGameOver('draw', this.score, true);
+            if(this._inputTimer) clearInterval(this._inputTimer);
+            if(this._syncTimer) clearInterval(this._syncTimer);
+            
+            let w = 'draw';
+            if (this.score.p1 > this.score.p2) w = 'P1';
+            else if (this.score.p2 > this.score.p1) w = 'P2';
+            this._showGameOver(w, this.score, true);
         }
         
         _showGameOver(w, sc, isFinal) {
@@ -795,8 +807,17 @@
             }
             document.getElementById('pa-go-s1').textContent = sc.p1;
             document.getElementById('pa-go-s2').textContent = sc.p2;
-            document.getElementById('pa-next-text').textContent = isFinal ? 'Game Over' : '';
+            document.getElementById('pa-next-text').textContent = isFinal ? 'Returning to lobby...' : '';
             this.goOv.classList.remove('hidden');
+            
+            /* Auto-exit back to lobby after 4 seconds */
+            if (isFinal) {
+                setTimeout(() => {
+                    if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({ event: 'game_exit' }));
+                    }
+                }, 4000);
+            }
         }
         destroy() {
             this.playing = false;
