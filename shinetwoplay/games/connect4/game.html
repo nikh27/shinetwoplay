@@ -1,0 +1,1267 @@
+<!-- Connect 4 Game UI - Panda Edition (Multiplayer) -->
+
+<div class="c4-container">
+    <!-- Header: Exit + Round -->
+    <div class="c4-top-bar">
+        <button class="c4-exit-btn" onclick="exitGame()">✕</button>
+        <div class="c4-round-badge" id="c4-round-info">Round 1/1</div>
+    </div>
+
+    <!-- Score Row -->
+    <div class="c4-score-row">
+        <!-- Red player -->
+        <div class="c4-player-box c4-player-red" id="c4-box-red">
+            <div class="c4-avatar" id="c4-avatar-red"></div>
+            <div class="c4-player-info">
+                <div class="c4-player-name" id="c4-name-red">Player 1</div>
+                <div class="c4-player-score">Score: <span id="c4-score-red">0</span></div>
+            </div>
+            <div class="c4-color-ball c4-ball-red"></div>
+        </div>
+
+        <!-- Turn badge -->
+        <div class="c4-turn-badge" id="c4-turn-badge">🔴 Red</div>
+
+        <!-- Blue player -->
+        <div class="c4-player-box c4-player-blue" id="c4-box-blue">
+            <div class="c4-color-ball c4-ball-blue"></div>
+            <div class="c4-player-info">
+                <div class="c4-player-name" id="c4-name-blue">Player 2</div>
+                <div class="c4-player-score">Score: <span id="c4-score-blue">0</span></div>
+            </div>
+            <div class="c4-avatar" id="c4-avatar-blue"></div>
+        </div>
+    </div>
+
+    <!-- Panda Section -->
+    <div class="c4-panda-section">
+        <div class="c4-panda-wrapper" id="c4-panda-wrapper">
+            <div class="c4-speech-bubble" id="c4-speech-bubble">Let's go! 🐼</div>
+            <div class="c4-panda-mini happy" id="c4-panda">
+                <div class="c4-panda-face">
+                    <div class="c4-panda-ear left"></div>
+                    <div class="c4-panda-ear right"></div>
+                    <div class="c4-eye-patch left">
+                        <div class="c4-panda-eye"><div class="c4-pupil" id="c4-pupil-left"></div></div>
+                    </div>
+                    <div class="c4-eye-patch right">
+                        <div class="c4-panda-eye"><div class="c4-pupil" id="c4-pupil-right"></div></div>
+                    </div>
+                    <div class="c4-panda-nose"></div>
+                    <div class="c4-panda-mouth">
+                        <div class="c4-mouth-line left"></div>
+                        <div class="c4-mouth-line right"></div>
+                    </div>
+                    <div class="c4-panda-blush left"></div>
+                    <div class="c4-panda-blush right"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Board -->
+    <div class="c4-board-area">
+        <div class="c4-board-container">
+            <div class="c4-game-board" id="c4-game-board">
+                <div class="c4-column-highlight" id="c4-column-highlight"></div>
+                <div class="c4-board-grid" id="c4-board-grid"></div>
+            </div>
+        </div>
+
+        <!-- Drag Ball -->
+        <div class="c4-drag-area" id="c4-drag-area">
+            <span class="c4-drag-hint">⬆️ Drag to column</span>
+            <div class="c4-drag-ball-container">
+                <div class="c4-drag-ball c4-ball-red" id="c4-drag-ball"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause overlay -->
+    <div class="c4-pause-overlay" id="c4-pause-overlay" style="display:none;">
+        <div class="c4-pause-box">
+            <div style="font-size:48px;">⏸️</div>
+            <h2>Game Paused</h2>
+            <p><span id="c4-disconnected-player">Player</span> disconnected</p>
+            <p>Waiting for reconnection... <span id="c4-countdown">30</span>s</p>
+        </div>
+    </div>
+
+    <!-- Result overlay -->
+    <div class="c4-result-overlay" id="c4-result-overlay" style="display:none;">
+        <div class="c4-result-box">
+            <div id="c4-result-icon" style="font-size:48px;">🏆</div>
+            <h2 id="c4-result-text">You Win!</h2>
+            <p id="c4-result-subtext">Next round starting...</p>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ===== Connect4 - All scoped to .c4- ===== */
+.c4-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 8px 12px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.8s ease;
+}
+
+.c4-container.bg-red {
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(255,150,150,0.4) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(255,100,100,0.3) 0%, transparent 50%),
+        linear-gradient(160deg, #ff6b6b 0%, #ee5a52 30%, #d63031 60%, #c0392b 100%);
+}
+.c4-container.bg-blue {
+    background:
+        radial-gradient(ellipse at 20% 30%, rgba(150,200,255,0.4) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 70%, rgba(100,150,255,0.3) 0%, transparent 50%),
+        linear-gradient(160deg, #74b9ff 0%, #5f9ee9 30%, #2d6cdf 60%, #1e56c4 100%);
+}
+
+/* ===== Top Bar ===== */
+.c4-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+}
+.c4-exit-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+}
+.c4-round-badge {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+}
+
+/* ===== Score Row ===== */
+.c4-score-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+}
+.c4-player-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 22px;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(10px);
+    border: 2px solid transparent;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+.c4-player-box.active {
+    border-color: rgba(255,255,255,0.6);
+    box-shadow: 0 0 12px rgba(255,255,255,0.3);
+}
+.c4-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.4);
+}
+.c4-avatar img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+}
+.c4-player-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.c4-player-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.c4-player-score {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+}
+.c4-color-ball {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    box-shadow:
+        inset -3px -3px 6px rgba(0,0,0,0.35),
+        inset 3px 3px 6px rgba(255,255,255,0.45),
+        0 2px 6px rgba(0,0,0,0.25);
+}
+.c4-ball-red {
+    background: linear-gradient(135deg, #ff9a8b 0%, #ff6b6b 30%, #ee5a52 60%, #d32f2f 100%);
+}
+.c4-ball-blue {
+    background: linear-gradient(135deg, #a0c4ff 0%, #6ea8fe 30%, #4a8cfe 60%, #2962ff 100%);
+}
+.c4-turn-badge {
+    padding: 6px 14px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 18px;
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    white-space: nowrap;
+}
+
+/* ===== Panda Section ===== */
+.c4-panda-section {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+}
+.c4-panda-wrapper {
+    position: relative;
+    cursor: pointer;
+}
+.c4-panda-mini {
+    width: 90px; height: 90px;
+    position: relative;
+    transition: transform 0.3s ease;
+}
+.c4-panda-mini:active { transform: scale(0.92); }
+.c4-panda-face {
+    width: 100%; height: 100%;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f8f8 30%, #e8e8e8 70%, #d5d5d5 100%);
+    border-radius: 50% 50% 45% 45%;
+    position: relative;
+    box-shadow:
+        0 10px 30px rgba(0,0,0,0.3),
+        0 5px 15px rgba(0,0,0,0.2),
+        inset 0 -10px 20px rgba(0,0,0,0.08),
+        inset 0 5px 15px rgba(255,255,255,1);
+}
+.c4-panda-ear {
+    position: absolute;
+    width: 28px; height: 28px;
+    background: linear-gradient(145deg, #4a4a4a 0%, #2a2a2a 50%, #1a1a1a 100%);
+    border-radius: 50%;
+    top: -5px;
+    box-shadow: inset -3px -3px 8px rgba(0,0,0,0.6), inset 3px 3px 8px rgba(100,100,100,0.3), 0 4px 10px rgba(0,0,0,0.35);
+}
+.c4-panda-ear.left { left: 2px; }
+.c4-panda-ear.right { right: 2px; }
+.c4-panda-ear::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: linear-gradient(145deg, #5a5a5a 0%, #3a3a3a 100%);
+    border-radius: 50%;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+}
+.c4-eye-patch {
+    position: absolute;
+    width: 30px; height: 25px;
+    background: linear-gradient(145deg, #3a3a3a 0%, #1a1a1a 50%, #0a0a0a 100%);
+    border-radius: 50%;
+    top: 25px;
+    box-shadow: inset -2px -2px 6px rgba(0,0,0,0.6), inset 2px 2px 4px rgba(80,80,80,0.2);
+}
+.c4-eye-patch.left { left: 10px; transform: rotate(12deg); }
+.c4-eye-patch.right { right: 10px; transform: rotate(-12deg); }
+.c4-panda-eye {
+    position: absolute;
+    width: 18px; height: 18px;
+    background: linear-gradient(145deg, #fff 0%, #f5f5f5 100%);
+    border-radius: 50%;
+    top: 4px; left: 50%; transform: translateX(-50%);
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+.c4-pupil {
+    position: absolute;
+    width: 10px; height: 10px;
+    background: linear-gradient(145deg, #2a2a2a 0%, #000 100%);
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.1s ease;
+}
+.c4-pupil::before {
+    content: '';
+    position: absolute;
+    width: 4px; height: 4px;
+    background: white;
+    border-radius: 50%;
+    top: 1px; right: 1px;
+}
+.c4-panda-nose {
+    position: absolute;
+    width: 18px; height: 12px;
+    background: linear-gradient(145deg, #3a3a3a 0%, #1a1a1a 50%, #0a0a0a 100%);
+    border-radius: 50%;
+    top: 52px; left: 50%; transform: translateX(-50%);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.25), inset -2px -2px 4px rgba(0,0,0,0.3), inset 2px 2px 4px rgba(100,100,100,0.2);
+}
+.c4-panda-mouth {
+    position: absolute;
+    top: 62px; left: 50%; transform: translateX(-50%);
+    width: 24px; height: 12px;
+}
+.c4-mouth-line {
+    position: absolute;
+    width: 10px; height: 7px;
+    border-bottom: 3px solid #1a1a1a;
+    border-radius: 0 0 50% 50%;
+    top: 0;
+    transition: all 0.3s ease;
+}
+.c4-mouth-line.left { left: 1px; }
+.c4-mouth-line.right { right: 1px; }
+.c4-panda-blush {
+    position: absolute;
+    width: 16px; height: 8px;
+    background: rgba(255,120,120,0.6);
+    border-radius: 50%;
+    top: 55px; filter: blur(3px);
+    opacity: 0; transition: opacity 0.3s;
+}
+.c4-panda-blush.left { left: 5px; }
+.c4-panda-blush.right { right: 5px; }
+
+/* Panda expressions */
+.c4-panda-mini.happy .c4-panda-blush { opacity: 1; }
+.c4-panda-mini.happy .c4-mouth-line { height: 9px; }
+.c4-panda-mini.very-happy .c4-panda-blush { opacity: 1; }
+.c4-panda-mini.very-happy .c4-mouth-line { height: 10px; border-bottom-width: 4px; }
+.c4-panda-mini.excited { animation: c4-bounce 0.35s ease infinite; }
+.c4-panda-mini.excited .c4-panda-blush { opacity: 1; }
+.c4-panda-mini.excited .c4-mouth-line { height: 10px; }
+.c4-panda-mini.thinking .c4-pupil { transform: translate(-50%, -70%); }
+.c4-panda-mini.thinking .c4-panda-face { animation: c4-think-tilt 2s ease-in-out infinite; }
+.c4-panda-mini.sad .c4-mouth-line {
+    border-bottom: none;
+    border-top: 3px solid #1a1a1a;
+    border-radius: 50% 50% 0 0;
+    height: 5px;
+}
+.c4-panda-mini.angry .c4-eye-patch { transform: rotate(0deg) skewY(-5deg); }
+.c4-panda-mini.angry .c4-eye-patch.left { transform: rotate(0deg) skewY(5deg); }
+.c4-panda-mini.angry .c4-pupil { width: 8px; height: 8px; }
+.c4-panda-mini.angry .c4-mouth-line {
+    border-bottom: none;
+    border-top: 3px solid #1a1a1a;
+    border-radius: 50% 50% 0 0;
+    height: 5px;
+}
+.c4-panda-mini.wink .c4-eye-patch.right .c4-panda-eye { height: 4px; top: 10px; }
+.c4-panda-mini.wink .c4-panda-blush { opacity: 1; }
+.c4-panda-mini.surprised .c4-panda-eye { width: 20px; height: 20px; top: 2px; }
+.c4-panda-mini.surprised .c4-pupil { width: 6px; height: 6px; }
+.c4-panda-mini.nervous .c4-pupil { width: 6px; height: 6px; }
+.c4-panda-mini.nervous .c4-mouth-line {
+    border-bottom: none;
+    width: 12px; height: 2px;
+    background: #1a1a1a;
+    border-radius: 2px;
+}
+.c4-panda-mini.nervous .c4-mouth-line.right { display: none; }
+.c4-panda-mini.giggle { animation: c4-giggle 0.15s ease infinite; }
+.c4-panda-mini.giggle .c4-panda-blush { opacity: 1; }
+.c4-panda-mini.giggle .c4-panda-eye { height: 6px; top: 8px; }
+.c4-panda-mini.dance { animation: c4-dance 0.4s ease infinite; }
+.c4-panda-mini.dance .c4-panda-blush { opacity: 1; }
+.c4-panda-mini.sleepy .c4-panda-eye { height: 4px; top: 10px; }
+.c4-panda-mini.sleepy .c4-panda-face { animation: c4-sleepy 3s ease-in-out infinite; }
+
+@keyframes c4-bounce {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-8px) rotate(3deg); }
+}
+@keyframes c4-think-tilt {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(8deg); }
+}
+@keyframes c4-dance {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-8px) rotate(5deg); }
+}
+@keyframes c4-giggle {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+@keyframes c4-sleepy {
+    0%, 100% { transform: rotate(0deg) translateY(0); }
+    50% { transform: rotate(-5deg) translateY(3px); }
+}
+
+/* Speech bubble */
+.c4-speech-bubble {
+    position: absolute;
+    top: -45px; left: 50%;
+    transform: translateX(-50%) scale(0);
+    background: white;
+    padding: 8px 16px;
+    border-radius: 18px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 100;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    color: #333;
+}
+.c4-speech-bubble.show {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+}
+.c4-speech-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -10px; left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: white;
+}
+
+/* ===== Game Board ===== */
+.c4-board-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+.c4-board-container {
+    perspective: 800px;
+}
+.c4-game-board {
+    background: linear-gradient(145deg, #ffe066 0%, #ffd43b 30%, #fcc419 60%, #fab005 100%);
+    padding: 8px;
+    border-radius: 16px;
+    box-shadow:
+        0 15px 40px rgba(0,0,0,0.35),
+        0 5px 15px rgba(0,0,0,0.25),
+        inset 0 2px 8px rgba(255,255,255,0.6),
+        inset 0 -5px 15px rgba(0,0,0,0.1);
+    transform: rotateX(4deg);
+    position: relative;
+    border: 2px solid rgba(255,255,255,0.3);
+}
+.c4-game-board::before {
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    left: 4%; width: 92%; height: 12px;
+    background: linear-gradient(to bottom, #e6a700, #cc9500, #b38600);
+    border-radius: 0 0 12px 12px;
+}
+.c4-board-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+.c4-cell {
+    width: calc((100vw - 56px) / 7);
+    max-width: 50px;
+    height: calc((100vw - 56px) / 7);
+    max-height: 50px;
+    background: linear-gradient(145deg, #1e1e40 0%, #141430 50%, #0a0a20 100%);
+    border-radius: 50%;
+    box-shadow:
+        inset 0 5px 15px rgba(0,0,0,0.85),
+        inset 0 -3px 8px rgba(255,255,255,0.05),
+        0 2px 4px rgba(0,0,0,0.3);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.c4-cell::before {
+    content: '';
+    position: absolute;
+    width: 55%; height: 55%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 60%);
+}
+
+/* Game pieces */
+.c4-piece {
+    width: 82%; height: 82%;
+    border-radius: 50%;
+    position: absolute;
+    box-shadow:
+        0 4px 10px rgba(0,0,0,0.45),
+        inset -4px -4px 10px rgba(0,0,0,0.35),
+        inset 4px 4px 10px rgba(255,255,255,0.45);
+}
+.c4-piece.red {
+    background: linear-gradient(135deg, #ff9a8b 0%, #ff6b6b 30%, #ee5a52 60%, #d32f2f 100%);
+}
+.c4-piece.blue {
+    background: linear-gradient(135deg, #a0c4ff 0%, #6ea8fe 30%, #4a8cfe 60%, #2962ff 100%);
+}
+.c4-piece.drop {
+    animation: c4-drop 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+@keyframes c4-drop {
+    0% { transform: translateY(-280px); opacity: 0.7; }
+    60% { transform: translateY(6px); }
+    80% { transform: translateY(-4px); }
+    100% { transform: translateY(0); }
+}
+.c4-piece.win {
+    animation: c4-win-glow 0.5s ease infinite alternate;
+}
+@keyframes c4-win-glow {
+    0% {
+        box-shadow: 0 0 15px rgba(255,215,0,0.9), 0 4px 10px rgba(0,0,0,0.45),
+            inset -4px -4px 10px rgba(0,0,0,0.35), inset 4px 4px 10px rgba(255,255,255,0.45);
+    }
+    100% {
+        box-shadow: 0 0 30px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.6),
+            0 4px 10px rgba(0,0,0,0.45), inset -4px -4px 10px rgba(0,0,0,0.35),
+            inset 4px 4px 10px rgba(255,255,255,0.45);
+    }
+}
+
+/* Column highlight */
+.c4-column-highlight {
+    position: absolute;
+    top: 0;
+    width: calc((100vw - 56px) / 7 + 5px);
+    max-width: 55px;
+    height: 100%;
+    background: rgba(255,255,255,0.18);
+    border-radius: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.c4-column-highlight.show { opacity: 1; }
+
+/* Drag area */
+.c4-drag-area {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.c4-drag-hint {
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.85;
+}
+.c4-drag-ball-container {
+    width: 52px; height: 52px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px dashed rgba(255,255,255,0.35);
+}
+.c4-drag-ball {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    cursor: grab;
+    box-shadow:
+        0 6px 16px rgba(0,0,0,0.45),
+        inset -5px -5px 12px rgba(0,0,0,0.35),
+        inset 5px 5px 12px rgba(255,255,255,0.45);
+    transition: transform 0.2s ease;
+    touch-action: none;
+}
+.c4-drag-ball:active { cursor: grabbing; }
+.c4-drag-ball.dragging {
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    transform: scale(1.2);
+    box-shadow:
+        0 12px 30px rgba(0,0,0,0.5),
+        inset -5px -5px 12px rgba(0,0,0,0.35),
+        inset 5px 5px 12px rgba(255,255,255,0.45);
+}
+
+/* ===== Overlays ===== */
+.c4-pause-overlay, .c4-result-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+.c4-pause-box, .c4-result-box {
+    background: rgba(30,30,60,0.95);
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 24px 36px;
+    text-align: center;
+    color: white;
+    backdrop-filter: blur(16px);
+}
+
+/* Confetti */
+.c4-confetti {
+    position: fixed;
+    width: 10px; height: 10px;
+    z-index: 1001;
+    pointer-events: none;
+    animation: c4-confetti-fall 2.5s linear forwards;
+}
+@keyframes c4-confetti-fall {
+    0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+@keyframes c4-heart-float {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-60px) scale(1.3); opacity: 0; }
+}
+</style>
+
+<script>
+/* ===== Connect4 Panda Phrases ===== */
+const c4Phrases = {
+    start: [
+        "Hi there! 😊", "Let's play! 🎮", "Hey friend! 👋", "Ready to win? 🐼",
+        "Yay you're here! ✨", "Game time! 🎉", "Hello! 🌟", "Connect 4! 🔴🔵"
+    ],
+    tap: [
+        "Hehe! 😄", "That tickles! 🤭", "Hi hi hi! 🎉", "Wheee! ✨",
+        "Again again! 😆", "Teehee! 🌟", "So fun! 🎈", "Boop! 👆",
+        "Yippee! 🥳", "More more! 💫", "Hahaha! 😂", "Stop it! 🙈",
+        "I'm blushing! ☺️", "You found me! 🐼", "Panda power! 💪"
+    ],
+    doubleTap: [
+        "Woaaah! 😵", "So fast! ⚡", "Double boop! 👆👆", "Speedy! 🏃",
+        "Ninja tap! 🥷", "Combo! 💥"
+    ],
+    manyTaps: [
+        "Stoooop! 😵‍💫", "Too much! 🌀", "I'm dizzy! 💫", "Mercy! 🙏",
+        "Ok ok ok! 😅", "Help! 🆘"
+    ],
+    redTurn: [
+        "Go Red! ❤️", "Red's move! 🔴", "Your turn Red! 🎯",
+        "Show them Red! 💪", "Red power! 🔥", "C'mon Red! ⭐"
+    ],
+    blueTurn: [
+        "Go Blue! 💙", "Blue's move! 🔵", "Your turn Blue! 🎯",
+        "Show them Blue! 💪", "Blue power! 🌊", "C'mon Blue! ⭐"
+    ],
+    move: [
+        "Nice! 👏", "Great move! ⭐", "Wow! 🌟", "Smart! 🧠",
+        "Ooh clever! 👀", "Big brain! 🎓", "Pro gamer! 🎮",
+        "Impressive! ✨", "Genius! 💡"
+    ],
+    thinking: [
+        "Hmm... 🤔", "Let me see... 👀", "Interesting! 🧐",
+        "What will happen? 🔮", "Ooh exciting! 😮", "Close game! 😬"
+    ],
+    cheer: [
+        "You can do it! 💪", "Go go go! 🚀", "Amazing! ✨",
+        "Keep it up! 🌟", "So good! 🎯", "Fantastic! 🎊"
+    ],
+    nervous: [
+        "Oh no... 😰", "This is tense! 😬", "I can't look! 🙈",
+        "So close! 😱", "My heart! 💓"
+    ],
+    notYourTurn: [
+        "Not your turn! 😤", "Wait wait wait! ⏳", "Patience! 🐼",
+        "Hold on! ✋", "Hey, not yet! 🚫", "Other player's turn! 🔄",
+        "Easy there! 😅", "Nope! Not now! 🙅"
+    ],
+    winSelf: [
+        "YOU WON! 🎉", "Amazing! 🏆", "Champion! 👑",
+        "GG! ✨", "Victory! 🌟", "You're the best! 🔥"
+    ],
+    winOther: [
+        "Nice try! 💪", "Next time! 😤", "So close! 😔",
+        "Don't give up! 🌟", "Almost had it! 😣"
+    ],
+    draw: [
+        "It's a tie! 🤝", "Great game! ⭐", "Both winners! 🏅",
+        "So close! 😮", "What a match! 🎊"
+    ],
+    idle: [
+        "Still there? 👀", "Your move! 🎮", "I'm waiting~ ⏳",
+        "Helloooo? 👋", "*yawn* 😴", "Play play! 🐼",
+        "Don't leave me! 🥺", "I miss you! 💕"
+    ],
+    drag: [
+        "Ooh dropping! 🎯", "Where will it go? 👀", "Pick wisely! 🧠",
+        "Good choice! ✨", "Strategic! 🎖️"
+    ],
+};
+
+class Connect4Game extends BaseGame {
+    constructor() {
+        super();
+        this.gameMode = "turn_based";
+        this._wrongTurnCooldown = false;
+        this._dragging = false;
+        this._dragClone = null;
+    }
+
+    init(state) {
+        this.state = state;
+        this._buildBoard();
+        this._updatePlayers();
+        this._updateScores();
+        this._updateTurn();
+        this._updateBackground();
+        this._updateAvatars();
+        this._setupDrag();
+        this._setupPanda();
+        this._showSpeech('start');
+    }
+
+    update(state) {
+        const prevColor = this.state ? this.state.current_color : null;
+        this.state = state;
+        this._renderBoard();
+        this._updatePlayers();
+        this._updateScores();
+        this._updateTurn();
+        this._updateBackground();
+        this._updateAvatars();
+        this._updateDragBall();
+
+        if (prevColor && prevColor !== state.current_color) {
+            if (Math.random() < 0.5) this._showSpeech('move');
+        }
+
+        if (state.paused) {
+            this.showPauseOverlay();
+        } else {
+            this.hidePauseOverlay();
+        }
+    }
+
+    /* ===== Board ===== */
+    _buildBoard() {
+        const grid = document.getElementById('c4-board-grid');
+        grid.innerHTML = '';
+        const board = this.state.board;  // 6x7
+        for (let r = 0; r < 6; r++) {
+            for (let c = 0; c < 7; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'c4-cell';
+                cell.dataset.row = r;
+                cell.dataset.col = c;
+                cell.addEventListener('click', () => this._handleColumnClick(c));
+                if (board[r][c]) {
+                    const piece = document.createElement('div');
+                    piece.className = `c4-piece ${board[r][c]}`;
+                    cell.appendChild(piece);
+                }
+                grid.appendChild(cell);
+            }
+        }
+    }
+
+    _renderBoard() {
+        const grid = document.getElementById('c4-board-grid');
+        if (!grid || !this.state) return;
+        const board = this.state.board;
+        const cells = grid.querySelectorAll('.c4-cell');
+        const lastMove = this.state.last_move;
+        const winCells = this.state.win_cells;
+
+        cells.forEach((cell, idx) => {
+            const r = Math.floor(idx / 7);
+            const c = idx % 7;
+            const color = board[r][c];
+            const existing = cell.querySelector('.c4-piece');
+
+            if (color && !existing) {
+                const piece = document.createElement('div');
+                piece.className = `c4-piece ${color}`;
+                // Drop animation only for the last move
+                if (lastMove && lastMove.row === r && lastMove.col === c) {
+                    piece.classList.add('drop');
+                }
+                cell.appendChild(piece);
+            } else if (!color && existing) {
+                existing.remove();
+            }
+        });
+
+        // Highlight winning cells
+        if (winCells) {
+            winCells.forEach(([wr, wc]) => {
+                const piece = cells[wr * 7 + wc].querySelector('.c4-piece');
+                if (piece) piece.classList.add('win');
+            });
+        }
+    }
+
+    /* ===== Controls ===== */
+    _handleColumnClick(col) {
+        if (!this._isMyTurn()) {
+            if (!this._wrongTurnCooldown) {
+                this._wrongTurnCooldown = true;
+                this._showSpeech('notYourTurn');
+                this._setPanda('angry');
+                setTimeout(() => {
+                    this._setPanda('happy');
+                    this._wrongTurnCooldown = false;
+                }, 1500);
+            }
+            return;
+        }
+        if (this.state.paused || this.state.round_winner) return;
+        this.sendMove('drop', { col: col });
+    }
+
+    _isMyTurn() {
+        if (!this.state) return false;
+        return this.state.players[this.state.current_color] === USER;
+    }
+
+    /* ===== Drag & Drop ===== */
+    _setupDrag() {
+        const ball = document.getElementById('c4-drag-ball');
+        if (!ball) return;
+
+        ball.addEventListener('touchstart', e => this._dragStart(e), { passive: false });
+        document.addEventListener('touchmove', e => this._dragMove(e), { passive: false });
+        document.addEventListener('touchend', e => this._dragEnd(e));
+
+        ball.addEventListener('mousedown', e => this._dragStart(e));
+        document.addEventListener('mousemove', e => this._dragMove(e));
+        document.addEventListener('mouseup', e => this._dragEnd(e));
+    }
+
+    _dragStart(e) {
+        if (!this._isMyTurn()) {
+            if (!this._wrongTurnCooldown) {
+                this._wrongTurnCooldown = true;
+                this._showSpeech('notYourTurn');
+                this._setPanda('angry');
+                setTimeout(() => {
+                    this._setPanda('happy');
+                    this._wrongTurnCooldown = false;
+                }, 1500);
+            }
+            return;
+        }
+        if (this.state.round_winner) return;
+        e.preventDefault();
+        this._dragging = true;
+
+        const ball = document.getElementById('c4-drag-ball');
+        this._dragClone = ball.cloneNode(true);
+        this._dragClone.classList.add('dragging');
+        this._dragClone.id = 'c4-drag-clone';
+        document.body.appendChild(this._dragClone);
+
+        const pos = this._getPos(e);
+        this._movClone(pos.x, pos.y);
+        ball.style.opacity = '0.3';
+
+        if (Math.random() > 0.5) this._showSpeech('drag');
+        this._setPanda('thinking');
+    }
+
+    _dragMove(e) {
+        if (!this._dragging || !this._dragClone) return;
+        e.preventDefault();
+        const pos = this._getPos(e);
+        this._movClone(pos.x, pos.y);
+
+        const col = this._getCol(pos.x);
+        const hl = document.getElementById('c4-column-highlight');
+        if (col !== -1) {
+            const cell = document.querySelector('.c4-cell');
+            if (cell) {
+                const cw = cell.offsetWidth + 4;
+                hl.style.left = (col * cw + 6) + 'px';
+                hl.classList.add('show');
+            }
+        } else {
+            hl.classList.remove('show');
+        }
+    }
+
+    _dragEnd(e) {
+        if (!this._dragging) return;
+        this._dragging = false;
+        document.getElementById('c4-column-highlight').classList.remove('show');
+
+        if (this._dragClone) {
+            const rect = this._dragClone.getBoundingClientRect();
+            const col = this._getCol(rect.left + 21);
+            this._dragClone.remove();
+            this._dragClone = null;
+            document.getElementById('c4-drag-ball').style.opacity = '1';
+
+            if (col !== -1) {
+                this._handleColumnClick(col);
+            }
+        }
+        this._setPanda('happy');
+    }
+
+    _getPos(e) {
+        if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        return { x: e.clientX, y: e.clientY };
+    }
+
+    _movClone(x, y) {
+        if (this._dragClone) {
+            this._dragClone.style.left = (x - 21) + 'px';
+            this._dragClone.style.top = (y - 21) + 'px';
+        }
+    }
+
+    _getCol(x) {
+        const board = document.getElementById('c4-game-board');
+        if (!board) return -1;
+        const rect = board.getBoundingClientRect();
+        if (x < rect.left || x > rect.right) return -1;
+        const relX = x - rect.left - 6;
+        const cw = (rect.width - 12) / 7;
+        const col = Math.floor(relX / cw);
+        return col >= 0 && col < 7 ? col : -1;
+    }
+
+    /* ===== UI Updates ===== */
+    _updatePlayers() {
+        if (!this.state) return;
+        document.getElementById('c4-name-red').textContent = this.state.players['red'];
+        document.getElementById('c4-name-blue').textContent = this.state.players['blue'];
+    }
+
+    _updateScores() {
+        if (!this.state) return;
+        const scores = this.state.scores;
+        document.getElementById('c4-score-red').textContent = scores[this.state.players['red']] || 0;
+        document.getElementById('c4-score-blue').textContent = scores[this.state.players['blue']] || 0;
+        document.getElementById('c4-round-info').textContent =
+            `Round ${this.state.current_round}/${this.state.total_rounds}`;
+    }
+
+    _updateTurn() {
+        if (!this.state) return;
+        const badge = document.getElementById('c4-turn-badge');
+        const isRed = this.state.current_color === 'red';
+        badge.textContent = isRed ? '🔴 Red' : '🔵 Blue';
+
+        // Active highlight on player box
+        document.getElementById('c4-box-red').classList.toggle('active', isRed);
+        document.getElementById('c4-box-blue').classList.toggle('active', !isRed);
+
+        // Show/hide drag area if it's my turn
+        const area = document.getElementById('c4-drag-area');
+        if (area) area.style.opacity = this._isMyTurn() ? '1' : '0.4';
+    }
+
+    _updateBackground() {
+        const c = document.querySelector('.c4-container');
+        if (!c || !this.state) return;
+        c.classList.remove('bg-red', 'bg-blue');
+        c.classList.add(this.state.current_color === 'red' ? 'bg-red' : 'bg-blue');
+    }
+
+    _updateDragBall() {
+        const ball = document.getElementById('c4-drag-ball');
+        if (!ball || !this.state) return;
+        ball.classList.remove('c4-ball-red', 'c4-ball-blue');
+        ball.classList.add(this.state.current_color === 'red' ? 'c4-ball-red' : 'c4-ball-blue');
+    }
+
+    _updateAvatars() {
+        if (!this.state) return;
+        const gp = this.state.players;
+        if (typeof players !== 'undefined') {
+            const pRed = players[gp['red']];
+            const pBlue = players[gp['blue']];
+            if (pRed && pRed.gender) {
+                const src = pRed.gender === 'female' ? '/static/games/icons/avatar_female.png' : '/static/games/icons/avatar_male.png';
+                document.getElementById('c4-avatar-red').innerHTML = `<img src="${src}" alt="avatar">`;
+            }
+            if (pBlue && pBlue.gender) {
+                const src = pBlue.gender === 'female' ? '/static/games/icons/avatar_female.png' : '/static/games/icons/avatar_male.png';
+                document.getElementById('c4-avatar-blue').innerHTML = `<img src="${src}" alt="avatar">`;
+            }
+        }
+    }
+
+    /* ===== Panda ===== */
+    _setupPanda() {
+        this._pandaTapCount = 0;
+        this._lastTapTime = 0;
+        this._idleTimer = null;
+
+        const wrapper = document.getElementById('c4-panda-wrapper');
+        if (!wrapper) return;
+        wrapper.addEventListener('click', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            this._handlePandaTap(e);
+        });
+
+        // Eye tracking
+        document.addEventListener('mousemove', e => this._moveEyes(e.clientX, e.clientY));
+        document.addEventListener('touchmove', e => {
+            if (e.touches.length > 0) this._moveEyes(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+
+        // Start idle timer
+        this._startIdleTimer();
+    }
+
+    _handlePandaTap(e) {
+        const now = Date.now();
+        const timeSince = now - this._lastTapTime;
+        this._lastTapTime = now;
+        this._pandaTapCount++;
+        this._startIdleTimer();
+
+        // Hearts
+        const wrapper = document.getElementById('c4-panda-wrapper');
+        const rect = wrapper.getBoundingClientRect();
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => {
+                const heart = document.createElement('div');
+                heart.textContent = ['❤️','💕','💖','🩷','💗'][Math.floor(Math.random() * 5)];
+                heart.style.cssText = `position:fixed;font-size:18px;pointer-events:none;z-index:500;
+                    left:${rect.left + Math.random() * rect.width}px;
+                    top:${rect.top + Math.random() * 15}px;
+                    animation:c4-heart-float 1s ease forwards;`;
+                document.body.appendChild(heart);
+                setTimeout(() => heart.remove(), 1000);
+            }, i * 80);
+        }
+
+        if (timeSince < 300) {
+            this._showSpeech('doubleTap');
+            this._setPanda('surprised');
+        } else if (this._pandaTapCount > 5 && this._pandaTapCount % 3 === 0) {
+            this._showSpeech('manyTaps');
+            this._setPanda('giggle');
+        } else {
+            const exprs = ['happy', 'very-happy', 'excited', 'wink', 'giggle'];
+            const expr = exprs[this._pandaTapCount % exprs.length];
+            this._setPanda(expr);
+            this._showSpeech('tap');
+        }
+
+        setTimeout(() => {
+            if (!this.state.round_winner && !this._dragging) this._setPanda('happy');
+        }, 1500);
+    }
+
+    _startIdleTimer() {
+        if (this._idleTimer) clearTimeout(this._idleTimer);
+        this._idleTimer = setTimeout(() => {
+            if (!this.state.round_winner) {
+                this._showSpeech('idle');
+                const idleExprs = ['sleepy', 'thinking', 'wink'];
+                this._setPanda(idleExprs[Math.floor(Math.random() * idleExprs.length)]);
+                setTimeout(() => {
+                    if (!this.state.round_winner) this._setPanda('happy');
+                }, 2000);
+                this._startIdleTimer();
+            }
+        }, 8000);
+    }
+
+    _setPanda(state) {
+        const p = document.getElementById('c4-panda');
+        if (p) p.className = 'c4-panda-mini ' + state;
+    }
+
+    _showSpeech(category) {
+        const bubble = document.getElementById('c4-speech-bubble');
+        if (!bubble) return;
+        const list = c4Phrases[category];
+        if (!list) return;
+        bubble.textContent = list[Math.floor(Math.random() * list.length)];
+        bubble.classList.add('show');
+        clearTimeout(this._speechTimer);
+        this._speechTimer = setTimeout(() => bubble.classList.remove('show'), 1500);
+    }
+
+    _moveEyes(x, y) {
+        const panda = document.getElementById('c4-panda');
+        if (!panda) return;
+        const rect = panda.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 3;
+        const dx = Math.max(-3, Math.min(3, (x - cx) / 30));
+        const dy = Math.max(-2, Math.min(2, (y - cy) / 30));
+        const pl = document.getElementById('c4-pupil-left');
+        const pr = document.getElementById('c4-pupil-right');
+        if (pl) pl.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+        if (pr) pr.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    }
+
+    /* ===== Round / Game End ===== */
+    onRoundEnd(result) {
+        const isWinner = result.round_winner === USER;
+        const isDraw = result.round_winner === 'draw';
+
+        if (isDraw) {
+            this._setPanda('sad');
+            this._showSpeech('draw');
+        } else if (isWinner) {
+            this._setPanda('excited');
+            this._showSpeech('winSelf');
+            this._confetti();
+        } else {
+            this._setPanda('sad');
+            this._showSpeech('winOther');
+        }
+
+        // Highlight winning cells from state
+        if (result.state && result.state.win_cells) {
+            const cells = document.querySelectorAll('.c4-cell');
+            result.state.win_cells.forEach(([r, c]) => {
+                const piece = cells[r * 7 + c].querySelector('.c4-piece');
+                if (piece) piece.classList.add('win');
+            });
+        }
+
+        const overlay = document.getElementById('c4-result-overlay');
+        const icon = document.getElementById('c4-result-icon');
+        const text = document.getElementById('c4-result-text');
+        const subtext = document.getElementById('c4-result-subtext');
+
+        if (isDraw) { icon.textContent = '🤝'; text.textContent = "It's a Draw!"; }
+        else if (isWinner) { icon.textContent = '🏆'; text.textContent = 'You Win!'; }
+        else { icon.textContent = '😔'; text.textContent = 'You Lose!'; }
+
+        if (result.game_ended) {
+            subtext.textContent = 'Returning to lobby...';
+        } else {
+            subtext.innerHTML = 'Next round in <span id="c4-timer">3</span>...';
+        }
+
+        let delay = 0;
+        if (result.reveal_at) delay = Math.max(0, result.reveal_at - Date.now());
+
+        setTimeout(() => {
+            overlay.style.display = 'flex';
+            if (!result.game_ended) {
+                let t = 3;
+                const iv = setInterval(() => {
+                    t--;
+                    const el = document.getElementById('c4-timer');
+                    if (el) el.textContent = t;
+                    if (t <= 0) clearInterval(iv);
+                }, 1000);
+            }
+            const dms = result.display_ms || 3000;
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                this._setPanda('happy');
+            }, dms);
+        }, delay);
+    }
+
+    onGameEnd(result) {
+        const isWinner = result.game_winner === USER;
+        const isDraw = result.game_winner === 'draw';
+
+        if (isWinner) {
+            this._setPanda('dance');
+            this._confetti();
+        } else {
+            this._setPanda('sad');
+        }
+
+        const overlay = document.getElementById('c4-result-overlay');
+        const icon = document.getElementById('c4-result-icon');
+        const text = document.getElementById('c4-result-text');
+        const subtext = document.getElementById('c4-result-subtext');
+
+        if (isDraw) { icon.textContent = '🤝'; text.textContent = "Game Draw!"; }
+        else if (isWinner) { icon.textContent = '🎉'; text.textContent = 'You Won the Game!'; }
+        else { icon.textContent = '😞'; text.textContent = 'Game Over'; }
+
+        const scores = result.final_scores;
+        if (scores) {
+            const st = Object.entries(scores).map(([p, s]) => `${p}: ${s}`).join(' - ');
+            subtext.textContent = `Final: ${st}`;
+        }
+        overlay.style.display = 'flex';
+    }
+
+    _confetti() {
+        const colors = ['#ff4757','#3742fa','#ffd93d','#2ed573','#ff6b81','#70a1ff','#a29bfe','#fd79a8'];
+        for (let i = 0; i < 40; i++) {
+            setTimeout(() => {
+                const c = document.createElement('div');
+                c.className = 'c4-confetti';
+                c.style.left = Math.random() * 100 + '%';
+                c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                c.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                c.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+                document.body.appendChild(c);
+                c.addEventListener('animationend', () => c.remove());
+            }, i * 30);
+        }
+    }
+
+    showPauseOverlay() {
+        document.getElementById('c4-pause-overlay').style.display = 'flex';
+        const disc = this.state.disconnected_players || [];
+        if (disc.length > 0) {
+            document.getElementById('c4-disconnected-player').textContent = disc[0];
+        }
+    }
+
+    hidePauseOverlay() {
+        document.getElementById('c4-pause-overlay').style.display = 'none';
+    }
+
+    updateCountdown(seconds) {
+        document.getElementById('c4-countdown').textContent = seconds;
+    }
+}
+
+// Register game class
+window.GameClasses = window.GameClasses || {};
+window.GameClasses.connect4 = Connect4Game;
+
+// Exit game
+window.exitGame = function() {
+    if (confirm('Leave the game? Both players will return to lobby.')) {
+        if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ event: 'game_exit' }));
+        }
+    }
+};
+</script>

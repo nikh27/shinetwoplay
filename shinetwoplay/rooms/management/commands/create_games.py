@@ -19,6 +19,12 @@ class Command(BaseCommand):
                 'image_url': '/static/games/paddlearena.png',
                 'description': 'Real-time pong with obstacles. Don\'t miss the ball!',
             },
+            {
+                'game_id': 'connect4',
+                'name': 'Connect 4',
+                'image_url': '/static/games/connect4.png',
+                'description': 'Drop discs to connect 4 in a row. Classic strategy!',
+            },
         ]
 
         created_count = 0
