@@ -709,11 +709,10 @@
             this.ball1El.style.display = 'none';
             this.ball2El.style.display = 'none';
             
-            const roundsPlayed = this.score.p1 + this.score.p2;
             this._updateRoundBadge();
             
-            /* All rounds done? */
-            if (roundsPlayed >= this.totalRounds) {
+            /* First to totalRounds wins */
+            if (this.score.p1 >= this.totalRounds || this.score.p2 >= this.totalRounds) {
                 this._endGame();
             } else {
                 /* Re-serve after short delay */
@@ -727,7 +726,7 @@
         _updateRoundBadge() {
             const played = this.score.p1 + this.score.p2;
             const badge = document.getElementById('pa-round');
-            badge.textContent = `R${played + 1}/${this.totalRounds}`;
+            badge.textContent = `R${played + 1} · FT${this.totalRounds}`;
         }
         
         _endGame() {
