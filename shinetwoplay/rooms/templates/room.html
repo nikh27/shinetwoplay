@@ -2083,46 +2083,14 @@
                 <input type="text" class="search-input" placeholder="search" oninput="searchGames(this.value)">
             </div>
             <div class="games-grid" id="gamesGrid">
-                <div class="game-card" onclick="selectGame('tictactoe', 'Tic Tac Toe', '<img src=&quot;/static/games/tictactoe.png&quot; alt=&quot;tictactoe&quot;>')">
-                    <div class="game-card-icon"><img src="/static/games/tictactoe.png" alt="tictactoe"></div>
-                    <div class="game-card-name">tic tac toe</div>
+                {% for game in games %}
+                <div class="game-card" onclick="selectGame('{{ game.game_id }}', '{{ game.name }}', '<img src=&quot;{{ game.image_url }}&quot; alt=&quot;{{ game.game_id }}&quot;>')">
+                    <div class="game-card-icon"><img src="{{ game.image_url }}" alt="{{ game.game_id }}"></div>
+                    <div class="game-card-name">{{ game.name }}</div>
                 </div>
-                <div class="game-card" onclick="selectGame('pullrope', 'Pull Rope', '🪢')">
-                    <div class="game-card-icon">🪢</div>
-                    <div class="game-card-name">pull rope</div>
-                </div>
-                <div class="game-card" onclick="selectGame('tennis', 'Tennis', '🎾')">
-                    <div class="game-card-icon">🎾</div>
-                    <div class="game-card-name">tennis</div>
-                </div>
-                <div class="game-card" onclick="selectGame('ludo', 'Ludo', '🎲')">
-                    <div class="game-card-icon">🎲</div>
-                    <div class="game-card-name">ludo</div>
-                </div>
-                <div class="game-card" onclick="selectGame('chess', 'Chess', '♟️')">
-                    <div class="game-card-icon">♟️</div>
-                    <div class="game-card-name">chess</div>
-                </div>
-                <div class="game-card" onclick="selectGame('checkers', 'Checkers', '⚫')">
-                    <div class="game-card-icon">⚫</div>
-                    <div class="game-card-name">checkers</div>
-                </div>
-                <div class="game-card" onclick="selectGame('rps', 'Rock Paper Scissors', '✊')">
-                    <div class="game-card-icon">✊</div>
-                    <div class="game-card-name">rock paper scissors</div>
-                </div>
-                <div class="game-card" onclick="selectGame('memory', 'Memory Match', '🃏')">
-                    <div class="game-card-icon">🃏</div>
-                    <div class="game-card-name">memory match</div>
-                </div>
-                <div class="game-card" onclick="selectGame('snake', 'Snake Race', '🐍')">
-                    <div class="game-card-icon">🐍</div>
-                    <div class="game-card-name">snake race</div>
-                </div>
-                <div class="game-card" onclick="selectGame('pong', 'Pong', '🏓')">
-                    <div class="game-card-icon">🏓</div>
-                    <div class="game-card-name">pong</div>
-                </div>
+                {% empty %}
+                <div style="text-align:center;color:#6b7280;padding:20px;grid-column:1/-1;">No games available</div>
+                {% endfor %}
             </div>
         </div>
     </div>
@@ -2499,6 +2467,7 @@
                     case 'game_paused': handleGamePausedEvent(payload); break;
                     case 'game_resumed': handleGameResumedEvent(payload); break;
                     case 'game_cancelled': handleGameCancelledEvent(payload); break;
+                    case 'game_input': handleGameInputEvent(payload); break;
                 }
             };
         }
@@ -2877,6 +2846,21 @@
                 this.stopInputStreaming();
             }
             
+            // Send real-time input to server (relay to opponent)
+            sendInput(inputData) {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        event: 'game_input',
+                        input: inputData
+                    }));
+                }
+            }
+            
+            // Receive remote player input — override in subclass
+            onRemoteInput(player, inputData) {
+                // Override in real-time games
+            }
+            
             // For real-time games - continuous input
             startInputStreaming() {
                 if (this.gameMode !== "real_time") return;
@@ -2933,6 +2917,12 @@
         
 
         
+        function handleGameInputEvent(payload) {
+            if (currentGame && currentGame.onRemoteInput) {
+                currentGame.onRemoteInput(payload.player, payload.input);
+            }
+        }
+
         function handleGameUpdateEvent(payload) {
             if (currentGame) {
                 currentGame.update(payload.game_state);

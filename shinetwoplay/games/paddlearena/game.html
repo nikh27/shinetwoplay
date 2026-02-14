@@ -1,0 +1,1176 @@
+<!-- PaddleArena Game UI — loaded inside gameContainer by room.html -->
+<style>
+/* ===== PaddleArena Styles ===== */
+.pa-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+/* Score Panel */
+.pa-scores {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 340px;
+    padding: 8px 20px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 14px;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.8);
+}
+.pa-score-block { text-align: center; }
+.pa-score-value {
+    font-size: 28px;
+    font-weight: 900;
+    font-family: 'Inter', monospace;
+}
+.pa-score-p1 { color: #22d3ee; text-shadow: 0 0 20px #22d3ee; }
+.pa-score-p2 { color: #f87171; text-shadow: 0 0 20px #f87171; }
+.pa-score-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    opacity: 0.6;
+}
+.pa-score-label-p1 { color: #06b6d4; }
+.pa-score-label-p2 { color: #ef4444; }
+.pa-vs {
+    color: #4b5563;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* 3D Arena */
+.pa-arena {
+    position: relative;
+    width: 340px;
+    height: 600px;
+    overflow: hidden;
+    border-radius: 16px;
+    border: 4px solid #1e293b;
+    background: linear-gradient(180deg, #0c1929 0%, #0a0f1a 50%, #1a0f0f 100%);
+    transform-style: preserve-3d;
+    transform: perspective(1000px) rotateX(3deg);
+    box-shadow:
+        0 30px 60px rgba(0,0,0,0.8),
+        inset 0 0 100px rgba(0,0,0,0.5),
+        inset 0 2px 0 rgba(255,255,255,0.05);
+}
+
+/* Arena decorations */
+.pa-arena-lighting {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(14,165,233,0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 100%, rgba(239,68,68,0.1) 0%, transparent 50%);
+}
+.pa-grid {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.1;
+    pointer-events: none;
+}
+.pa-center-line {
+    position: absolute;
+    top: 50%;
+    left: 24px;
+    right: 24px;
+    height: 4px;
+    transform: translateY(-50%);
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+}
+.pa-center-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 64px;
+    height: 64px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.1);
+}
+.pa-goal-top {
+    position: absolute;
+    top: 0;
+    left: 25%;
+    right: 25%;
+    height: 8px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(180deg, rgba(14,165,233,0.4), transparent);
+}
+.pa-goal-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 25%;
+    right: 25%;
+    height: 8px;
+    border-radius: 8px 8px 0 0;
+    background: linear-gradient(0deg, rgba(239,68,68,0.4), transparent);
+}
+.pa-zone-label {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    pointer-events: none;
+}
+.pa-zone-top { top: 8px; color: rgba(14,165,233,0.5); }
+.pa-zone-bottom { bottom: 8px; color: rgba(239,68,68,0.5); }
+
+/* Paddles */
+.pa-paddle {
+    position: absolute;
+    width: 85px;
+    height: 16px;
+    border-radius: 999px;
+    transform: translateZ(15px);
+    transition: left 0.03s linear;
+}
+.pa-paddle-highlight {
+    position: absolute;
+    top: 4px;
+    left: 12px;
+    right: 12px;
+    height: 6px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 999px;
+}
+.pa-paddle-p1 {
+    top: 45px;
+    background: linear-gradient(180deg, #7dd3fc 0%, #0ea5e9 40%, #0284c7 100%);
+    box-shadow:
+        0 6px 0 #0369a1,
+        0 8px 25px rgba(14, 165, 233, 0.6),
+        inset 0 3px 6px rgba(255,255,255,0.5),
+        inset 0 -2px 4px rgba(0,0,0,0.2);
+}
+.pa-paddle-p2 {
+    bottom: 45px;
+    background: linear-gradient(180deg, #fca5a5 0%, #ef4444 40%, #dc2626 100%);
+    box-shadow:
+        0 6px 0 #b91c1c,
+        0 8px 25px rgba(239, 68, 68, 0.6),
+        inset 0 3px 6px rgba(255,255,255,0.5),
+        inset 0 -2px 4px rgba(0,0,0,0.2);
+}
+
+/* Balls */
+.pa-ball {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    transform: translateZ(20px);
+}
+.pa-ball-p1 {
+    background: radial-gradient(circle at 30% 30%, #ffffff 0%, #7dd3fc 35%, #0ea5e9 70%, #0369a1 100%);
+    box-shadow:
+        0 4px 8px rgba(0,0,0,0.4),
+        0 0 25px rgba(14, 165, 233, 0.8),
+        0 0 50px rgba(14, 165, 233, 0.4);
+}
+.pa-ball-p2 {
+    background: radial-gradient(circle at 30% 30%, #ffffff 0%, #fca5a5 35%, #ef4444 70%, #b91c1c 100%);
+    box-shadow:
+        0 4px 8px rgba(0,0,0,0.4),
+        0 0 25px rgba(239, 68, 68, 0.8),
+        0 0 50px rgba(239, 68, 68, 0.4);
+}
+
+/* Ball Trail */
+.pa-ball-trail {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: pa-trail-fade 0.3s ease-out forwards;
+}
+@keyframes pa-trail-fade {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(0.3); opacity: 0; }
+}
+
+/* Hit Effect */
+.pa-hit-effect {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: pa-hit-expand 0.4s ease-out forwards;
+}
+@keyframes pa-hit-expand {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+}
+
+/* Sparks */
+.pa-spark {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: pa-spark-fly 0.5s ease-out forwards;
+}
+@keyframes pa-spark-fly {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Obstacles */
+.pa-obstacle {
+    position: absolute;
+    border-radius: 8px;
+    transform: translateZ(10px);
+    transition: opacity 0.2s, transform 0.1s;
+}
+.pa-obstacle-permanent {
+    background: linear-gradient(180deg, #c4b5fd 0%, #8b5cf6 50%, #7c3aed 100%);
+    box-shadow:
+        0 5px 0 #5b21b6,
+        0 8px 20px rgba(139, 92, 246, 0.5),
+        inset 0 2px 4px rgba(255,255,255,0.4);
+}
+.pa-obstacle-temp {
+    background: linear-gradient(180deg, #fda4af 0%, #fb7185 50%, #f43f5e 100%);
+    box-shadow:
+        0 4px 0 #be123c,
+        0 6px 15px rgba(251, 113, 133, 0.4),
+        inset 0 2px 4px rgba(255,255,255,0.3);
+}
+.pa-obstacle-hit {
+    animation: pa-obstacle-shake 0.15s ease-out;
+}
+@keyframes pa-obstacle-shake {
+    0%, 100% { transform: translateZ(10px) translateX(0); }
+    25% { transform: translateZ(10px) translateX(-3px); }
+    75% { transform: translateZ(10px) translateX(3px); }
+}
+
+/* Score pop */
+@keyframes pa-score-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+.pa-score-pop { animation: pa-score-pop 0.3s ease-out; }
+
+/* Menu/GameOver overlays */
+.pa-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    border-radius: 12px;
+}
+.pa-overlay.hidden { display: none; }
+.pa-overlay-emoji {
+    font-size: 48px;
+    margin-bottom: 12px;
+    animation: pa-float 2.5s ease-in-out infinite;
+}
+@keyframes pa-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+.pa-overlay-title {
+    font-size: 24px;
+    font-weight: 900;
+    color: white;
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+}
+.pa-overlay-subtitle {
+    font-size: 14px;
+    color: #6b7280;
+    letter-spacing: 0.25em;
+    margin-bottom: 20px;
+}
+.pa-instructions {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 20px;
+}
+.pa-instruction-line {
+    font-size: 13px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.pa-instruction-line:last-child { margin-bottom: 0; }
+.pa-instruction-icon { font-size: 20px; }
+.pa-waiting-text {
+    font-size: 14px;
+    color: #9ca3af;
+    animation: pa-pulse 1.5s ease-in-out infinite;
+}
+@keyframes pa-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+.pa-result-text {
+    font-size: 22px;
+    font-weight: 900;
+    text-shadow: 0 0 30px currentColor;
+    margin-bottom: 12px;
+}
+.pa-final-scores {
+    display: flex;
+    gap: 48px;
+    margin-bottom: 20px;
+}
+.pa-final-score-circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 900;
+    color: white;
+    margin-bottom: 4px;
+}
+.pa-final-p1 {
+    background: linear-gradient(180deg, #22d3ee, #0891b2);
+    box-shadow: 0 4px 0 #0e7490;
+}
+.pa-final-p2 {
+    background: linear-gradient(180deg, #f87171, #dc2626);
+    box-shadow: 0 4px 0 #b91c1c;
+}
+.pa-final-label {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Legend */
+.pa-legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #6b7280;
+}
+.pa-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.pa-legend-swatch {
+    width: 16px;
+    height: 10px;
+    border-radius: 4px;
+}
+.pa-legend-permanent {
+    background: linear-gradient(180deg, #a78bfa, #7c3aed);
+    box-shadow: 0 2px 0 #5b21b6;
+}
+.pa-legend-temp {
+    background: linear-gradient(180deg, #fb923c, #f43f5e);
+    box-shadow: 0 2px 0 #be123c;
+}
+
+/* Role indicator */
+.pa-role-badge {
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+.pa-role-p1 {
+    background: rgba(14,165,233,0.2);
+    color: #22d3ee;
+    border: 1px solid rgba(14,165,233,0.3);
+}
+.pa-role-p2 {
+    background: rgba(239,68,68,0.2);
+    color: #f87171;
+    border: 1px solid rgba(239,68,68,0.3);
+}
+
+/* Exit button */
+.pa-exit-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 60;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.6);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+.pa-exit-btn:hover {
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+</style>
+
+<div class="pa-wrapper">
+    <!-- Exit -->
+    <button class="pa-exit-btn" onclick="window.exitGame()" title="Exit Game">✕</button>
+
+    <!-- Scores -->
+    <div class="pa-scores">
+        <div class="pa-score-block">
+            <div class="pa-score-value pa-score-p1" id="pa-score1">0</div>
+            <div class="pa-score-label pa-score-label-p1" id="pa-label-p1">P1</div>
+        </div>
+        <div class="pa-vs">VS</div>
+        <div class="pa-score-block">
+            <div class="pa-score-value pa-score-p2" id="pa-score2">0</div>
+            <div class="pa-score-label pa-score-label-p2" id="pa-label-p2">P2</div>
+        </div>
+    </div>
+
+    <!-- Arena -->
+    <div class="pa-arena" id="pa-arena">
+        <div class="pa-arena-lighting"></div>
+
+        <!-- Grid -->
+        <svg class="pa-grid">
+            <defs>
+                <pattern id="pa-grid-pat" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="0.5"/>
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#pa-grid-pat)"/>
+        </svg>
+
+        <div class="pa-center-line"></div>
+        <div class="pa-center-circle"></div>
+        <div class="pa-goal-top"></div>
+        <div class="pa-goal-bottom"></div>
+        <div class="pa-zone-label pa-zone-top">P1 ZONE</div>
+        <div class="pa-zone-label pa-zone-bottom">P2 ZONE</div>
+
+        <!-- Paddles -->
+        <div id="pa-paddle1" class="pa-paddle pa-paddle-p1" style="left: 127px;">
+            <div class="pa-paddle-highlight"></div>
+        </div>
+        <div id="pa-paddle2" class="pa-paddle pa-paddle-p2" style="left: 127px;">
+            <div class="pa-paddle-highlight"></div>
+        </div>
+
+        <!-- Balls -->
+        <div id="pa-ball1" class="pa-ball pa-ball-p1" style="top: 100px; left: 159px; display: none;"></div>
+        <div id="pa-ball2" class="pa-ball pa-ball-p2" style="bottom: 100px; left: 159px; display: none;"></div>
+
+        <!-- Obstacles -->
+        <div id="pa-obstacles"></div>
+
+        <!-- Effects -->
+        <div id="pa-effects" class="pointer-events: none;"></div>
+
+        <!-- Waiting Overlay (shown until game starts) -->
+        <div class="pa-overlay" id="pa-menu-overlay">
+            <div class="pa-overlay-emoji">🏓</div>
+            <div class="pa-overlay-title">PADDLE ARENA</div>
+            <div class="pa-overlay-subtitle" id="pa-role-display"></div>
+            <div class="pa-instructions">
+                <div class="pa-instruction-line">
+                    <span class="pa-instruction-icon">👆</span>
+                    <span style="color: #22d3ee;">You control your paddle by dragging</span>
+                </div>
+                <div class="pa-instruction-line">
+                    <span class="pa-instruction-icon">🏓</span>
+                    <span style="color: #f87171;">Each player has 1 ball — Don't miss!</span>
+                </div>
+            </div>
+            <div class="pa-waiting-text" id="pa-waiting-text">Starting in a moment...</div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div class="pa-overlay hidden" id="pa-gameover-overlay">
+            <div class="pa-overlay-emoji" id="pa-winner-emoji">🏆</div>
+            <div class="pa-result-text" id="pa-winner-text">PLAYER 1 WINS!</div>
+            <div class="pa-final-scores">
+                <div style="text-align: center;">
+                    <div class="pa-final-score-circle pa-final-p1" id="pa-final1">0</div>
+                    <div class="pa-final-label pa-score-label-p1">P1</div>
+                </div>
+                <div style="text-align: center;">
+                    <div class="pa-final-score-circle pa-final-p2" id="pa-final2">0</div>
+                    <div class="pa-final-label pa-score-label-p2">P2</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="pa-legend">
+        <div class="pa-legend-item">
+            <div class="pa-legend-swatch pa-legend-permanent"></div>
+            Permanent
+        </div>
+        <div class="pa-legend-item">
+            <div class="pa-legend-swatch pa-legend-temp"></div>
+            2 Hits to Break
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // ========== Constants ==========
+    const ARENA_W = 340, ARENA_H = 600;
+    const PADDLE_W = 85, PADDLE_H = 16;
+    const BALL_SIZE = 22, BALL_R = 11;
+    const BALL_SPEED = 2.8;
+    const PADDLE_MARGIN = 45;
+    const PADDLE_HIT_SLOP = 18;
+    const INPUT_SEND_INTERVAL = 66; // ~15fps sync
+    const STATE_SYNC_INTERVAL = 100; // ~10fps for ball state
+
+    class PaddleArenaGame extends BaseGame {
+        constructor() {
+            super();
+            this.gameMode = "real_time";
+            this.myRole = null;       // 'P1' or 'P2'
+            this.playing = false;
+            this.score = { p1: 0, p2: 0 };
+            this.paddle1X = (ARENA_W - PADDLE_W) / 2;
+            this.paddle2X = (ARENA_W - PADDLE_W) / 2;
+            this.ball1 = null;
+            this.ball2 = null;
+            this.obstacles = [];
+            this.lastTrailTime = 0;
+            this.lastFrameTime = null;
+            this.touches = {};
+            this.mouseDown = false;
+            this.mouseGrabOffset = 0;
+            this._inputSendTimer = null;
+            this._stateSyncTimer = null;
+            this._animFrame = null;
+            this._obstacleSeed = null;
+
+            // DOM refs
+            this.arena = document.getElementById('pa-arena');
+            this.paddle1El = document.getElementById('pa-paddle1');
+            this.paddle2El = document.getElementById('pa-paddle2');
+            this.ball1El = document.getElementById('pa-ball1');
+            this.ball2El = document.getElementById('pa-ball2');
+            this.obstaclesEl = document.getElementById('pa-obstacles');
+            this.effectsEl = document.getElementById('pa-effects');
+            this.score1El = document.getElementById('pa-score1');
+            this.score2El = document.getElementById('pa-score2');
+            this.menuOverlay = document.getElementById('pa-menu-overlay');
+            this.gameoverOverlay = document.getElementById('pa-gameover-overlay');
+        }
+
+        init(state) {
+            this.state = state;
+            const players = state.players; // { P1: 'username', P2: 'username' }
+
+            // Determine my role
+            if (players['P1'] === USER) {
+                this.myRole = 'P1';
+            } else {
+                this.myRole = 'P2';
+            }
+
+            // Show role
+            const roleDisplay = document.getElementById('pa-role-display');
+            roleDisplay.innerHTML = `<span class="pa-role-badge ${this.myRole === 'P1' ? 'pa-role-p1' : 'pa-role-p2'}">
+                You are ${this.myRole === 'P1' ? 'Player 1 (Top)' : 'Player 2 (Bottom)'}
+            </span>`;
+
+            // Update labels with player names
+            document.getElementById('pa-label-p1').textContent = players['P1'];
+            document.getElementById('pa-label-p2').textContent = players['P2'];
+
+            // Setup controls
+            this._setupControls();
+
+            // Auto-start after a short delay
+            setTimeout(() => this._startPlaying(), 2000);
+        }
+
+        _setupControls() {
+            // Touch
+            this.arena.addEventListener('touchstart', (e) => this._onTouchStart(e), { passive: false });
+            this.arena.addEventListener('touchmove', (e) => this._onTouchMove(e), { passive: false });
+            this.arena.addEventListener('touchend', (e) => this._onTouchEnd(e), { passive: false });
+
+            // Mouse
+            this.arena.addEventListener('mousedown', (e) => this._onMouseDown(e));
+            this.arena.addEventListener('mousemove', (e) => this._onMouseMove(e));
+            this.arena.addEventListener('mouseup', () => this._onMouseUp());
+        }
+
+        _startPlaying() {
+            this.playing = true;
+            this.score = { p1: 0, p2: 0 };
+            this._updateScoreDisplay();
+            this.lastFrameTime = null;
+            this.lastTrailTime = 0;
+
+            this.paddle1X = (ARENA_W - PADDLE_W) / 2;
+            this.paddle2X = (ARENA_W - PADDLE_W) / 2;
+
+            // Create deterministic obstacles from a seed
+            this._obstacleSeed = Date.now();
+
+            // Only P1 creates game physics (authoritative)
+            if (this.myRole === 'P1') {
+                this.ball1 = this._createBall(1);
+                this.ball2 = this._createBall(2);
+                this._createObstacles();
+
+                // Send initial state to P2
+                this.sendInput({
+                    type: 'game_start',
+                    seed: this._obstacleSeed,
+                    ball1: this.ball1,
+                    ball2: this.ball2,
+                    obstacles: this.obstacles,
+                });
+            }
+
+            // Hide menu
+            this.menuOverlay.classList.add('hidden');
+
+            // Show balls
+            this.ball1El.style.display = 'block';
+            this.ball2El.style.display = 'block';
+
+            // Start input streaming
+            this._inputSendTimer = setInterval(() => this._sendMyPaddle(), INPUT_SEND_INTERVAL);
+
+            // P1 syncs ball state periodically
+            if (this.myRole === 'P1') {
+                this._stateSyncTimer = setInterval(() => this._sendBallState(), STATE_SYNC_INTERVAL);
+            }
+
+            // Start game loop
+            this._animFrame = requestAnimationFrame((t) => this._gameLoop(t));
+        }
+
+        _createBall(player) {
+            const dirX = Math.random() > 0.5 ? 1 : -1;
+            const angle = (Math.PI / 6) + Math.random() * (Math.PI / 6);
+            return {
+                x: ARENA_W / 2,
+                y: player === 1 ? 110 : ARENA_H - 110,
+                vx: Math.cos(angle) * BALL_SPEED * dirX,
+                vy: player === 1 ? BALL_SPEED : -BALL_SPEED,
+                active: true,
+            };
+        }
+
+        _createObstacles() {
+            this.obstacles = [];
+            this.obstaclesEl.innerHTML = '';
+            const centerY = ARENA_H / 2;
+
+            // 2 Permanent
+            for (let i = 0; i < 2; i++) {
+                const obs = {
+                    id: `pa-perm-${i}`,
+                    x: i === 0 ? 40 + Math.random() * 60 : ARENA_W - 100 - Math.random() * 60,
+                    y: centerY - 15 + Math.random() * 30,
+                    width: 52, height: 20,
+                    permanent: true, hp: 999,
+                };
+                this.obstacles.push(obs);
+                this._createObstacleEl(obs);
+            }
+            // 4 Temporary
+            for (let i = 0; i < 4; i++) {
+                const obs = {
+                    id: `pa-temp-${i}`,
+                    x: 50 + Math.random() * (ARENA_W - 110),
+                    y: centerY - 70 + Math.random() * 140,
+                    width: 44, height: 18,
+                    permanent: false, hp: 2,
+                };
+                this.obstacles.push(obs);
+                this._createObstacleEl(obs);
+            }
+        }
+
+        _createObstaclesFromData(obsData) {
+            this.obstacles = obsData;
+            this.obstaclesEl.innerHTML = '';
+            for (const obs of obsData) {
+                this._createObstacleEl(obs);
+            }
+        }
+
+        _createObstacleEl(obs) {
+            const el = document.createElement('div');
+            el.id = obs.id;
+            el.className = `pa-obstacle ${obs.permanent ? 'pa-obstacle-permanent' : 'pa-obstacle-temp'}`;
+            el.style.cssText = `left:${obs.x}px;top:${obs.y}px;width:${obs.width}px;height:${obs.height}px;`;
+            if (obs.permanent) {
+                el.innerHTML = '<div style="position:absolute;top:4px;left:8px;right:8px;height:4px;background:rgba(255,255,255,0.4);border-radius:999px;"></div>';
+            }
+            this.obstaclesEl.appendChild(el);
+        }
+
+        // ========== Input handlers ==========
+
+        _getArenaCoords(clientX, clientY) {
+            const rect = this.arena.getBoundingClientRect();
+            return {
+                x: (clientX - rect.left) * (ARENA_W / rect.width),
+                y: (clientY - rect.top) * (ARENA_H / rect.height),
+            };
+        }
+
+        _isMyPaddleZone(y) {
+            // P1 controls top half, P2 controls bottom half
+            if (this.myRole === 'P1') return y < ARENA_H / 2;
+            return y >= ARENA_H / 2;
+        }
+
+        _getMyPaddleX() {
+            return this.myRole === 'P1' ? this.paddle1X : this.paddle2X;
+        }
+
+        _setMyPaddleX(x) {
+            const clamped = Math.max(0, Math.min(ARENA_W - PADDLE_W, x));
+            if (this.myRole === 'P1') this.paddle1X = clamped;
+            else this.paddle2X = clamped;
+        }
+
+        _isPointOnMyPaddle(x, y) {
+            const paddleX = this._getMyPaddleX();
+            const paddleTop = this.myRole === 'P1' ? PADDLE_MARGIN : (ARENA_H - PADDLE_MARGIN - PADDLE_H);
+            const paddleBottom = paddleTop + PADDLE_H;
+            return (
+                x >= paddleX - PADDLE_HIT_SLOP &&
+                x <= paddleX + PADDLE_W + PADDLE_HIT_SLOP &&
+                y >= paddleTop - PADDLE_HIT_SLOP &&
+                y <= paddleBottom + PADDLE_HIT_SLOP
+            );
+        }
+
+        _onTouchStart(e) {
+            if (!this.playing) return;
+            e.preventDefault();
+            for (const touch of e.changedTouches) {
+                const { x, y } = this._getArenaCoords(touch.clientX, touch.clientY);
+                if (!this._isMyPaddleZone(y)) continue;
+                if (!this._isPointOnMyPaddle(x, y)) continue;
+                this.touches[touch.identifier] = {
+                    x,
+                    grabOffset: x - this._getMyPaddleX(),
+                };
+            }
+        }
+
+        _onTouchMove(e) {
+            if (!this.playing) return;
+            e.preventDefault();
+            for (const touch of e.changedTouches) {
+                const td = this.touches[touch.identifier];
+                if (!td) continue;
+                const { x } = this._getArenaCoords(touch.clientX, touch.clientY);
+                td.x = x;
+                this._setMyPaddleX(x - td.grabOffset);
+            }
+        }
+
+        _onTouchEnd(e) {
+            for (const touch of e.changedTouches) {
+                delete this.touches[touch.identifier];
+            }
+        }
+
+        _onMouseDown(e) {
+            if (!this.playing) return;
+            const { x, y } = this._getArenaCoords(e.clientX, e.clientY);
+            if (!this._isMyPaddleZone(y)) return;
+            if (!this._isPointOnMyPaddle(x, y)) return;
+            this.mouseDown = true;
+            this.mouseGrabOffset = x - this._getMyPaddleX();
+            this._onMouseMove(e);
+        }
+
+        _onMouseMove(e) {
+            if (!this.mouseDown || !this.playing) return;
+            const { x } = this._getArenaCoords(e.clientX, e.clientY);
+            this._setMyPaddleX(x - this.mouseGrabOffset);
+        }
+
+        _onMouseUp() {
+            this.mouseDown = false;
+        }
+
+        // ========== Network sync ==========
+
+        _sendMyPaddle() {
+            const paddleX = this._getMyPaddleX();
+            this.sendInput({
+                type: 'paddle',
+                role: this.myRole,
+                x: paddleX,
+            });
+        }
+
+        _sendBallState() {
+            // Only P1 sends this
+            if (this.myRole !== 'P1') return;
+            if (!this.ball1 || !this.ball2) return;
+            this.sendInput({
+                type: 'state',
+                ball1: this.ball1,
+                ball2: this.ball2,
+                score: this.score,
+                obstacles: this.obstacles.map(o => ({ id: o.id, hp: o.hp })),
+            });
+        }
+
+        onRemoteInput(player, inputData) {
+            if (player === USER) return; // ignore own echoes
+
+            if (inputData.type === 'paddle') {
+                // Update opponent's paddle
+                if (inputData.role === 'P1') {
+                    this.paddle1X = inputData.x;
+                } else {
+                    this.paddle2X = inputData.x;
+                }
+            } else if (inputData.type === 'state' && this.myRole === 'P2') {
+                // P2 applies authoritative state from P1
+                if (inputData.ball1) this.ball1 = inputData.ball1;
+                if (inputData.ball2) this.ball2 = inputData.ball2;
+                if (inputData.score) {
+                    this.score = inputData.score;
+                    this._updateScoreDisplay();
+                }
+                // Update obstacle HP
+                if (inputData.obstacles) {
+                    for (const oData of inputData.obstacles) {
+                        const obs = this.obstacles.find(o => o.id === oData.id);
+                        if (obs && obs.hp !== oData.hp) {
+                            obs.hp = oData.hp;
+                            const el = document.getElementById(obs.id);
+                            if (el) {
+                                if (obs.hp <= 0) el.style.display = 'none';
+                                else if (!obs.permanent) el.style.opacity = '0.5';
+                            }
+                        }
+                    }
+                }
+                // Update ball visibility
+                this.ball1El.style.display = this.ball1 && this.ball1.active ? 'block' : 'none';
+                this.ball2El.style.display = this.ball2 && this.ball2.active ? 'block' : 'none';
+
+                // Check game-over from P1's perspective
+                if (this.ball1 && !this.ball1.active && this.ball2 && !this.ball2.active) {
+                    this._handleGameOver();
+                }
+            } else if (inputData.type === 'game_start' && this.myRole === 'P2') {
+                // P2 receives initial game state from P1
+                this.ball1 = inputData.ball1;
+                this.ball2 = inputData.ball2;
+                if (inputData.obstacles) {
+                    this._createObstaclesFromData(inputData.obstacles);
+                }
+            } else if (inputData.type === 'game_over') {
+                this._showGameOver(inputData.winner, inputData.score);
+            }
+        }
+
+        // ========== Effects ==========
+
+        _createTrail(x, y, isP1) {
+            const trail = document.createElement('div');
+            trail.className = 'pa-ball-trail';
+            trail.style.cssText = `left:${x-8}px;top:${y-8}px;width:16px;height:16px;
+                background:${isP1 ? 'rgba(14,165,233,0.5)' : 'rgba(239,68,68,0.5)'};
+                box-shadow:0 0 10px ${isP1 ? 'rgba(14,165,233,0.8)' : 'rgba(239,68,68,0.8)'};`;
+            this.effectsEl.appendChild(trail);
+            setTimeout(() => trail.remove(), 300);
+        }
+
+        _createHitEffect(x, y, color) {
+            const ring = document.createElement('div');
+            ring.className = 'pa-hit-effect';
+            ring.style.cssText = `left:${x}px;top:${y}px;width:30px;height:30px;border:3px solid ${color};box-shadow:0 0 20px ${color};`;
+            this.effectsEl.appendChild(ring);
+            setTimeout(() => ring.remove(), 400);
+
+            for (let i = 0; i < 8; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'pa-spark';
+                const angle = (Math.PI * 2 / 8) * i;
+                const dist = 25 + Math.random() * 20;
+                const endX = x + Math.cos(angle) * dist;
+                const endY = y + Math.sin(angle) * dist;
+                spark.style.cssText = `left:${x}px;top:${y}px;background:${color};box-shadow:0 0 6px ${color};`;
+                spark.animate([
+                    { left: `${x}px`, top: `${y}px`, opacity: 1 },
+                    { left: `${endX}px`, top: `${endY}px`, opacity: 0 },
+                ], { duration: 400, easing: 'ease-out' });
+                this.effectsEl.appendChild(spark);
+                setTimeout(() => spark.remove(), 400);
+            }
+        }
+
+        // ========== Ball Physics (only P1 runs this) ==========
+
+        _updateBall(ball, ballEl, isP1, dt) {
+            if (!ball || !ball.active) return ball;
+
+            let { x, y, vx, vy } = ball;
+            x += vx * dt;
+            y += vy * dt;
+
+            // Wall bounces
+            if (x <= BALL_R) { vx = Math.abs(vx); x = BALL_R; this._createHitEffect(x, y, '#fff'); }
+            if (x >= ARENA_W - BALL_R) { vx = -Math.abs(vx); x = ARENA_W - BALL_R; this._createHitEffect(x, y, '#fff'); }
+
+            // Paddle 1 (top)
+            const p1Top = PADDLE_MARGIN, p1Bot = PADDLE_MARGIN + PADDLE_H;
+            if (vy < 0 && y - BALL_R <= p1Bot && y > p1Top) {
+                if (x >= this.paddle1X - 5 && x <= this.paddle1X + PADDLE_W + 5) {
+                    const hit = (x - this.paddle1X) / PADDLE_W - 0.5;
+                    vx = hit * BALL_SPEED * 2;
+                    vy = Math.abs(vy);
+                    y = p1Bot + BALL_R;
+                    this._createHitEffect(x, p1Bot, '#0ea5e9');
+                }
+            }
+
+            // Paddle 2 (bottom)
+            const p2Top = ARENA_H - PADDLE_MARGIN - PADDLE_H, p2Bot = ARENA_H - PADDLE_MARGIN;
+            if (vy > 0 && y + BALL_R >= p2Top && y < p2Bot) {
+                if (x >= this.paddle2X - 5 && x <= this.paddle2X + PADDLE_W + 5) {
+                    const hit = (x - this.paddle2X) / PADDLE_W - 0.5;
+                    vx = hit * BALL_SPEED * 2;
+                    vy = -Math.abs(vy);
+                    y = p2Top - BALL_R;
+                    this._createHitEffect(x, p2Top, '#ef4444');
+                }
+            }
+
+            // Obstacle collisions
+            for (const obs of this.obstacles) {
+                if (obs.hp <= 0) continue;
+                if (x + BALL_R > obs.x && x - BALL_R < obs.x + obs.width &&
+                    y + BALL_R > obs.y && y - BALL_R < obs.y + obs.height) {
+                    const oL = (x + BALL_R) - obs.x;
+                    const oR = (obs.x + obs.width) - (x - BALL_R);
+                    const oT = (y + BALL_R) - obs.y;
+                    const oB = (obs.y + obs.height) - (y - BALL_R);
+                    if (Math.min(oL, oR) < Math.min(oT, oB)) vx = -vx;
+                    else vy = -vy;
+
+                    const el = document.getElementById(obs.id);
+                    if (el) {
+                        el.classList.add('pa-obstacle-hit');
+                        setTimeout(() => el.classList.remove('pa-obstacle-hit'), 150);
+                    }
+                    this._createHitEffect(x, y, obs.permanent ? '#8b5cf6' : '#fb7185');
+                    if (!obs.permanent) {
+                        obs.hp--;
+                        if (obs.hp <= 0) { if (el) el.style.display = 'none'; }
+                        else { if (el) el.style.opacity = '0.5'; }
+                    }
+                    break;
+                }
+            }
+
+            // Normalize speed
+            const spd = Math.sqrt(vx * vx + vy * vy);
+            if (spd > 0.5) { vx = (vx / spd) * BALL_SPEED; vy = (vy / spd) * BALL_SPEED; }
+
+            // Out of bounds — scoring
+            if (y < -20) {
+                this.score.p2++;
+                this._updateScoreDisplay();
+                this._createHitEffect(x, 20, '#ef4444');
+                ballEl.style.display = 'none';
+                return { ...ball, active: false };
+            }
+            if (y > ARENA_H + 20) {
+                this.score.p1++;
+                this._updateScoreDisplay();
+                this._createHitEffect(x, ARENA_H - 20, '#0ea5e9');
+                ballEl.style.display = 'none';
+                return { ...ball, active: false };
+            }
+
+            ballEl.style.left = (x - BALL_R) + 'px';
+            ballEl.style.top = (y - BALL_R) + 'px';
+            return { x, y, vx, vy, active: true };
+        }
+
+        // ========== Game Loop ==========
+
+        _gameLoop(timestamp) {
+            if (!this.playing) return;
+            if (this.lastFrameTime === null) this.lastFrameTime = timestamp;
+            const deltaMs = timestamp - this.lastFrameTime;
+            this.lastFrameTime = timestamp;
+            const dt = Math.min(2.5, deltaMs / 16.6667);
+
+            // Render paddles
+            this.paddle1El.style.left = this.paddle1X + 'px';
+            this.paddle2El.style.left = this.paddle2X + 'px';
+
+            if (this.myRole === 'P1') {
+                // P1 runs authoritative physics
+                if (this.ball1 && this.ball1.active) {
+                    this.ball1 = this._updateBall(this.ball1, this.ball1El, true, dt);
+                    if (timestamp - this.lastTrailTime > 30) {
+                        this._createTrail(this.ball1.x, this.ball1.y, true);
+                        this.lastTrailTime = timestamp;
+                    }
+                }
+                if (this.ball2 && this.ball2.active) {
+                    this.ball2 = this._updateBall(this.ball2, this.ball2El, false, dt);
+                    if (timestamp - this.lastTrailTime > 30) {
+                        this._createTrail(this.ball2.x, this.ball2.y, false);
+                        this.lastTrailTime = timestamp;
+                    }
+                }
+
+                // Check game over
+                if (this.ball1 && !this.ball1.active && this.ball2 && !this.ball2.active) {
+                    setTimeout(() => {
+                        if (this.playing) this._handleGameOver();
+                    }, 500);
+                }
+            } else {
+                // P2 just renders from synced state
+                if (this.ball1 && this.ball1.active) {
+                    this.ball1El.style.left = (this.ball1.x - BALL_R) + 'px';
+                    this.ball1El.style.top = (this.ball1.y - BALL_R) + 'px';
+                    if (timestamp - this.lastTrailTime > 30) {
+                        this._createTrail(this.ball1.x, this.ball1.y, true);
+                        this.lastTrailTime = timestamp;
+                    }
+                }
+                if (this.ball2 && this.ball2.active) {
+                    this.ball2El.style.left = (this.ball2.x - BALL_R) + 'px';
+                    this.ball2El.style.top = (this.ball2.y - BALL_R) + 'px';
+                    if (timestamp - this.lastTrailTime > 30) {
+                        this._createTrail(this.ball2.x, this.ball2.y, false);
+                        this.lastTrailTime = timestamp;
+                    }
+                }
+            }
+
+            if (this.ball1 && this.ball1.active || this.ball2 && this.ball2.active) {
+                this._animFrame = requestAnimationFrame((t) => this._gameLoop(t));
+            }
+        }
+
+        // ========== Score & Game Over ==========
+
+        _updateScoreDisplay() {
+            this.score1El.textContent = this.score.p1;
+            this.score2El.textContent = this.score.p2;
+            this.score1El.classList.add('pa-score-pop');
+            this.score2El.classList.add('pa-score-pop');
+            setTimeout(() => {
+                this.score1El.classList.remove('pa-score-pop');
+                this.score2El.classList.remove('pa-score-pop');
+            }, 300);
+        }
+
+        _handleGameOver() {
+            this.playing = false;
+            let winner;
+            if (this.score.p1 > this.score.p2) winner = 'P1';
+            else if (this.score.p2 > this.score.p1) winner = 'P2';
+            else winner = 'draw';
+
+            this._showGameOver(winner, this.score);
+
+            // P1 sends result to server
+            if (this.myRole === 'P1') {
+                this.sendMove('round_end', {
+                    winner: winner,
+                    p1_score: this.score.p1,
+                    p2_score: this.score.p2,
+                });
+                // Also tell P2 about game over
+                this.sendInput({
+                    type: 'game_over',
+                    winner: winner,
+                    score: this.score,
+                });
+            }
+        }
+
+        _showGameOver(winner, score) {
+            this.playing = false;
+            const winText = document.getElementById('pa-winner-text');
+            const winEmoji = document.getElementById('pa-winner-emoji');
+
+            if (winner === 'draw') {
+                winText.textContent = "IT'S A DRAW!";
+                winText.style.color = '#ffffff';
+                winEmoji.textContent = '🤝';
+            } else {
+                const p = this.state.players;
+                const winnerName = p[winner] || winner;
+                const isMe = winnerName === USER;
+                winText.textContent = isMe ? 'YOU WIN! 🎉' : `${winnerName} WINS!`;
+                winText.style.color = winner === 'P1' ? '#22d3ee' : '#f87171';
+                winEmoji.textContent = isMe ? '🏆' : '😔';
+            }
+
+            document.getElementById('pa-final1').textContent = score.p1;
+            document.getElementById('pa-final2').textContent = score.p2;
+            this.gameoverOverlay.classList.remove('hidden');
+        }
+
+        update(state) {
+            // Handle state updates from server (round transitions etc.)
+            this.state = state;
+        }
+
+        onRoundEnd(result) {
+            // Server confirmed round end
+        }
+
+        onGameEnd(result) {
+            this.playing = false;
+        }
+
+        destroy() {
+            this.playing = false;
+            if (this._inputSendTimer) clearInterval(this._inputSendTimer);
+            if (this._stateSyncTimer) clearInterval(this._stateSyncTimer);
+            if (this._animFrame) cancelAnimationFrame(this._animFrame);
+            super.destroy();
+        }
+    }
+
+    // Register
+    window.GameClasses = window.GameClasses || {};
+    window.GameClasses['paddlearena'] = PaddleArenaGame;
+})();
+</script>

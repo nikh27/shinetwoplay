@@ -53,10 +53,14 @@ def room_page(request, room_code):
         # Redirect to home with room code so user can enter name and join
         return redirect(f"/?join={room_code}")
     
+    # Get active games from database
+    games = Game.objects.filter(is_active=True)
+
     return render(request, "room.html", {
         "room": room_code,
         "username": username,
-        "gender": gender
+        "gender": gender,
+        "games": games,
     })
 
 

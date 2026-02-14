@@ -333,6 +333,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 'kick_player': self.handle_kick_player,
                 # Game events
                 'game_move': self.handle_game_move,
+                'game_input': self.handle_game_input,
                 'game_exit': self.handle_game_exit,
             }
             
@@ -695,6 +696,18 @@ class RoomConsumer(AsyncWebsocketConsumer):
             # Spawn background task for delayed game flow to unblock the consumer
             # This ensures the sender can receive the round_ended message immediately
             asyncio.create_task(self.game_flow_background_task(result, handler))
+
+    async def handle_game_input(self, data):
+        """Relay real-time game input between players (paddle positions etc.)"""
+        input_data = data.get('input', {})
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'broadcast_game_input',
+                'player': self.username,
+                'input': input_data,
+            }
+        )
 
     async def handle_game_exit(self, data):
         """Handle game exit - both players return to lobby"""
@@ -1201,6 +1214,16 @@ class RoomConsumer(AsyncWebsocketConsumer):
             'event': 'game_update',
             'data': {
                 'game_state': event['game_state']
+            }
+        }))
+
+    async def broadcast_game_input(self, event):
+        """Relay game input to all clients"""
+        await self.send(text_data=json.dumps({
+            'event': 'game_input',
+            'data': {
+                'player': event['player'],
+                'input': event['input'],
             }
         }))
 

@@ -14,58 +14,10 @@ class Command(BaseCommand):
                 'description': 'Classic 3x3 grid game. Get 3 in a row to win!',
             },
             {
-                'game_id': 'pullrope',
-                'name': 'Pull Rope',
-                'image_url': '/static/games/pullrope.png',
-                'description': 'Tap fast to pull the rope and win!',
-            },
-            {
-                'game_id': 'tennis',
-                'name': 'Tennis',
-                'image_url': '/static/games/tennis.png',
-                'description': 'Classic tennis game. Hit the ball back and forth!',
-            },
-            {
-                'game_id': 'ludo',
-                'name': 'Ludo',
-                'image_url': '/static/games/ludo.png',
-                'description': 'Roll the dice and race to the finish!',
-            },
-            {
-                'game_id': 'chess',
-                'name': 'Chess',
-                'image_url': '/static/games/chess.png',
-                'description': 'Strategic board game. Checkmate your opponent!',
-            },
-            {
-                'game_id': 'checkers',
-                'name': 'Checkers',
-                'image_url': '/static/games/checkers.png',
-                'description': 'Jump over opponent pieces to win!',
-            },
-            {
-                'game_id': 'rps',
-                'name': 'Rock Paper Scissors',
-                'image_url': '/static/games/rps.png',
-                'description': 'Classic hand game. Best of 3 rounds!',
-            },
-            {
-                'game_id': 'memory',
-                'name': 'Memory Match',
-                'image_url': '/static/games/memory.png',
-                'description': 'Find matching pairs. Test your memory!',
-            },
-            {
-                'game_id': 'snake',
-                'name': 'Snake Race',
-                'image_url': '/static/games/snake.png',
-                'description': 'Race to collect the most food!',
-            },
-            {
-                'game_id': 'pong',
-                'name': 'Pong',
-                'image_url': '/static/games/pong.png',
-                'description': 'Classic paddle game. Don\'t miss the ball!',
+                'game_id': 'paddlearena',
+                'name': 'Paddle Arena',
+                'image_url': '/static/games/paddlearena.png',
+                'description': 'Real-time pong with obstacles. Don\'t miss the ball!',
             },
         ]
 
