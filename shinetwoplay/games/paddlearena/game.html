@@ -391,6 +391,7 @@
             this.playing = false;
             this.score = { p1: 0, p2: 0 };
             this.totalRounds = 1;
+            this._waitingForServer = false;
             
             this.p1X = (100 - PADDLE_W) / 2;
             this.p2X = (100 - PADDLE_W) / 2;
@@ -605,8 +606,13 @@
                 this.ball2El.style.display = 'block';
                 this.msgOv.classList.add('hidden');
             }
-            else if (d.type === 'over') {
-                this._onGameOver(d.winner, d.sc);
+            else if (d.type === 'point' && this.myRole === 'P2') {
+                /* P1 scored a point — sync score, kill balls */
+                if (d.sc) { this.score = d.sc; this._showScore(); }
+                if (this.ball1) this.ball1.active = false;
+                if (this.ball2) this.ball2.active = false;
+                this.ball1El.style.display = 'none';
+                this.ball2El.style.display = 'none';
             }
         }
         
@@ -699,68 +705,30 @@
 
         /* Any ball miss = 1 round done, +1 point to scorer */
         _pointScored(who) {
-            if (this._serveTimer) return; /* Already handling */
+            if (this._serveTimer || this._waitingForServer) return;
             this.score[who]++;
             this._showScore();
             
-            /* Kill both balls immediately */
+            /* Kill both balls */
             if (this.ball1) this.ball1.active = false;
             if (this.ball2) this.ball2.active = false;
             this.ball1El.style.display = 'none';
             this.ball2El.style.display = 'none';
             
-            this._updateRoundBadge();
+            /* Determine round winner */
+            const winner = who === 'p1' ? 'P1' : 'P2';
             
-            /* First to totalRounds wins */
-            if (this.score.p1 >= this.totalRounds || this.score.p2 >= this.totalRounds) {
-                this._endGame();
-            } else {
-                /* Re-serve after short delay */
-                this._serveTimer = setTimeout(() => {
-                    this._serveTimer = null;
-                    this._serve();
-                }, SERVE_DELAY);
-            }
+            /* Tell server this round is done — server decides if game is over */
+            this.sendMove('round_end', { winner, p1_score: this.score.p1, p2_score: this.score.p2 });
+            this.sendInput({ type: 'point', winner, sc: this.score });
+            this._waitingForServer = true;
         }
         
         _updateRoundBadge() {
             const played = this.score.p1 + this.score.p2;
             const badge = document.getElementById('pa-round');
-            badge.textContent = `R${played + 1} · FT${this.totalRounds}`;
-        }
-        
-        _endGame() {
-            this.playing = false;
-            if(this._inputTimer) clearInterval(this._inputTimer);
-            if(this._syncTimer) clearInterval(this._syncTimer);
-            
-            let w = 'draw';
-            if (this.score.p1 > this.score.p2) w = 'P1';
-            else if (this.score.p2 > this.score.p1) w = 'P2';
-            
-            this.sendMove('round_end', { winner: w, p1_score: this.score.p1, p2_score: this.score.p2 });
-            this.sendInput({ type: 'over', winner: w, sc: this.score });
-            this._onGameOver(w, this.score);
-        }
-
-        _onGameOver(w, sc) {
-            this.playing = false;
-            const t = document.getElementById('pa-go-text');
-            const e = document.getElementById('pa-go-emoji');
-            
-            let wName = this.state.players[w];
-            if (w === 'draw') {
-                t.textContent = "DRAW!"; e.textContent = '🤝';
-            } else {
-                if (wName === USER) { t.textContent = "YOU WIN! 🎉"; e.textContent = '🏆'; }
-                else { t.textContent = `${wName} WINS!`; e.textContent = '😔'; }
-                t.style.color = w==='P1'?'#22d3ee':'#f87171';
-            }
-            
-            document.getElementById('pa-go-s1').textContent = sc.p1;
-            document.getElementById('pa-go-s2').textContent = sc.p2;
-            document.getElementById('pa-next-text').textContent = 'Next round soon...';
-            this.goOv.classList.remove('hidden');
+            const left = this.totalRounds - played;
+            badge.textContent = `R${played + 1}/${this.totalRounds}`;
         }
 
         _rBall(b, el, isP1, ts) {
@@ -788,23 +756,47 @@
         
         update(state) { this.state=state; }
         onRoundEnd(result) {
-            /* Server acknowledged round end — restart match after 3s */
+            this._waitingForServer = false;
+            this._updateRoundBadge();
+            
             if (result && result.game_ended) {
-                /* All rounds done — show final result, no restart */
-                document.getElementById('pa-next-text').textContent = 'Game Over';
+                /* All rounds done — show final result */
+                this.playing = false;
+                if(this._inputTimer) clearInterval(this._inputTimer);
+                if(this._syncTimer) clearInterval(this._syncTimer);
+                
+                let w = 'draw';
+                if (this.score.p1 > this.score.p2) w = 'P1';
+                else if (this.score.p2 > this.score.p1) w = 'P2';
+                this._showGameOver(w, this.score, true);
                 return;
             }
-            /* More rounds to play — auto-restart */
-            setTimeout(() => {
-                this.score = { p1: 0, p2: 0 };
-                this._showScore();
-                this.goOv.classList.add('hidden');
-                this._startMatch();
-            }, 3000);
+            /* More rounds — re-serve after delay */
+            this._serveTimer = setTimeout(() => {
+                this._serveTimer = null;
+                if (this.myRole === 'P1') this._serve();
+            }, SERVE_DELAY);
         }
         onGameEnd(result) {
             this.playing = false;
-            document.getElementById('pa-next-text').textContent = 'Game Over';
+            this._showGameOver('draw', this.score, true);
+        }
+        
+        _showGameOver(w, sc, isFinal) {
+            const t = document.getElementById('pa-go-text');
+            const e = document.getElementById('pa-go-emoji');
+            let wName = this.state.players[w];
+            if (w === 'draw') {
+                t.textContent = "DRAW!"; e.textContent = '🤝'; t.style.color = '#fff';
+            } else {
+                if (wName === USER) { t.textContent = "YOU WIN! 🎉"; e.textContent = '🏆'; }
+                else { t.textContent = `${wName} WINS!`; e.textContent = '😔'; }
+                t.style.color = w==='P1'?'#22d3ee':'#f87171';
+            }
+            document.getElementById('pa-go-s1').textContent = sc.p1;
+            document.getElementById('pa-go-s2').textContent = sc.p2;
+            document.getElementById('pa-next-text').textContent = isFinal ? 'Game Over' : '';
+            this.goOv.classList.remove('hidden');
         }
         destroy() {
             this.playing = false;
