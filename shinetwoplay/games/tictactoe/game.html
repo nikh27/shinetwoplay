@@ -1,9 +1,13 @@
 <!-- TicTacToe Game UI - Panda Edition (Multiplayer) -->
 
 <div class="ttt-container">
-    <!-- Header: Exit + Round -->
+    <!-- Header: Exit + Voice + Round -->
     <div class="ttt-top-bar">
-        <button class="ttt-exit-btn" onclick="exitGame()">✕</button>
+        <div style="display:flex; gap:6px; align-items:center;">
+            <button class="ttt-exit-btn" onclick="exitGame()">✕</button>
+            <button class="ttt-exit-btn ttt-voice-btn" id="ttt-mic-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+            <button class="ttt-exit-btn ttt-voice-btn" id="ttt-spk-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">🔊</button>
+        </div>
         <div class="ttt-round-badge" id="ttt-round-info">Round 1/1</div>
     </div>
 

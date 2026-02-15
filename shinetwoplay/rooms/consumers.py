@@ -335,6 +335,12 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 'game_move': self.handle_game_move,
                 'game_input': self.handle_game_input,
                 'game_exit': self.handle_game_exit,
+                # WebRTC signaling
+                'webrtc_offer': self.handle_webrtc_signal,
+                'webrtc_answer': self.handle_webrtc_signal,
+                'webrtc_ice': self.handle_webrtc_signal,
+                # Voice chat audio relay
+                'audio_stream': self.handle_audio_stream,
             }
             
             handler = handlers.get(event)
@@ -910,6 +916,21 @@ class RoomConsumer(AsyncWebsocketConsumer):
             }
         )
 
+    # ============= WebRTC Signaling Relay =============
+
+    async def handle_webrtc_signal(self, data):
+        """Relay WebRTC signaling messages (offer/answer/ICE) to the other player"""
+        event_type = data.get('event')  # webrtc_offer, webrtc_answer, or webrtc_ice
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'broadcast_webrtc_signal',
+                'signal_event': event_type,
+                'sender': self.username,
+                'payload': data.get('payload', {}),
+            }
+        )
+
     # ============= Owner Management Handlers =============
 
     async def handle_transfer_ownership(self, data):
@@ -1139,6 +1160,17 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 'data': {'user': event['user']}
             }))
 
+    async def broadcast_webrtc_signal(self, event):
+        """Relay WebRTC signal only to the OTHER player (skip sender)"""
+        if event['sender'] != self.username:
+            await self.send(text_data=json.dumps({
+                'event': event['signal_event'],
+                'data': {
+                    'sender': event['sender'],
+                    'payload': event['payload'],
+                }
+            }))
+
     async def broadcast_owner_changed(self, event):
         """Send ownership change event"""
         await self.send(text_data=json.dumps({
@@ -1327,6 +1359,29 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 'messages': messages
             }
         }))
+
+    async def handle_audio_stream(self, data):
+        """Relay audio stream data to other players"""
+        # Broadcast to room (excluding sender)
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'broadcast_audio_stream',
+                'sender': self.username,
+                'audio': data.get('audio')
+            }
+        )
+
+    async def broadcast_audio_stream(self, event):
+        """Send audio stream to client (skip sender)"""
+        if event['sender'] != self.username:
+            await self.send(text_data=json.dumps({
+                'event': 'audio_stream',
+                'data': {
+                    'sender': event['sender'],
+                    'audio': event['audio']
+                }
+            }))
 
     async def send_error(self, code, message):
         """Send error message"""

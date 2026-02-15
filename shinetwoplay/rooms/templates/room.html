@@ -1986,6 +1986,81 @@
             transform: scale(1.05);
             background: var(--white);
         }
+
+        /* ===== Voice Chat Controls ===== */
+        .voice-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--white);
+            border-radius: 14px;
+            padding: 8px 12px;
+            box-shadow: 0 4px 16px rgba(255, 185, 77, 0.15);
+            height: 48px;
+        }
+        .voice-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.25s ease;
+            background: #f0f0f0;
+            position: relative;
+        }
+        .voice-btn:active { transform: scale(0.9); }
+        .voice-btn.mic-on {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            box-shadow: 0 0 12px rgba(67, 233, 123, 0.5);
+            color: white;
+        }
+        .voice-btn.mic-off {
+            background: #e8e8e8;
+            color: #999;
+        }
+        .voice-btn.speaker-on {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+        .voice-btn.speaker-muted {
+            background: #ffcdd2;
+            color: #d32f2f;
+        }
+        .voice-btn.speaking {
+            animation: voice-pulse 0.6s ease infinite;
+        }
+        @keyframes voice-pulse {
+            0%, 100% { box-shadow: 0 0 8px rgba(67, 233, 123, 0.4); }
+            50% { box-shadow: 0 0 20px rgba(67, 233, 123, 0.8), 0 0 30px rgba(67, 233, 123, 0.3); }
+        }
+        .voice-status {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
+        .voice-status.connected { background: #4caf50; box-shadow: 0 0 6px rgba(76,175,80,0.6); }
+        .voice-status.connecting { background: #ff9800; animation: voice-blink 1s ease infinite; }
+        .voice-status.disconnected { background: #9e9e9e; }
+        @keyframes voice-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .voice-btn .mute-line {
+            position: absolute;
+            width: 28px; height: 2px;
+            background: #d32f2f;
+            transform: rotate(-45deg);
+            display: none;
+        }
+        .voice-btn.mic-off .mute-line,
+        .voice-btn.speaker-muted .mute-line {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -2032,6 +2107,16 @@
                             <div class="game-icon" id="selectedGameIcon">🎮</div>
                             <div class="game-name" id="selectedGameName">Choose Game</div>
                         </div>
+                    </div>
+
+                    <div class="voice-controls" id="voiceControls">
+                        <button class="voice-btn mic-off" id="micBtn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Microphone">
+                            🎤<span class="mute-line"></span>
+                        </button>
+                        <button class="voice-btn speaker-on" id="speakerBtn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">
+                            🔊<span class="mute-line"></span>
+                        </button>
+                        <div class="voice-status disconnected" id="voiceStatus" title="Voice status"></div>
                     </div>
 
                     <div class="round-selector" id="roundSelector" onclick="toggleRoundDropdown(event)">
@@ -2468,6 +2553,12 @@
                     case 'game_resumed': handleGameResumedEvent(payload); break;
                     case 'game_cancelled': handleGameCancelledEvent(payload); break;
                     case 'game_input': handleGameInputEvent(payload); break;
+                    // Voice chat audio relay
+                    case 'audio_stream': 
+                        if (window.voiceChat && window.voiceChat.connected) {
+                            window.voiceChat.handleAudioStream(payload); 
+                        }
+                        break;
                 }
             };
         }
@@ -2880,7 +2971,267 @@
         
         // Registry of game classes (populated by game.html scripts)
         window.GameClasses = window.GameClasses || {};
-        
+
+        // ============= Voice Chat (WebSocket Audio Relay - Raw PCM) =============
+        class VoiceChat {
+            constructor() {
+                this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                this.processor = null;
+                this.localStream = null;
+                this.input = null;
+                this.micEnabled = false; // Default OFF
+                this.speakerEnabled = true; // Default ON
+                this.connected = false;
+                this.nextStartTime = 0; // For scheduling smooth playback
+                this._updateUI();
+            }
+
+            async startCall() {
+                if (this.connected) return;
+                
+                try {
+                    // Resume audio context if suspended (browser autoplay policy)
+                    if (this.audioCtx.state === 'suspended') {
+                        await this.audioCtx.resume();
+                    }
+
+                    this.localStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        } 
+                    });
+
+                    this.input = this.audioCtx.createMediaStreamSource(this.localStream);
+                    
+                    // Create ScriptProcessor (bufferSize, inputChannels, outputChannels)
+                    // 4096 samples @ 44.1kHz is ~92ms latency
+                    this.processor = this.audioCtx.createScriptProcessor(4096, 1, 1);
+                    
+                    this.processor.onaudioprocess = (e) => {
+                        if (!this.micEnabled || socket.readyState !== WebSocket.OPEN) return;
+                        
+                        const inputData = e.inputBuffer.getChannelData(0);
+                        
+                        // Check if silence (optional optimization)
+                        let sum = 0;
+                        for (let i = 0; i < inputData.length; i++) sum += Math.abs(inputData[i]);
+                        if (sum < 0.01) return; // Skip silence
+                        
+                        // Convert Float32Array to Base64 string
+                        // We send raw bytes to avoid JSON overhead issues with strict types,
+                        // but JS strings are UTF-16. Binary to Base64 is safest.
+                        const buffer = new Float32Array(inputData);
+                        const binary = String.fromCharCode(...new Uint8Array(buffer.buffer));
+                        const base64Audio = btoa(binary);
+                        
+                        socket.send(JSON.stringify({
+                            event: 'audio_stream',
+                            audio: base64Audio,
+                            rate: this.audioCtx.sampleRate
+                        }));
+                        
+                        this._animateMic(sum / inputData.length * 100); // Visual feedback
+                    };
+
+                    this.input.connect(this.processor);
+                    this.processor.connect(this.audioCtx.destination); // Needed for Chrome to run the processor
+                    
+                    this.connected = true;
+                    this._setStatus('connected');
+                    this._updateUI();
+                    console.log(`✅ Voice chat started (Raw PCM Mode, ${this.audioCtx.sampleRate}Hz)`);
+
+                } catch (err) {
+                    console.error("❌ Mic access denied or not supported:", err);
+                    showToast('Microphone access required for voice chat', 'error');
+                    this._setStatus('failed');
+                }
+            }
+
+            async handleAudioStream(data) {
+                if (!this.speakerEnabled || !data.audio) return;
+                
+                try {
+                    // Decode Base64 to Float32
+                    const binary = atob(data.audio);
+                    const bytes = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) {
+                        bytes[i] = binary.charCodeAt(i);
+                    }
+                    const float32Data = new Float32Array(bytes.buffer);
+                    
+                    // Create AudioBuffer
+                    // We use the SENDER's sample rate if provided, else generic 44100
+                    // Actually, createBuffer requires the context's rate usually, 
+                    // but we can resample or just play at context rate (pitch shift if mismatch).
+                    // Robust way: Create buffer at context rate and copy? No.
+                    // If sender is 48k and we are 44.1k, playing 48k data at 44.1k = slow motion.
+                    // We must create buffer with SENDER's rate, and AudioBufferSourceNode handles resampling!
+                    const senderRate = data.rate || 44100;
+                    const buffer = this.audioCtx.createBuffer(1, float32Data.length, senderRate);
+                    buffer.copyToChannel(float32Data, 0);
+                    
+                    this._playBuffer(buffer);
+                    
+                    // Visual feedback (rough volume approx)
+                    let sum = 0;
+                    for(let i=0; i<float32Data.length; i+=100) sum += Math.abs(float32Data[i]);
+                    if (sum > 0.1) this._animateSpeaker();
+                    
+                } catch (e) {
+                    console.error("Error playing audio chunk", e);
+                }
+            }
+
+            _playBuffer(buffer) {
+                const source = this.audioCtx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(this.audioCtx.destination);
+                
+                // Scheduling for gapless playback
+                const currentTime = this.audioCtx.currentTime;
+                // Add tiny buffer (0.05s) to avoid glitching if packet arrives late
+                const latency = 0.05; 
+                
+                if (this.nextStartTime < currentTime) {
+                    this.nextStartTime = currentTime + latency;
+                }
+                
+                source.start(this.nextStartTime);
+                this.nextStartTime += buffer.duration;
+            }
+
+            // --- Toggles ---
+            toggleMic() {
+                this.micEnabled = !this.micEnabled;
+                this._updateUI();
+                
+                // If we enabled and not connected, start call
+                if (this.micEnabled && !this.connected) {
+                    this.startCall();
+                }
+                // If checking micEnabled inside onaudioprocess handles the mute logic.
+                // We keep the stream open to avoid hardware delay when unmuting.
+            }
+
+            async toggleSpeaker() {
+                this.speakerEnabled = !this.speakerEnabled;
+                if (this.speakerEnabled && this.audioCtx.state === 'suspended') {
+                    await this.audioCtx.resume();
+                }
+                this._updateUI();
+            }
+
+            // --- UI Updates ---
+            _updateUI() {
+                // Determine mic state for UI
+                const micOn = this.micEnabled;
+                const spkOn = this.speakerEnabled;
+
+                // Update room-level buttons
+                const micBtn = document.getElementById('micBtn');
+                const speakerBtn = document.getElementById('speakerBtn');
+                
+                if (micBtn) {
+                     micBtn.className = 'voice-btn ' + (micOn ? 'mic-on' : 'mic-off');
+                     // Update internal text/icon if needed, but CSS handles mute-line
+                }
+                if (speakerBtn) {
+                     speakerBtn.className = 'voice-btn ' + (spkOn ? 'speaker-on' : 'speaker-muted');
+                }
+
+                // Update in-game buttons (all game prefixes)
+                ['ttt', 'c4', 'pa'].forEach(prefix => {
+                    const mic = document.getElementById(`${prefix}-mic-btn`);
+                    const spk = document.getElementById(`${prefix}-spk-btn`);
+                    if (mic) {
+                        mic.style.opacity = micOn ? '1' : '0.5';
+                        mic.textContent = micOn ? '🎤' : '🔇';
+                    }
+                    if (spk) {
+                        spk.style.opacity = spkOn ? '1' : '0.5';
+                        spk.textContent = spkOn ? '🔊' : '🔇';
+                    }
+                });
+            }
+
+            _setStatus(status) {
+                const el = document.getElementById('voiceStatus');
+                if (el) {
+                    el.className = 'voice-status ' + status;
+                    el.title = status === 'connected' ? 'Voice connected' : 'Voice disconnected';
+                }
+            }
+            
+            _animateMic() {
+                 // specific animation logic or just ensure UI reflects active state
+            }
+
+            _animateSpeaker() {
+                 // specific animation logic
+                 const btn = document.getElementById('speakerBtn');
+                 if(btn) {
+                     btn.classList.add('pulse');
+                     setTimeout(() => btn.classList.remove('pulse'), 100);
+                 }
+            }
+
+            disconnect() {
+                if (this.mediaRecorder) {
+                    this.mediaRecorder.stop();
+                    this.mediaRecorder = null;
+                }
+                if (this.audioCtx) {
+                    this.audioCtx.close();
+                }
+                this.connected = false;
+                this._setStatus('disconnected');
+            }
+        }
+
+        // Create global instance
+        window.voiceChat = new VoiceChat();
+
+        // Auto-connect: owner initiates call when 2nd player joins
+        const originalPlayerJoinHandler = handlePlayerJoinEvent;
+        handlePlayerJoinEvent = function(payload) {
+            originalPlayerJoinHandler(payload);
+            // If I'm the owner and someone else joined, start the call
+            if (isOwner && payload.user !== USER && payload.players && Object.keys(payload.players).length >= 2) {
+                console.log('📞 Auto-starting voice call...');
+                setTimeout(() => window.voiceChat.startCall(), 500);
+            }
+        };
+
+        // Also auto-start if we join a room that already has another player
+        const originalSyncRoomState = syncRoomState;
+        syncRoomState = function(payload) {
+            originalSyncRoomState(payload);
+            // If I'm the owner and there are 2+ players, start call
+            if (payload.is_owner && payload.players && Object.keys(payload.players).length >= 2) {
+                setTimeout(() => {
+                    if (!window.voiceChat.connected) {
+                        console.log('📞 Auto-starting voice call (room sync)...');
+                        window.voiceChat.startCall();
+                    }
+                }, 1000);
+            }
+        };
+
+        // Reconnect voice on player reconnect
+        const originalReconnected = typeof handlePlayerReconnectedEvent === 'function' ? handlePlayerReconnectedEvent : null;
+        if (originalReconnected) {
+            handlePlayerReconnectedEvent = function(payload) {
+                originalReconnected(payload);
+                if (isOwner && payload.user !== USER) {
+                    console.log('📞 Restarting voice call after reconnect...');
+                    window.voiceChat.disconnect();
+                    setTimeout(() => window.voiceChat.startCall(), 1000);
+                }
+            };
+        }
         function handleGameLoadedEvent(payload) {
             console.log('🎮 Game loaded:', payload.game_id);
             

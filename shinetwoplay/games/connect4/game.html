@@ -1,9 +1,13 @@
 <!-- Connect 4 Game UI - Panda Edition (Multiplayer) -->
 
 <div class="c4-container">
-    <!-- Header: Exit + Round -->
+    <!-- Header: Exit + Voice + Round -->
     <div class="c4-top-bar">
-        <button class="c4-exit-btn" onclick="exitGame()">✕</button>
+        <div style="display:flex; gap:6px; align-items:center;">
+            <button class="c4-exit-btn" onclick="exitGame()">✕</button>
+            <button class="c4-exit-btn c4-voice-btn" id="c4-mic-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+            <button class="c4-exit-btn c4-voice-btn" id="c4-spk-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">🔊</button>
+        </div>
         <div class="c4-round-badge" id="c4-round-info">Round 1/1</div>
     </div>
 
