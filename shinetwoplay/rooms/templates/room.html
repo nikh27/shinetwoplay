@@ -1991,16 +1991,76 @@
         .voice-controls {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
             background: var(--white);
-            border-radius: 14px;
-            padding: 6px 10px;
+            border-radius: 12px;
+            padding: 4px 6px;
             box-shadow: 0 4px 16px rgba(255, 185, 77, 0.15);
-            height: 48px;
+            height: 40px;
+            flex: 0 0 auto;
+        }
+        
+        .voice-round-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        /* Ensure round selector matches voice controls style */
+        .round-selector {
+            flex: 1;
+            height: 40px;
+            background: var(--white);
+            border-radius: 12px;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(255, 185, 77, 0.15);
+            position: relative;
+            user-select: none;
+            transition: transform 0.2s;
+        }
+        .round-selector:active { transform: scale(0.98); }
+        .round-label { font-size: 12px; color: var(--text-medium); font-weight: 600; margin-right: 6px; }
+        .round-value { font-size: 16px; color: var(--sunshine-orange); font-weight: 800; }
+        .round-arrow { color: var(--sunshine-orange); font-size: 10px; margin-left: auto; }
+        
+        .round-dropdown {
+            position: absolute;
+            top: 110%; left: 0; width: 100%;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            padding: 6px;
+            display: none;
+            z-index: 100;
+            overflow: hidden;
+            animation: fadeIn 0.2s ease;
+        }
+        .round-dropdown.show { display: block; }
+        .round-option {
+            padding: 8px;
+            text-align: center;
+            font-weight: 700;
+            color: var(--text-dark);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+        .round-option:hover { background: var(--sunshine-light); color: var(--sunshine-orange); }
+        .round-option.selected { background: var(--sunshine-orange); color: #fff; }
+
+        .game-selector {
+            width: 100%; /* Ensure game selector stays full width above */
         }
         .vc-btn {
             position: relative;
-            width: 38px; height: 38px;
+            width: 32px; height: 32px;
             border-radius: 50%;
             border: 2px solid rgba(0,0,0,0.06);
             cursor: pointer;
@@ -2155,41 +2215,43 @@
                         </div>
                     </div>
 
-                    <div class="voice-controls" id="voiceControls">
-                        <button class="vc-btn muted" id="vcMicBtn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Microphone">
-                            <svg width="22" height="22" viewBox="0 0 28 28">
-                                <rect class="mic-part" x="10" y="3" width="8" height="12" rx="4"/>
-                                <path class="mic-part" d="M7 13a7 7 0 0 0 14 0"/>
-                                <line class="mic-part" x1="14" y1="20" x2="14" y2="25"/>
-                                <line class="mic-part" x1="10" y1="25" x2="18" y2="25"/>
-                                <rect class="eq-bar" x="11.5" y="5" width="1.4" height="8" style="transform-origin:12.2px 9px;"/>
-                                <rect class="eq-bar" x="13.3" y="5" width="1.4" height="8" style="transform-origin:14px 9px;"/>
-                                <rect class="eq-bar" x="15.1" y="5" width="1.4" height="8" style="transform-origin:15.8px 9px;"/>
-                                <line class="mute-x" x1="4" y1="4" x2="24" y2="24"/>
-                            </svg>
-                        </button>
-                        <button class="vc-btn on" id="vcSpkBtn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">
-                            <svg width="22" height="22" viewBox="0 0 28 28">
-                                <polygon class="spk-part" points="12 8 7 11 3 11 3 17 7 17 12 20 12 8"/>
-                                <path class="wave" d="M15.5 11a3.8 3.8 0 0 1 0 6"/>
-                                <path class="wave" d="M18.5 8.5a7.2 7.2 0 0 1 0 11"/>
-                                <path class="wave" d="M21.5 6a10.8 10.8 0 0 1 0 16"/>
-                                <line class="mute-x" x1="4" y1="4" x2="24" y2="24"/>
-                            </svg>
-                        </button>
-                        <div class="vc-status disconnected" id="vcStatus" title="Voice status"></div>
-                    </div>
-
-                    <div class="round-selector" id="roundSelector" onclick="toggleRoundDropdown(event)">
-                        <div class="round-selector-content">
-                            <span class="round-label">round</span>
-                            <span class="round-value" id="selectedRound">1</span>
+                    <div class="voice-round-row">
+                        <div class="voice-controls" id="voiceControls">
+                            <button class="vc-btn muted" id="vcMicBtn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Microphone">
+                                <svg width="18" height="18" viewBox="0 0 28 28">
+                                    <rect class="mic-part" x="10" y="3" width="8" height="12" rx="4"/>
+                                    <path class="mic-part" d="M7 13a7 7 0 0 0 14 0"/>
+                                    <line class="mic-part" x1="14" y1="20" x2="14" y2="25"/>
+                                    <line class="mic-part" x1="10" y1="25" x2="18" y2="25"/>
+                                    <rect class="eq-bar" x="11.5" y="5" width="1.4" height="8" style="transform-origin:12.2px 9px;"/>
+                                    <rect class="eq-bar" x="13.3" y="5" width="1.4" height="8" style="transform-origin:14px 9px;"/>
+                                    <rect class="eq-bar" x="15.1" y="5" width="1.4" height="8" style="transform-origin:15.8px 9px;"/>
+                                    <line class="mute-x" x1="4" y1="4" x2="24" y2="24"/>
+                                </svg>
+                            </button>
+                            <button class="vc-btn on" id="vcSpkBtn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">
+                                <svg width="18" height="18" viewBox="0 0 28 28">
+                                    <polygon class="spk-part" points="12 8 7 11 3 11 3 17 7 17 12 20 12 8"/>
+                                    <path class="wave" d="M15.5 11a3.8 3.8 0 0 1 0 6"/>
+                                    <path class="wave" d="M18.5 8.5a7.2 7.2 0 0 1 0 11"/>
+                                    <path class="wave" d="M21.5 6a10.8 10.8 0 0 1 0 16"/>
+                                    <line class="mute-x" x1="4" y1="4" x2="24" y2="24"/>
+                                </svg>
+                            </button>
+                            <div class="vc-status disconnected" id="vcStatus" title="Voice status"></div>
                         </div>
-                        <span class="round-arrow">▼</span>
-                        <div class="round-dropdown" id="roundDropdown">
-                            <div class="round-option selected" onclick="selectRoundFromDropdown(1, event)">1</div>
-                            <div class="round-option" onclick="selectRoundFromDropdown(3, event)">3</div>
-                            <div class="round-option" onclick="selectRoundFromDropdown(5, event)">5</div>
+
+                        <div class="round-selector" id="roundSelector" onclick="toggleRoundDropdown(event)">
+                            <div class="round-selector-content">
+                                <span class="round-label">round</span>
+                                <span class="round-value" id="selectedRound">1</span>
+                            </div>
+                            <span class="round-arrow">▼</span>
+                            <div class="round-dropdown" id="roundDropdown">
+                                <div class="round-option selected" onclick="selectRoundFromDropdown(1, event)">1</div>
+                                <div class="round-option" onclick="selectRoundFromDropdown(3, event)">3</div>
+                                <div class="round-option" onclick="selectRoundFromDropdown(5, event)">5</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2659,7 +2721,6 @@
                     // Player is in reconnecting state
                     statusHTML = `
                         <div class="player-status status-reconnecting">
-                            <span class="status-dot"></span>
                             reconnecting...
                         </div>
                     `;
@@ -2667,7 +2728,6 @@
                     // Normal ready/not ready status for non-owners
                     statusHTML = `
                         <div class="player-status ${pData.is_ready ? 'status-ready' : 'status-not-ready'}">
-                            <span class="status-dot"></span>
                             ${pData.is_ready ? 'ready' : 'not ready'}
                         </div>
                     `;
@@ -3278,7 +3338,13 @@
                 if (this.micOn) {
                     try {
                         this.localStream = await navigator.mediaDevices.getUserMedia({
-                            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                            audio: {
+                                echoCancellation: { ideal: true },
+                                noiseSuppression: { ideal: true },
+                                autoGainControl: { ideal: true },
+                                sampleRate: { ideal: 48000 },
+                                channelCount: { exact: 1 },
+                            }
                         });
                         const track = this.localStream.getAudioTracks()[0];
                         console.log('🎤 Mic ON — hardware active, track:', track.readyState);
