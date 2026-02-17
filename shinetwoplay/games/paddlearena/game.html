@@ -295,7 +295,11 @@
 <div class="pa-wrapper">
     <!-- Compact header -->
     <div class="pa-header">
-        <button class="pa-exit-btn" onclick="exitGame()" title="Exit">✕</button>
+        <div style="display:flex; gap:6px; align-items:center;">
+            <button class="pa-exit-btn" onclick="exitGame()" title="Exit">✕</button>
+            <button class="pa-exit-btn pa-voice-btn" id="pa-mic-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+            <button class="pa-exit-btn pa-voice-btn" id="pa-spk-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">🔊</button>
+        </div>
         <div class="pa-score-strip">
             <div class="pa-ps" id="pa-ps1">
                 <div class="pa-av c1" id="pa-av1"></div>

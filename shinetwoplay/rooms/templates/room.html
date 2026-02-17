@@ -1986,6 +1986,187 @@
             transform: scale(1.05);
             background: var(--white);
         }
+
+        /* ===== Voice Chat Controls ===== */
+        .voice-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--white);
+            border-radius: 12px;
+            padding: 4px 6px;
+            box-shadow: 0 4px 16px rgba(255, 185, 77, 0.15);
+            height: 40px;
+            flex: 0 0 auto;
+        }
+        
+        .voice-round-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        /* Ensure round selector matches voice controls style */
+        .round-selector {
+            flex: 1;
+            height: 40px;
+            background: var(--white);
+            border-radius: 12px;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(255, 185, 77, 0.15);
+            position: relative;
+            user-select: none;
+            transition: transform 0.2s;
+        }
+        .round-selector:active { transform: scale(0.98); }
+        .round-label { font-size: 12px; color: var(--text-medium); font-weight: 600; margin-right: 6px; }
+        .round-value { font-size: 16px; color: var(--sunshine-orange); font-weight: 800; }
+        .round-arrow { color: var(--sunshine-orange); font-size: 10px; margin-left: auto; }
+        
+        .round-dropdown {
+            position: absolute;
+            top: 110%; left: 0; width: 100%;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            padding: 6px;
+            display: none;
+            z-index: 100;
+            overflow: hidden;
+            animation: fadeIn 0.2s ease;
+        }
+        .round-dropdown.show { display: block; }
+        .round-option {
+            padding: 8px;
+            text-align: center;
+            font-weight: 700;
+            color: var(--text-dark);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+        .round-option:hover { background: var(--sunshine-light); color: var(--sunshine-orange); }
+        .round-option.selected { background: var(--sunshine-orange); color: #fff; }
+
+        .game-selector {
+            width: 100%; /* Ensure game selector stays full width above */
+        }
+        .vc-btn {
+            position: relative;
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 2px solid rgba(0,0,0,0.06);
+            cursor: pointer;
+            background: #f5f5f8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            outline: none;
+            transition: all 0.35s ease;
+            overflow: hidden;
+            padding: 0;
+        }
+        .vc-btn:active { transform: scale(0.88); }
+
+        /* MIC states */
+        #vcMicBtn.on { border-color: rgba(255,107,129,0.15); }
+        #vcMicBtn.on.speaking {
+            border-color: rgba(255,107,129,0.5);
+            background: rgba(255,107,129,0.08);
+            box-shadow: 0 0 18px rgba(255,107,129,0.18), 0 0 36px rgba(255,107,129,0.06);
+        }
+        /* SPEAKER states */
+        #vcSpkBtn.on { border-color: rgba(108,160,255,0.15); }
+        #vcSpkBtn.on.playing {
+            border-color: rgba(108,160,255,0.5);
+            background: rgba(108,160,255,0.08);
+            box-shadow: 0 0 18px rgba(108,160,255,0.18), 0 0 36px rgba(108,160,255,0.06);
+        }
+        /* MUTED */
+        .vc-btn.muted {
+            background: #f0f0f3;
+            border-color: rgba(0,0,0,0.05);
+            box-shadow: none;
+        }
+        /* Inner glow */
+        .vc-btn::before {
+            content: '';
+            position: absolute; inset: 0;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.35s;
+        }
+        #vcMicBtn.on.speaking::before {
+            background: radial-gradient(circle at 50% 55%, rgba(255,107,129,0.18) 0%, transparent 60%);
+            opacity: 1;
+        }
+        #vcSpkBtn.on.playing::before {
+            background: radial-gradient(circle at 50% 55%, rgba(108,160,255,0.18) 0%, transparent 60%);
+            opacity: 1;
+        }
+        .vc-btn svg { position: relative; z-index: 2; }
+
+        /* Mic icon parts */
+        .mic-part {
+            fill: none; stroke: #3a3a48; stroke-width: 1.8;
+            stroke-linecap: round; stroke-linejoin: round;
+            transition: stroke 0.3s, opacity 0.3s;
+        }
+        .on .mic-part { stroke: #ff6b81; opacity: 0.6; }
+        .on.speaking .mic-part { stroke: #ff6b81; opacity: 1; }
+        /* EQ bars */
+        .eq-bar { fill: #ff6b81; rx: 0.8; opacity: 0; transition: opacity 0.2s; }
+        .on.speaking .eq-bar { opacity: 1; }
+        .on.speaking .eq-bar:nth-child(1) { animation: vc-eq 0.4s ease-in-out infinite alternate; }
+        .on.speaking .eq-bar:nth-child(2) { animation: vc-eq 0.3s ease-in-out 0.08s infinite alternate; }
+        .on.speaking .eq-bar:nth-child(3) { animation: vc-eq 0.5s ease-in-out 0.16s infinite alternate; }
+        @keyframes vc-eq { 0% { transform: scaleY(0.15); } 100% { transform: scaleY(1); } }
+
+        /* Speaker icon parts */
+        .spk-part { fill: #3a3a48; transition: fill 0.3s, opacity 0.3s; }
+        .on .spk-part { fill: #6ca0ff; opacity: 0.6; }
+        .on.playing .spk-part { fill: #6ca0ff; opacity: 1; }
+        /* Waves */
+        .wave {
+            fill: none; stroke: #6ca0ff; stroke-width: 1.8;
+            stroke-linecap: round; opacity: 0; transition: opacity 0.2s;
+        }
+        .on.playing .wave { animation: vc-waveOut 1.2s ease-out infinite; }
+        .on.playing .wave:nth-child(2) { animation-delay: 0.3s; }
+        .on.playing .wave:nth-child(3) { animation-delay: 0.6s; }
+        @keyframes vc-waveOut {
+            0% { opacity: 0.85; stroke-width: 2; }
+            50% { opacity: 0.4; stroke-width: 1.4; }
+            100% { opacity: 0; stroke-width: 0.4; }
+        }
+        /* Mute slash */
+        .mute-x {
+            stroke: #e84057; stroke-width: 2.2;
+            stroke-linecap: round; opacity: 0; transition: opacity 0.25s;
+        }
+        .muted .mute-x { opacity: 0.9; }
+        .muted .mic-part { stroke: #2a2a35; opacity: 1; }
+        .muted .spk-part { fill: #2a2a35; opacity: 1; }
+
+        /* Voice status dot */
+        .vc-status {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            transition: background 0.3s;
+            background: #9e9e9e;
+        }
+        .vc-status.connected { background: #4caf50; box-shadow: 0 0 6px rgba(76,175,80,0.6); }
+        .vc-status.connecting { background: #ff9800; animation: vc-blink 1s ease infinite; }
+        .vc-status.disconnected { background: #9e9e9e; }
+        @keyframes vc-blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
     </style>
 </head>
 <body>
@@ -2034,16 +2215,43 @@
                         </div>
                     </div>
 
-                    <div class="round-selector" id="roundSelector" onclick="toggleRoundDropdown(event)">
-                        <div class="round-selector-content">
-                            <span class="round-label">round</span>
-                            <span class="round-value" id="selectedRound">1</span>
+                    <div class="voice-round-row">
+                        <div class="voice-controls" id="voiceControls">
+                            <button class="vc-btn muted" id="vcMicBtn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Microphone">
+                                <svg width="18" height="18" viewBox="0 0 28 28">
+                                    <rect class="mic-part" x="10" y="3" width="8" height="12" rx="4"/>
+                                    <path class="mic-part" d="M7 13a7 7 0 0 0 14 0"/>
+                                    <line class="mic-part" x1="14" y1="20" x2="14" y2="25"/>
+                                    <line class="mic-part" x1="10" y1="25" x2="18" y2="25"/>
+                                    <rect class="eq-bar" x="11.5" y="5" width="1.4" height="8" style="transform-origin:12.2px 9px;"/>
+                                    <rect class="eq-bar" x="13.3" y="5" width="1.4" height="8" style="transform-origin:14px 9px;"/>
+                                    <rect class="eq-bar" x="15.1" y="5" width="1.4" height="8" style="transform-origin:15.8px 9px;"/>
+                                    <line class="mute-x" x1="4" y1="4" x2="24" y2="24"/>
+                                </svg>
+                            </button>
+                            <button class="vc-btn on" id="vcSpkBtn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">
+                                <svg width="18" height="18" viewBox="0 0 28 28">
+                                    <polygon class="spk-part" points="12 8 7 11 3 11 3 17 7 17 12 20 12 8"/>
+                                    <path class="wave" d="M15.5 11a3.8 3.8 0 0 1 0 6"/>
+                                    <path class="wave" d="M18.5 8.5a7.2 7.2 0 0 1 0 11"/>
+                                    <path class="wave" d="M21.5 6a10.8 10.8 0 0 1 0 16"/>
+                                    <line class="mute-x" x1="4" y1="4" x2="24" y2="24"/>
+                                </svg>
+                            </button>
+                            <div class="vc-status disconnected" id="vcStatus" title="Voice status"></div>
                         </div>
-                        <span class="round-arrow">▼</span>
-                        <div class="round-dropdown" id="roundDropdown">
-                            <div class="round-option selected" onclick="selectRoundFromDropdown(1, event)">1</div>
-                            <div class="round-option" onclick="selectRoundFromDropdown(3, event)">3</div>
-                            <div class="round-option" onclick="selectRoundFromDropdown(5, event)">5</div>
+
+                        <div class="round-selector" id="roundSelector" onclick="toggleRoundDropdown(event)">
+                            <div class="round-selector-content">
+                                <span class="round-label">round</span>
+                                <span class="round-value" id="selectedRound">1</span>
+                            </div>
+                            <span class="round-arrow">▼</span>
+                            <div class="round-dropdown" id="roundDropdown">
+                                <div class="round-option selected" onclick="selectRoundFromDropdown(1, event)">1</div>
+                                <div class="round-option" onclick="selectRoundFromDropdown(3, event)">3</div>
+                                <div class="round-option" onclick="selectRoundFromDropdown(5, event)">5</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2468,6 +2676,14 @@
                     case 'game_resumed': handleGameResumedEvent(payload); break;
                     case 'game_cancelled': handleGameCancelledEvent(payload); break;
                     case 'game_input': handleGameInputEvent(payload); break;
+                    // WebRTC signaling
+                    case 'webrtc_offer':
+                    case 'webrtc_answer':
+                    case 'webrtc_ice':
+                        if (window.voiceChat) {
+                            window.voiceChat.handleSignal(event, payload);
+                        }
+                        break;
                 }
             };
         }
@@ -2505,7 +2721,6 @@
                     // Player is in reconnecting state
                     statusHTML = `
                         <div class="player-status status-reconnecting">
-                            <span class="status-dot"></span>
                             reconnecting...
                         </div>
                     `;
@@ -2513,7 +2728,6 @@
                     // Normal ready/not ready status for non-owners
                     statusHTML = `
                         <div class="player-status ${pData.is_ready ? 'status-ready' : 'status-not-ready'}">
-                            <span class="status-dot"></span>
                             ${pData.is_ready ? 'ready' : 'not ready'}
                         </div>
                     `;
@@ -2880,7 +3094,492 @@
         
         // Registry of game classes (populated by game.html scripts)
         window.GameClasses = window.GameClasses || {};
-        
+
+        // ============= Voice Chat (Production WebRTC P2P) =============
+        class VoiceChat {
+            constructor() {
+                this.pc = null;
+                this.localStream = null;
+                this.remoteAudio = null;
+                this.audioTransceiver = null;
+                this.micOn = false;        // Mic OFF by default — no hardware access
+                this.spkOn = true;         // Speaker ON by default
+                this.connected = false;
+                this._retries = 0;
+                this._maxRetries = 3;
+                this._pendingIce = [];
+                this._makingOffer = false;
+                this._isPolite = false;
+                this._localAnalyser = null;
+                this._remoteAnalyser = null;
+                this._localRAF = null;
+                this._remoteRAF = null;
+                this._audioCtx = null;
+                this._updateUI();
+            }
+
+            // ---- Connection Setup ----
+            async connect(asOwner) {
+                if (this.pc && this.pc.connectionState !== 'failed' && this.pc.connectionState !== 'closed') {
+                    return; // Already connected or connecting
+                }
+                this._isPolite = !asOwner; // Owner is impolite (creates offer)
+                this._pendingIce = [];
+                this._setStatus('connecting');
+                console.log(`📞 VoiceChat: connecting as ${asOwner ? 'caller' : 'answerer'}...`);
+
+                this.pc = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun3.l.google.com:19302' },
+                    ]
+                });
+
+                // Only caller adds transceiver (answerer gets it from offer)
+                if (asOwner) {
+                    this.audioTransceiver = this.pc.addTransceiver('audio', {
+                        direction: 'sendrecv'
+                    });
+                }
+
+                // Remote audio element
+                if (!this.remoteAudio) {
+                    this.remoteAudio = document.createElement('audio');
+                    this.remoteAudio.autoplay = true;
+                    this.remoteAudio.playsInline = true;
+                    this.remoteAudio.volume = 1.0;
+                    document.body.appendChild(this.remoteAudio);
+                }
+                this.remoteAudio.muted = !this.spkOn;
+
+                // ---- Event Handlers ----
+                this.pc.ontrack = (e) => {
+                    console.log('🔊 Remote audio track received', e.track.kind, e.track.readyState);
+                    if (e.streams && e.streams[0]) {
+                        this.remoteAudio.srcObject = e.streams[0];
+                        this._tryPlayRemote();
+                        this._startRemoteDetection(e.streams[0]);
+                    } else if (e.track) {
+                        // Fallback: create stream from track
+                        const stream = new MediaStream([e.track]);
+                        this.remoteAudio.srcObject = stream;
+                        this._tryPlayRemote();
+                        this._startRemoteDetection(stream);
+                    }
+                };
+
+                this.pc.onicecandidate = (e) => {
+                    if (e.candidate && socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            event: 'webrtc_ice',
+                            payload: {
+                                candidate: e.candidate.candidate,
+                                sdpMid: e.candidate.sdpMid,
+                                sdpMLineIndex: e.candidate.sdpMLineIndex,
+                                usernameFragment: e.candidate.usernameFragment
+                            }
+                        }));
+                    }
+                };
+
+                this.pc.onconnectionstatechange = () => {
+                    if (!this.pc) return;
+                    const st = this.pc.connectionState;
+                    console.log('📡 WebRTC state:', st);
+                    if (st === 'connected') {
+                        this.connected = true;
+                        this._retries = 0;
+                        this._setStatus('connected');
+                        console.log('✅ WebRTC connected!');
+                    } else if (st === 'disconnected') {
+                        this._setStatus('connecting');
+                    } else if (st === 'failed') {
+                        this.connected = false;
+                        this._setStatus('disconnected');
+                        this._tryReconnect();
+                    } else if (st === 'closed') {
+                        this.connected = false;
+                        this._setStatus('disconnected');
+                    }
+                };
+
+                this.pc.oniceconnectionstatechange = () => {
+                    if (!this.pc) return;
+                    if (this.pc.iceConnectionState === 'failed') {
+                        console.log('🔄 ICE failed, restarting...');
+                        this.pc.restartIce();
+                    }
+                };
+
+                // Handle autoplay on ANY click (persistent, not once)
+                this._autoplayHandler = () => {
+                    this._tryPlayRemote();
+                    if (this._audioCtx && this._audioCtx.state === 'suspended') {
+                        this._audioCtx.resume();
+                    }
+                };
+                document.addEventListener('click', this._autoplayHandler);
+            }
+
+            // ---- Signaling: Create Offer ----
+            async startCall() {
+                if (!this.pc) return;
+                try {
+                    this._makingOffer = true;
+                    const offer = await this.pc.createOffer();
+                    await this.pc.setLocalDescription(offer);
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            event: 'webrtc_offer',
+                            payload: {
+                                type: this.pc.localDescription.type,
+                                sdp: this.pc.localDescription.sdp
+                            }
+                        }));
+                        console.log('📤 Offer sent');
+                    }
+                } catch (err) {
+                    console.error('❌ Offer error:', err);
+                } finally {
+                    this._makingOffer = false;
+                }
+            }
+
+            // ---- Handle Incoming Signals ----
+            async handleSignal(type, data) {
+                const payload = data.payload || {};
+
+                if (type === 'webrtc_offer') {
+                    if (!this.pc) {
+                        await this.connect(false); // We're the answerer
+                    }
+                    const offerCollision = this._makingOffer || (this.pc.signalingState !== 'stable');
+                    const ignoreOffer = !this._isPolite && offerCollision;
+                    if (ignoreOffer) return;
+
+                    try {
+                        await this.pc.setRemoteDescription({ type: payload.type, sdp: payload.sdp });
+
+                        // Answerer: grab the transceiver created by the offer
+                        if (!this.audioTransceiver) {
+                            const transceivers = this.pc.getTransceivers();
+                            this.audioTransceiver = transceivers.find(t => t.receiver.track && t.receiver.track.kind === 'audio');
+                            if (this.audioTransceiver) {
+                                this.audioTransceiver.direction = 'sendrecv';
+                                console.log('🔗 Answerer: grabbed transceiver from offer, set sendrecv');
+                            }
+                        }
+
+                        await this._flushIce();
+                        const answer = await this.pc.createAnswer();
+                        await this.pc.setLocalDescription(answer);
+                        if (socket && socket.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({
+                                event: 'webrtc_answer',
+                                payload: {
+                                    type: this.pc.localDescription.type,
+                                    sdp: this.pc.localDescription.sdp
+                                }
+                            }));
+                            console.log('📤 Answer sent');
+                        }
+                    } catch (err) {
+                        console.error('❌ Answer error:', err);
+                    }
+
+                } else if (type === 'webrtc_answer') {
+                    try {
+                        await this.pc.setRemoteDescription({ type: payload.type, sdp: payload.sdp });
+                        await this._flushIce();
+                    } catch (err) {
+                        console.error('❌ Set answer error:', err);
+                    }
+
+                } else if (type === 'webrtc_ice') {
+                    const candidate = {
+                        candidate: payload.candidate,
+                        sdpMid: payload.sdpMid,
+                        sdpMLineIndex: payload.sdpMLineIndex,
+                        usernameFragment: payload.usernameFragment
+                    };
+                    if (!this.pc || !this.pc.remoteDescription) {
+                        this._pendingIce.push(candidate);
+                    } else {
+                        try {
+                            await this.pc.addIceCandidate(candidate);
+                        } catch (err) {
+                            console.warn('⚠️ ICE candidate error:', err);
+                        }
+                    }
+                }
+            }
+
+            async _flushIce() {
+                while (this._pendingIce.length > 0) {
+                    const c = this._pendingIce.shift();
+                    try {
+                        await this.pc.addIceCandidate(c);
+                    } catch (err) {
+                        console.warn('⚠️ Buffered ICE error:', err);
+                    }
+                }
+            }
+
+            // ---- Mic Toggle: ON = getUserMedia + replaceTrack, OFF = stop + replaceTrack(null) ----
+            async toggleMic() {
+                this.micOn = !this.micOn;
+                this._updateUI();
+
+                // User clicked a button — use this gesture to ensure remote audio plays
+                this._tryPlayRemote();
+
+                if (this.micOn) {
+                    try {
+                        this.localStream = await navigator.mediaDevices.getUserMedia({
+                            audio: {
+                                echoCancellation: { ideal: true },
+                                noiseSuppression: { ideal: true },
+                                autoGainControl: { ideal: true },
+                                sampleRate: { ideal: 48000 },
+                                channelCount: { exact: 1 },
+                            }
+                        });
+                        const track = this.localStream.getAudioTracks()[0];
+                        console.log('🎤 Mic ON — hardware active, track:', track.readyState);
+
+                        // Replace track on the transceiver sender (no renegotiation needed)
+                        if (this.audioTransceiver) {
+                            await this.audioTransceiver.sender.replaceTrack(track);
+                            console.log('🎤 Track replaced on sender. Sender track:', this.audioTransceiver.sender.track?.readyState);
+                        } else {
+                            console.warn('⚠️ No audioTransceiver — mic track cannot be sent!');
+                        }
+                        this._startLocalDetection(this.localStream);
+                    } catch (err) {
+                        console.error('❌ Mic access denied:', err);
+                        showToast('Microphone access denied', 'error');
+                        this.micOn = false;
+                        this._updateUI();
+                    }
+                } else {
+                    // Stop hardware mic
+                    if (this.localStream) {
+                        this.localStream.getTracks().forEach(t => t.stop());
+                        this.localStream = null;
+                    }
+                    if (this.audioTransceiver) {
+                        await this.audioTransceiver.sender.replaceTrack(null);
+                    }
+                    this._stopLocalDetection();
+                    console.log('🎤 Mic OFF — hardware released');
+                }
+            }
+
+            // ---- Speaker Toggle ----
+            toggleSpeaker() {
+                this.spkOn = !this.spkOn;
+                if (this.remoteAudio) {
+                    this.remoteAudio.muted = !this.spkOn;
+                }
+                // User gesture — try to play
+                this._tryPlayRemote();
+                this._updateUI();
+            }
+
+            // ---- Try playing remote audio (call from user gestures) ----
+            _tryPlayRemote() {
+                if (this.remoteAudio && this.remoteAudio.srcObject && this.spkOn) {
+                    this.remoteAudio.muted = false;
+                    this.remoteAudio.play().then(() => {
+                        console.log('🔊 Remote audio playing! Volume:', this.remoteAudio.volume, 'Muted:', this.remoteAudio.muted);
+                    }).catch(err => {
+                        console.warn('🔊 Autoplay blocked:', err.message, '— click anywhere');
+                    });
+                }
+            }
+
+            // ---- Speaking Detection (local mic) ----
+            _startLocalDetection(stream) {
+                this._stopLocalDetection();
+                try {
+                    if (!this._audioCtx || this._audioCtx.state === 'closed') {
+                        this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    const src = this._audioCtx.createMediaStreamSource(stream);
+                    this._localAnalyser = this._audioCtx.createAnalyser();
+                    this._localAnalyser.fftSize = 256;
+                    this._localAnalyser.smoothingTimeConstant = 0.5;
+                    src.connect(this._localAnalyser);
+
+                    const buf = new Uint8Array(this._localAnalyser.frequencyBinCount);
+                    const micBtn = document.getElementById('vcMicBtn');
+                    const detect = () => {
+                        this._localRAF = requestAnimationFrame(detect);
+                        this._localAnalyser.getByteFrequencyData(buf);
+                        let sum = 0;
+                        for (let i = 0; i < buf.length; i++) sum += buf[i];
+                        const avg = sum / buf.length;
+                        if (micBtn) {
+                            if (avg > 12 && this.micOn) {
+                                micBtn.classList.add('speaking');
+                            } else {
+                                micBtn.classList.remove('speaking');
+                            }
+                        }
+                    };
+                    detect();
+                } catch (e) {
+                    console.warn('Speaking detection init error:', e);
+                }
+            }
+
+            _stopLocalDetection() {
+                if (this._localRAF) { cancelAnimationFrame(this._localRAF); this._localRAF = null; }
+                const micBtn = document.getElementById('vcMicBtn');
+                if (micBtn) micBtn.classList.remove('speaking');
+            }
+
+            // ---- Playing Detection (remote audio) ----
+            _startRemoteDetection(stream) {
+                try {
+                    if (!this._audioCtx || this._audioCtx.state === 'closed') {
+                        this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    const src = this._audioCtx.createMediaStreamSource(stream);
+                    this._remoteAnalyser = this._audioCtx.createAnalyser();
+                    this._remoteAnalyser.fftSize = 256;
+                    this._remoteAnalyser.smoothingTimeConstant = 0.5;
+                    src.connect(this._remoteAnalyser);
+
+                    const buf = new Uint8Array(this._remoteAnalyser.frequencyBinCount);
+                    const spkBtn = document.getElementById('vcSpkBtn');
+                    const detect = () => {
+                        this._remoteRAF = requestAnimationFrame(detect);
+                        this._remoteAnalyser.getByteFrequencyData(buf);
+                        let sum = 0;
+                        for (let i = 0; i < buf.length; i++) sum += buf[i];
+                        const avg = sum / buf.length;
+                        if (spkBtn) {
+                            if (avg > 10 && this.spkOn) {
+                                spkBtn.classList.add('playing');
+                            } else {
+                                spkBtn.classList.remove('playing');
+                            }
+                        }
+                    };
+                    detect();
+                } catch (e) {
+                    console.warn('Playing detection init error:', e);
+                }
+            }
+
+            // ---- Auto Reconnect ----
+            _tryReconnect() {
+                if (this._retries >= this._maxRetries) {
+                    console.log('❌ Max retries reached');
+                    return;
+                }
+                this._retries++;
+                const delay = 1000 * this._retries;
+                console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this._retries}/${this._maxRetries})...`);
+                setTimeout(() => {
+                    this.disconnect();
+                    this.connect(!this._isPolite).then(() => {
+                        if (!this._isPolite) this.startCall();
+                    });
+                }, delay);
+            }
+
+            // ---- UI Updates ----
+            _updateUI() {
+                const micBtn = document.getElementById('vcMicBtn');
+                const spkBtn = document.getElementById('vcSpkBtn');
+
+                if (micBtn) {
+                    micBtn.className = 'vc-btn ' + (this.micOn ? 'on' : 'muted');
+                }
+                if (spkBtn) {
+                    spkBtn.className = 'vc-btn ' + (this.spkOn ? 'on' : 'muted');
+                }
+
+                // In-game buttons
+                ['ttt', 'c4', 'pa'].forEach(p => {
+                    const mic = document.getElementById(`${p}-mic-btn`);
+                    const spk = document.getElementById(`${p}-spk-btn`);
+                    if (mic) { mic.style.opacity = this.micOn ? '1' : '0.5'; mic.textContent = this.micOn ? '🎤' : '🔇'; }
+                    if (spk) { spk.style.opacity = this.spkOn ? '1' : '0.5'; spk.textContent = this.spkOn ? '🔊' : '🔇'; }
+                });
+            }
+
+            _setStatus(status) {
+                const el = document.getElementById('vcStatus');
+                if (el) {
+                    el.className = 'vc-status ' + status;
+                    el.title = status === 'connected' ? 'Voice connected' :
+                               status === 'connecting' ? 'Connecting...' : 'Voice disconnected';
+                }
+            }
+
+            // ---- Cleanup ----
+            disconnect() {
+                if (this._localRAF) cancelAnimationFrame(this._localRAF);
+                if (this._remoteRAF) cancelAnimationFrame(this._remoteRAF);
+                if (this._autoplayHandler) { document.removeEventListener('click', this._autoplayHandler); this._autoplayHandler = null; }
+                if (this.localStream) { this.localStream.getTracks().forEach(t => t.stop()); this.localStream = null; }
+                if (this.pc) { this.pc.close(); this.pc = null; }
+                this.audioTransceiver = null;
+                this.connected = false;
+                this._pendingIce = [];
+                this._setStatus('disconnected');
+                const micBtn = document.getElementById('vcMicBtn');
+                const spkBtn = document.getElementById('vcSpkBtn');
+                if (micBtn) micBtn.classList.remove('speaking');
+                if (spkBtn) spkBtn.classList.remove('playing');
+            }
+        }
+
+        // ---- Create global instance ----
+        window.voiceChat = new VoiceChat();
+
+        // ---- Auto-connect when 2 players present ----
+        const _origPlayerJoin = handlePlayerJoinEvent;
+        handlePlayerJoinEvent = function(payload) {
+            _origPlayerJoin(payload);
+            if (isOwner && payload.user !== USER && payload.players && Object.keys(payload.players).length >= 2) {
+                console.log('📞 Auto-starting WebRTC call...');
+                window.voiceChat.connect(true).then(() => window.voiceChat.startCall());
+            }
+        };
+
+        const _origSyncRoom = syncRoomState;
+        syncRoomState = function(payload) {
+            _origSyncRoom(payload);
+            if (payload.is_owner && payload.players && Object.keys(payload.players).length >= 2) {
+                setTimeout(() => {
+                    if (!window.voiceChat.connected) {
+                        console.log('📞 Auto-starting WebRTC (room sync)...');
+                        window.voiceChat.connect(true).then(() => window.voiceChat.startCall());
+                    }
+                }, 800);
+            }
+        };
+
+        // Reconnect on player reconnect
+        const _origReconn = typeof handlePlayerReconnectedEvent === 'function' ? handlePlayerReconnectedEvent : null;
+        if (_origReconn) {
+            handlePlayerReconnectedEvent = function(payload) {
+                _origReconn(payload);
+                if (isOwner && payload.user !== USER) {
+                    console.log('📞 Restarting WebRTC after reconnect...');
+                    window.voiceChat.disconnect();
+                    setTimeout(() => {
+                        window.voiceChat.connect(true).then(() => window.voiceChat.startCall());
+                    }, 1000);
+                }
+            };
+        }
         function handleGameLoadedEvent(payload) {
             console.log('🎮 Game loaded:', payload.game_id);
             
