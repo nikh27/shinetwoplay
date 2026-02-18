@@ -25,6 +25,12 @@ class Command(BaseCommand):
                 'image_url': '/static/games/connect4.png',
                 'description': 'Drop discs to connect 4 in a row. Classic strategy!',
             },
+            {
+                'game_id': 'beachball',
+                'name': 'Beach Ball',
+                'image_url': '/static/games/beachball.png',
+                'description': 'Push the beach ball into your opponent\'s goal! Throw stones in the pool to hit the ball.',
+            },
         ]
 
         created_count = 0

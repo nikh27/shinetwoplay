@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Beach Ball</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Nunito', sans-serif;
+        }
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .game-canvas {
+            display: block;
+        }
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .overlay.hidden { display: none; }
+        .modal {
+            background: linear-gradient(145deg, #ffffff, #f0f9ff);
+            border-radius: 28px;
+            padding: 32px;
+            max-width: 340px;
+            margin: 16px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+        .modal h1 {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .modal p {
+            color: #64748b;
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .controls {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        .control-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+        }
+        .control-icon.blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .control-icon.red { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+        .control-label { font-size: 0.75rem; color: #94a3b8; }
+        .btn {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 14px 36px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .btn-start {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            box-shadow: 0 4px 15px rgba(34,197,94,0.4);
+        }
+        .btn-start:active { transform: scale(0.96); }
+        .score-panel {
+            position: fixed;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            border-radius: 20px;
+            padding: 12px 14px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            z-index: 50;
+        }
+        .score-item {
+            text-align: center;
+            padding: 4px 0;
+        }
+        .score-value {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+        .score-value.blue { color: #3b82f6; }
+        .score-value.red { color: #ef4444; }
+        .score-label { font-size: 0.6rem; color: #94a3b8; text-transform: uppercase; }
+        .score-divider {
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6, #ef4444);
+            margin: 6px 0;
+            border-radius: 1px;
+        }
+        .exit-btn {
+            position: fixed;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            border: none;
+            border-radius: 16px;
+            padding: 16px 10px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #64748b;
+            writing-mode: vertical-lr;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            cursor: pointer;
+            z-index: 50;
+        }
+        .winner-title { font-size: 1.8rem !important; }
+        .winner-title.win { 
+            background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+            -webkit-background-clip: text !important;
+        }
+        .winner-title.lose {
+            background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+            -webkit-background-clip: text !important;
+        }
+        .final-score {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" class="game-canvas"></canvas>
+    
+    <!-- Score Panel -->
+    <div class="score-panel">
+        <div class="score-item">
+            <div class="score-label">Opponent</div>
+            <div class="score-value blue" id="score1">0</div>
+        </div>
+        <div class="score-divider"></div>
+        <div class="score-item">
+            <div class="score-value red" id="score2">0</div>
+            <div class="score-label">You</div>
+        </div>
+    </div>
+    
+    <!-- Exit Button -->
+    <button class="exit-btn" id="exitBtn">EXIT</button>
+    
+    <!-- Start Overlay -->
+    <div class="overlay" id="startOverlay">
+        <div class="modal">
+            <h1>🏖️ Beach Ball</h1>
+            <p>Push the ball into opponent's goal!<br>Ball moves slowly in water - time your hits!</p>
+            <div class="controls">
+                <div class="control-item">
+                    <div class="control-icon blue">W</div>
+                    <span class="control-label">Opponent</span>
+                </div>
+                <div class="control-item">
+                    <div class="control-icon red">TAP</div>
+                    <span class="control-label">You</span>
+                </div>
+            </div>
+            <button class="btn btn-start" id="startBtn">PLAY</button>
+        </div>
+    </div>
+    
+    <!-- Winner Overlay -->
+    <div class="overlay hidden" id="winnerOverlay">
+        <div class="modal">
+            <h1 class="winner-title" id="winnerTitle">🎉 You Win!</h1>
+            <div class="final-score" id="finalScore">5 - 3</div>
+            <button class="btn btn-start" id="restartBtn">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        const CONFIG = {
+            WIN_SCORE: 5,
+            
+            // Water physics for ball
+            BALL_FRICTION: 0.975,
+            BALL_DRAG: 0.025,
+            BALL_RADIUS: 40,
+            
+            // Stone - CONSTANT SPEED (no slowdown)
+            STONE_SPEED: 10,
+            STONE_RADIUS: 10,
+            
+            // Hit force - CENTER = strong, EDGE = very weak
+            HIT_FORCE_CENTER: 7,      // Direct center hit - maximum power
+            HIT_FORCE_SIDE: 2.5,      // Side hit - medium power
+            HIT_FORCE_EDGE: 0.5,      // Edge hit - very weak
+            
+            // Wall bounce
+            WALL_BOUNCE: 0.85,
+            
+            // Player
+            PLAYER_SIZE: 30,
+            ROTATION_SPEED: 2.0,
+            THROW_COOLDOWN: 1000,
+        };
+        
+        // Colors
+        const COLORS = {
+            grass1: '#4ade80',
+            grass2: '#22c55e', 
+            grass3: '#16a34a',
+            grassDark: '#15803d',
+            water1: '#38bdf8',
+            water2: '#0ea5e9',
+            water3: '#0284c7',
+            poolEdge: '#fef3c7',
+            poolBorder: '#1e293b',
+            player1: '#3b82f6',
+            player1Light: '#60a5fa',
+            player2: '#ef4444',
+            player2Light: '#f87171',
+        };
+        
+        // Game state
+        let game = {
+            running: false,
+            time: 0,
+            scores: [0, 0],
+            ball: null,
+            players: [],
+            stones: [],
+            ripples: [],
+            pool: null,
+            trees: [],
+            grassBlades: []
+        };
+        
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+        
+        // FIXED POOL SIZE - Same for all devices
+        const POOL_WIDTH = 280;
+        const POOL_HEIGHT = 420;
+        
+        function resize() {
+            canvas.width = Math.min(window.innerWidth, 460);
+            canvas.height = window.innerHeight;
+            init();
+        }
+        
+        function init() {
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            // Center the fixed-size pool
+            const poolX = (w - POOL_WIDTH) / 2;
+            const poolY = (h - POOL_HEIGHT) / 2;
+            
+            game.pool = {
+                x: poolX, y: poolY, w: POOL_WIDTH, h: POOL_HEIGHT,
+                goalH: 26
+            };
+            
+            game.ball = {
+                x: poolX + POOL_WIDTH/2, y: poolY + POOL_HEIGHT/2,
+                vx: 0, vy: 0,
+                r: CONFIG.BALL_RADIUS,
+                rot: 0
+            };
+            
+            game.players = [
+                { x: poolX + POOL_WIDTH/2, y: poolY - 45, rot: Math.PI/2, lastThrow: 0, isP1: true },
+                { x: poolX + POOL_WIDTH/2, y: poolY + POOL_HEIGHT + 45, rot: -Math.PI/2, lastThrow: 0, isP1: false }
+            ];
+            
+            game.stones = [];
+            game.ripples = [];
+            
+            // Generate trees around the pool
+            game.trees = [
+                { x: poolX - 30, y: poolY - 40, scale: 0.9 },
+                { x: poolX + POOL_WIDTH + 30, y: poolY - 30, scale: 0.85 },
+                { x: poolX - 35, y: poolY + POOL_HEIGHT + 50, scale: 0.95 },
+                { x: poolX + POOL_WIDTH + 35, y: poolY + POOL_HEIGHT + 40, scale: 0.9 },
+                { x: poolX - 25, y: poolY + POOL_HEIGHT/2 - 60, scale: 0.8 },
+                { x: poolX + POOL_WIDTH + 25, y: poolY + POOL_HEIGHT/2 + 60, scale: 0.85 }
+            ];
+            
+            // Generate grass blades
+            game.grassBlades = [];
+            for (let i = 0; i < 200; i++) {
+                game.grassBlades.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    h: 4 + Math.random() * 8,
+                    w: 1 + Math.random() * 2,
+                    sway: Math.random() * Math.PI * 2
+                });
+            }
+        }
+        
+        // ============================================================
+        // DRAWING - BEAUTIFUL GRAPHICS
+        // ============================================================
+        
+        function drawGrass() {
+            // Base gradient
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, COLORS.grass1);
+            grad.addColorStop(0.5, COLORS.grass2);
+            grad.addColorStop(1, COLORS.grass3);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Grass texture pattern
+            ctx.fillStyle = COLORS.grassDark;
+            for (let i = 0; i < 80; i++) {
+                const x = (i * 47 + game.time * 0.01) % canvas.width;
+                const y = (i * 31) % canvas.height;
+                ctx.beginPath();
+                ctx.ellipse(x, y, 15, 8, 0.3, 0, Math.PI * 2);
+                ctx.globalAlpha = 0.15;
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            
+            // Individual grass blades with wind sway
+            game.grassBlades.forEach(blade => {
+                const sway = Math.sin(game.time * 0.002 + blade.sway) * 2;
+                ctx.strokeStyle = Math.random() > 0.5 ? COLORS.grass3 : COLORS.grassDark;
+                ctx.lineWidth = blade.w;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(blade.x, blade.y);
+                ctx.quadraticCurveTo(blade.x + sway, blade.y - blade.h/2, blade.x + sway * 1.5, blade.y - blade.h);
+                ctx.stroke();
+            });
+        }
+        
+        function drawTree(tree) {
+            const {x, y, scale} = tree;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+            
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.ellipse(5, 35, 22, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Trunk with texture
+            const trunkGrad = ctx.createLinearGradient(-8, 0, 8, 0);
+            trunkGrad.addColorStop(0, '#92400e');
+            trunkGrad.addColorStop(0.3, '#b45309');
+            trunkGrad.addColorStop(0.7, '#92400e');
+            trunkGrad.addColorStop(1, '#78350f');
+            ctx.fillStyle = trunkGrad;
+            ctx.beginPath();
+            ctx.moveTo(-6, 30);
+            ctx.lineTo(-8, 10);
+            ctx.quadraticCurveTo(-4, 5, 0, 0);
+            ctx.quadraticCurveTo(4, 5, 8, 10);
+            ctx.lineTo(6, 30);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Trunk lines
+            ctx.strokeStyle = '#78350f';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(-2, 28);
+            ctx.lineTo(-1, 8);
+            ctx.moveTo(3, 25);
+            ctx.lineTo(2, 12);
+            ctx.stroke();
+            
+            // Foliage layers (back to front)
+            const foliageColors = ['#15803d', '#16a34a', '#22c55e', '#4ade80'];
+            const foliageLayers = [
+                [{dx: 0, dy: -15, r: 22}],
+                [{dx: -18, dy: -5, r: 18}, {dx: 18, dy: -5, r: 18}],
+                [{dx: -10, dy: -20, r: 16}, {dx: 10, dy: -20, r: 16}],
+                [{dx: 0, dy: -8, r: 20}, {dx: -12, dy: 0, r: 15}, {dx: 12, dy: 0, r: 15}]
+            ];
+            
+            foliageLayers.forEach((layer, i) => {
+                layer.forEach(leaf => {
+                    // Shadow
+                    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                    ctx.beginPath();
+                    ctx.arc(leaf.dx + 2, leaf.dy + 2, leaf.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Leaf
+                    const leafGrad = ctx.createRadialGradient(leaf.dx - 5, leaf.dy - 5, 0, leaf.dx, leaf.dy, leaf.r);
+                    leafGrad.addColorStop(0, foliageColors[3]);
+                    leafGrad.addColorStop(0.7, foliageColors[i % foliageColors.length]);
+                    leafGrad.addColorStop(1, foliageColors[0]);
+                    ctx.fillStyle = leafGrad;
+                    ctx.beginPath();
+                    ctx.arc(leaf.dx, leaf.dy, leaf.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Outline
+                    ctx.strokeStyle = '#15803d';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                });
+            });
+            
+            ctx.restore();
+        }
+        
+        function drawPool() {
+            const p = game.pool;
+            
+            // Outer shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.roundRect(p.x - 10, p.y - 6, p.w + 20, p.h + 18, 14);
+            ctx.fill();
+            
+            // Pool border (dark)
+            ctx.fillStyle = COLORS.poolBorder;
+            ctx.beginPath();
+            ctx.roundRect(p.x - 10, p.y - 10, p.w + 20, p.h + 20, 12);
+            ctx.fill();
+            
+            // Inner border highlight
+            ctx.fillStyle = '#334155';
+            ctx.beginPath();
+            ctx.roundRect(p.x - 6, p.y - 6, p.w + 12, p.h + 12, 10);
+            ctx.fill();
+            
+            // Pool edge (cream tiles)
+            const edgeGrad = ctx.createLinearGradient(p.x, p.y, p.x + p.w, p.y);
+            edgeGrad.addColorStop(0, '#fef3c7');
+            edgeGrad.addColorStop(0.5, '#fef9c3');
+            edgeGrad.addColorStop(1, '#fef3c7');
+            ctx.fillStyle = edgeGrad;
+            ctx.beginPath();
+            ctx.roundRect(p.x - 3, p.y - 3, p.w + 6, p.h + 6, 6);
+            ctx.fill();
+            
+            // Tile lines
+            ctx.strokeStyle = '#fcd34d';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < p.w; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(p.x + i, p.y - 3);
+                ctx.lineTo(p.x + i, p.y + p.h + 3);
+                ctx.globalAlpha = 0.3;
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+            
+            // Water
+            const waterGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+            waterGrad.addColorStop(0, COLORS.water1);
+            waterGrad.addColorStop(0.3, COLORS.water2);
+            waterGrad.addColorStop(0.7, COLORS.water2);
+            waterGrad.addColorStop(1, COLORS.water3);
+            ctx.fillStyle = waterGrad;
+            ctx.fillRect(p.x, p.y, p.w, p.h);
+            
+            // Water caustics (light patterns)
+            ctx.globalAlpha = 0.15;
+            for (let i = 0; i < 8; i++) {
+                const cx = p.x + 30 + (i * 40 + game.time * 0.02) % (p.w - 60);
+                const cy = p.y + 30 + Math.sin(game.time * 0.001 + i) * 20 + (i * 50) % (p.h - 60);
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, 25 + Math.sin(game.time * 0.003 + i) * 10, 15, 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            
+            // Water surface shine
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(p.x + 15, p.y + 25);
+            ctx.quadraticCurveTo(p.x + p.w/3, p.y + 40, p.x + p.w/2, p.y + p.h/3);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(p.x + 25, p.y + 45);
+            ctx.quadraticCurveTo(p.x + p.w/4, p.y + 60, p.x + p.w/3, p.y + p.h/2);
+            ctx.stroke();
+            
+            // Ripples
+            game.ripples.forEach(r => {
+                ctx.strokeStyle = `rgba(255,255,255,${r.alpha})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+            
+            // Goal zones
+            drawGoalZone(p.x, p.y, p.w, p.goalH, COLORS.player1, COLORS.player1Light);
+            drawGoalZone(p.x, p.y + p.h - p.goalH, p.w, p.goalH, COLORS.player2, COLORS.player2Light);
+        }
+        
+        function drawGoalZone(x, y, w, h, c1, c2) {
+            const size = 13;
+            const cols = Math.ceil(w / size);
+            for (let i = 0; i < cols; i++) {
+                ctx.fillStyle = i % 2 === 0 ? c1 : c2;
+                ctx.fillRect(x + i * size, y, Math.min(size, w - i * size), h);
+            }
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, w, h);
+        }
+        
+        function drawPlayer(player, isP1) {
+            const {x, y, rot} = player;
+            const c = isP1 ? COLORS.player1 : COLORS.player2;
+            const cL = isP1 ? COLORS.player1Light : COLORS.player2Light;
+            
+            ctx.save();
+            ctx.translate(x, y);
+            
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.25)';
+            ctx.beginPath();
+            ctx.ellipse(4, 6, CONFIG.PLAYER_SIZE - 4, CONFIG.PLAYER_SIZE/2 - 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Body glow
+            ctx.shadowColor = c;
+            ctx.shadowBlur = 15;
+            
+            // Body gradient
+            const bodyGrad = ctx.createRadialGradient(-8, -8, 0, 0, 0, CONFIG.PLAYER_SIZE);
+            bodyGrad.addColorStop(0, cL);
+            bodyGrad.addColorStop(0.6, c);
+            bodyGrad.addColorStop(1, isP1 ? '#1d4ed8' : '#b91c1c');
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, CONFIG.PLAYER_SIZE - 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+            
+            // Body outline
+            ctx.strokeStyle = isP1 ? '#1e40af' : '#991b1b';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Shine
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.beginPath();
+            ctx.ellipse(-10, -10, 8, 5, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Direction indicator (beak/pointer)
+            ctx.rotate(rot);
+            
+            // Beak shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.moveTo(CONFIG.PLAYER_SIZE - 5, -4);
+            ctx.lineTo(CONFIG.PLAYER_SIZE + 18, 2);
+            ctx.lineTo(CONFIG.PLAYER_SIZE - 5, 6);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Beak
+            const beakGrad = ctx.createLinearGradient(CONFIG.PLAYER_SIZE, -5, CONFIG.PLAYER_SIZE + 15, 0);
+            beakGrad.addColorStop(0, '#fbbf24');
+            beakGrad.addColorStop(1, '#f59e0b');
+            ctx.fillStyle = beakGrad;
+            ctx.beginPath();
+            ctx.moveTo(CONFIG.PLAYER_SIZE - 8, -5);
+            ctx.lineTo(CONFIG.PLAYER_SIZE + 15, 0);
+            ctx.lineTo(CONFIG.PLAYER_SIZE - 8, 5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#d97706';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.rotate(-rot);
+            
+            // Eye
+            const eyeX = Math.cos(rot) * 12;
+            const eyeY = Math.sin(rot) * 12 - 4;
+            
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(eyeX, eyeY, 7, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(eyeX + 2, eyeY - 2, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Cooldown ring
+            const now = Date.now();
+            const cd = CONFIG.THROW_COOLDOWN - (now - player.lastThrow);
+            if (cd > 0) {
+                const prog = 1 - cd / CONFIG.THROW_COOLDOWN;
+                ctx.strokeStyle = c;
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.arc(0, 0, CONFIG.PLAYER_SIZE + 6, -Math.PI/2, -Math.PI/2 + prog * Math.PI * 2);
+                ctx.stroke();
+            } else {
+                // Ready glow
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, CONFIG.PLAYER_SIZE + 6, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // Label
+            ctx.fillStyle = c;
+            ctx.font = 'bold 11px Nunito';
+            ctx.textAlign = 'center';
+            ctx.fillText(isP1 ? 'OPPONENT' : 'YOU', 0, CONFIG.PLAYER_SIZE + 20);
+            
+            ctx.restore();
+        }
+        
+        function drawBall() {
+            const b = game.ball;
+            
+            ctx.save();
+            ctx.translate(b.x, b.y);
+            ctx.rotate(b.rot);
+            
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(4, 6, b.r - 3, b.r/2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Ball glow
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 10;
+            
+            // Ball base
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(0, 0, b.r, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+            
+            // Colored segments
+            const segColors = ['#ef4444', '#3b82f6', '#fbbf24', '#22c55e', '#fff', '#f97316'];
+            for (let i = 0; i < 6; i++) {
+                ctx.fillStyle = segColors[i];
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, b.r - 2, i * Math.PI/3, (i + 1) * Math.PI/3);
+                ctx.closePath();
+                ctx.fill();
+            }
+            
+            // Segment lines
+            ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 6; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(i * Math.PI/3) * b.r, Math.sin(i * Math.PI/3) * b.r);
+                ctx.stroke();
+            }
+            
+            // Center
+            const centerGrad = ctx.createRadialGradient(-2, -2, 0, 0, 0, 12);
+            centerGrad.addColorStop(0, '#fff');
+            centerGrad.addColorStop(1, '#e5e7eb');
+            ctx.fillStyle = centerGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#9ca3af';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            // Outline
+            ctx.strokeStyle = '#374151';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, b.r, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Shine
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.beginPath();
+            ctx.ellipse(-b.r/3, -b.r/3, b.r/4, b.r/5, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+        
+        function drawStone(stone) {
+            ctx.save();
+            ctx.translate(stone.x, stone.y);
+            
+            const c = stone.isP1 ? COLORS.player1 : COLORS.player2;
+            const cL = stone.isP1 ? COLORS.player1Light : COLORS.player2Light;
+            
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(2, 3, CONFIG.STONE_RADIUS, CONFIG.STONE_RADIUS/2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Stone glow
+            ctx.shadowColor = c;
+            ctx.shadowBlur = 8;
+            
+            // Stone body
+            const grad = ctx.createRadialGradient(-3, -3, 0, 0, 0, CONFIG.STONE_RADIUS);
+            grad.addColorStop(0, cL);
+            grad.addColorStop(1, c);
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, CONFIG.STONE_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+            
+            ctx.strokeStyle = stone.isP1 ? '#1e40af' : '#991b1b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Shine
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.beginPath();
+            ctx.arc(-3, -3, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+        
+        // ============================================================
+        // PHYSICS
+        // ============================================================
+        
+        function updateBall() {
+            const b = game.ball;
+            const p = game.pool;
+            
+            // Water resistance
+            const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+            if (speed > 0.05) {
+                b.vx *= CONFIG.BALL_FRICTION;
+                b.vy *= CONFIG.BALL_FRICTION;
+                b.vx -= (b.vx / speed) * CONFIG.BALL_DRAG * speed * speed;
+                b.vy -= (b.vy / speed) * CONFIG.BALL_DRAG * speed * speed;
+            } else {
+                b.vx = 0;
+                b.vy = 0;
+            }
+            
+            b.x += b.vx;
+            b.y += b.vy;
+            b.rot += speed * 0.04;
+            
+            // ONLY side walls bounce
+            if (b.x - b.r < p.x) {
+                b.x = p.x + b.r;
+                b.vx = Math.abs(b.vx) * CONFIG.WALL_BOUNCE;
+                addRipple(b.x, b.y, 0.4);
+            }
+            if (b.x + b.r > p.x + p.w) {
+                b.x = p.x + p.w - b.r;
+                b.vx = -Math.abs(b.vx) * CONFIG.WALL_BOUNCE;
+                addRipple(b.x, b.y, 0.4);
+            }
+            
+            // Goal check
+            if (b.y - b.r < p.y) {
+                score(1); // Player 2 scores
+            } else if (b.y + b.r > p.y + p.h) {
+                score(0); // Player 1 scores
+            }
+        }
+        
+        function updateStones() {
+            const p = game.pool;
+            
+            for (let i = game.stones.length - 1; i >= 0; i--) {
+                const s = game.stones[i];
+                
+                // CONSTANT SPEED - no slowdown
+                s.x += s.vx;
+                s.y += s.vy;
+                
+                // Side wall bounce for stones too
+                if (s.x - CONFIG.STONE_RADIUS < p.x) {
+                    s.x = p.x + CONFIG.STONE_RADIUS;
+                    s.vx = Math.abs(s.vx);
+                }
+                if (s.x + CONFIG.STONE_RADIUS > p.x + p.w) {
+                    s.x = p.x + p.w - CONFIG.STONE_RADIUS;
+                    s.vx = -Math.abs(s.vx);
+                }
+                
+                // Ball collision
+                const b = game.ball;
+                const dx = b.x - s.x;
+                const dy = b.y - s.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < b.r + CONFIG.STONE_RADIUS) {
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+                    
+                    // Calculate how centered the hit is
+                    // Perfect center = stone direction matches collision normal exactly
+                    const stoneAngle = Math.atan2(s.vy, s.vx);
+                    const hitAngle = Math.atan2(ny, nx);
+                    let angleDiff = Math.abs(stoneAngle - hitAngle);
+                    
+                    // Normalize angle difference to 0-PI range
+                    if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+                    
+                    // Calculate centeredness (1 = perfect center, 0 = edge)
+                    // Using cosine for smooth falloff
+                    const centeredness = Math.max(0, Math.cos(angleDiff));
+                    
+                    // Calculate force based on hit position
+                    // Center (centeredness > 0.85) = full power
+                    // Side (0.5 - 0.85) = medium power  
+                    // Edge (< 0.5) = very weak
+                    let force;
+                    if (centeredness > 0.85) {
+                        // Center hit - maximum power
+                        force = CONFIG.HIT_FORCE_CENTER;
+                    } else if (centeredness > 0.5) {
+                        // Side hit - interpolate between side and center
+                        const t = (centeredness - 0.5) / 0.35;
+                        force = CONFIG.HIT_FORCE_SIDE + (CONFIG.HIT_FORCE_CENTER - CONFIG.HIT_FORCE_SIDE) * t;
+                    } else if (centeredness > 0.2) {
+                        // Outer side - interpolate between edge and side
+                        const t = (centeredness - 0.2) / 0.3;
+                        force = CONFIG.HIT_FORCE_EDGE + (CONFIG.HIT_FORCE_SIDE - CONFIG.HIT_FORCE_EDGE) * t;
+                    } else {
+                        // Edge hit - very weak, ball barely moves
+                        force = CONFIG.HIT_FORCE_EDGE;
+                    }
+                    
+                    // Apply force to ball
+                    b.vx += nx * force + s.vx * 0.15 * centeredness;
+                    b.vy += ny * force + s.vy * 0.15 * centeredness;
+                    
+                    // Visual feedback - bigger ripple for center hits
+                    addRipple(s.x, s.y, centeredness);
+                    
+                    // Stone disappears on hit
+                    game.stones.splice(i, 1);
+                    continue;
+                }
+                
+                // Remove if out of bounds
+                if (s.y < p.y - 60 || s.y > p.y + p.h + 60) {
+                    game.stones.splice(i, 1);
+                }
+            }
+        }
+        
+        function updatePlayers(dt) {
+            game.players[0].rot += CONFIG.ROTATION_SPEED * dt;
+            game.players[1].rot -= CONFIG.ROTATION_SPEED * dt;
+        }
+        
+        function updateRipples() {
+            for (let i = game.ripples.length - 1; i >= 0; i--) {
+                const r = game.ripples[i];
+                r.radius += 1.5;
+                r.alpha -= 0.025;
+                if (r.alpha <= 0) game.ripples.splice(i, 1);
+            }
+        }
+        
+        function addRipple(x, y, intensity = 0.5) {
+            // Bigger ripple for center hits
+            const size = 8 + intensity * 15;
+            const alpha = 0.3 + intensity * 0.4;
+            game.ripples.push({ x, y, radius: size, alpha: alpha });
+            
+            // Add extra ripple for powerful hits
+            if (intensity > 0.7) {
+                game.ripples.push({ x, y, radius: size * 0.5, alpha: alpha * 0.8 });
+            }
+        }
+        
+        function throwStone(player) {
+            const now = Date.now();
+            if (now - player.lastThrow < CONFIG.THROW_COOLDOWN) return;
+            
+            game.stones.push({
+                x: player.x + Math.cos(player.rot) * 40,
+                y: player.y + Math.sin(player.rot) * 40,
+                vx: Math.cos(player.rot) * CONFIG.STONE_SPEED,
+                vy: Math.sin(player.rot) * CONFIG.STONE_SPEED,
+                isP1: player.isP1
+            });
+            player.lastThrow = now;
+        }
+        
+        function score(player) {
+            game.scores[player]++;
+            updateScoreUI();
+            
+            if (game.scores[player] >= CONFIG.WIN_SCORE) {
+                endGame(player);
+            } else {
+                resetBall();
+            }
+        }
+        
+        function resetBall() {
+            const p = game.pool;
+            game.ball.x = p.x + POOL_WIDTH / 2;
+            game.ball.y = p.y + POOL_HEIGHT / 2;
+            game.ball.vx = 0;
+            game.ball.vy = 0;
+            game.stones = [];
+        }
+        
+        function updateScoreUI() {
+            document.getElementById('score1').textContent = game.scores[0];
+            document.getElementById('score2').textContent = game.scores[1];
+        }
+        
+        function endGame(winner) {
+            game.running = false;
+            const youWin = winner === 1;
+            document.getElementById('winnerTitle').textContent = youWin ? '🎉 You Win!' : '😔 You Lose';
+            document.getElementById('winnerTitle').className = 'winner-title ' + (youWin ? 'win' : 'lose');
+            document.getElementById('finalScore').textContent = `${game.scores[1]} - ${game.scores[0]}`;
+            document.getElementById('winnerOverlay').classList.remove('hidden');
+        }
+        
+        function restart() {
+            game.scores = [0, 0];
+            updateScoreUI();
+            resetBall();
+            init();
+            document.getElementById('winnerOverlay').classList.add('hidden');
+            game.running = true;
+        }
+        
+        // ============================================================
+        // GAME LOOP
+        // ============================================================
+        
+        let lastTime = 0;
+        function loop(ts) {
+            const dt = Math.min((ts - lastTime) / 1000, 0.05);
+            lastTime = ts;
+            game.time = ts;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawGrass();
+            game.trees.forEach(t => drawTree(t));
+            drawPlayer(game.players[0], true);
+            drawPlayer(game.players[1], false);
+            drawPool();
+            
+            if (game.running) {
+                updatePlayers(dt);
+                updateStones();
+                updateBall();
+                updateRipples();
+            }
+            
+            game.stones.forEach(s => drawStone(s));
+            drawBall();
+            
+            requestAnimationFrame(loop);
+        }
+        
+        // ============================================================
+        // INPUT
+        // ============================================================
+        
+        document.addEventListener('keydown', e => {
+            if (!game.running) return;
+            if (e.key === 'w' || e.key === 'W') throwStone(game.players[0]);
+            if (e.key === 'ArrowUp') throwStone(game.players[1]);
+        });
+        
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            if (game.running) throwStone(game.players[1]);
+        });
+        
+        canvas.addEventListener('click', () => {
+            if (game.running) throwStone(game.players[1]);
+        });
+        
+        document.getElementById('startBtn').onclick = () => {
+            document.getElementById('startOverlay').classList.add('hidden');
+            game.running = true;
+        };
+        
+        document.getElementById('restartBtn').onclick = restart;
+        
+        document.getElementById('exitBtn').onclick = () => {
+            if (confirm('Exit game?')) location.reload();
+        };
+        
+        // Init
+        window.addEventListener('resize', resize);
+        resize();
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>

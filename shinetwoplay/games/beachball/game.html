@@ -1,0 +1,1301 @@
+<!-- BeachBall Game UI — Multiplayer Beach Ball in Pool -->
+<style>
+/* ===== BeachBall Styles ===== */
+.bb-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 100vw;
+    height: 100%;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    overflow: hidden;
+    position: relative;
+    font-family: 'Nunito', 'Inter', sans-serif;
+}
+
+/* Compact top row */
+.bb-header {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 6px 10px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    gap: 8px;
+    background: rgba(0,0,0,0.2);
+}
+.bb-exit-btn {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.6);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.bb-exit-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* Score strip */
+.bb-score-strip {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.bb-ps {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.bb-ps.right { flex-direction: row-reverse; }
+.bb-av {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.3);
+    flex-shrink: 0;
+}
+.bb-av.c1 { border-color: #3b82f6; }
+.bb-av.c2 { border-color: #ef4444; }
+.bb-av img { width: 100%; height: 100%; object-fit: cover; }
+.bb-pinfo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    min-width: 0;
+}
+.bb-ps.right .bb-pinfo { align-items: flex-end; }
+.bb-pn {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+.bb-pt {
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    line-height: 1;
+}
+.bb-pt.you { color: #34d399; }
+.bb-pt.opp { color: #fbbf24; }
+
+.bb-scores {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 4px;
+}
+.bb-sn {
+    font-size: 28px;
+    font-weight: 900;
+    font-family: 'Inter', monospace;
+    min-width: 24px;
+    text-align: center;
+}
+.bb-sn.c1 { color: #3b82f6; text-shadow: 0 0 14px rgba(59,130,246,0.5); }
+.bb-sn.c2 { color: #ef4444; text-shadow: 0 0 14px rgba(248,113,113,0.5); }
+.bb-sdash { color: #4b5563; font-weight: 700; font-size: 14px; }
+.bb-round-badge {
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.4);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+}
+
+/* Canvas area */
+.bb-canvas-wrap {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    width: 100%;
+    padding: 0;
+    box-sizing: border-box;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+}
+.bb-canvas-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+/* P1 sees flipped canvas so they play from bottom */
+.bb-canvas-wrap.bb-flipped canvas {
+    transform: rotate(180deg);
+}
+.bb-canvas-wrap.bb-flipped .bb-overlay {
+    transform: rotate(0deg);
+}
+
+/* Overlays */
+.bb-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 50;
+    padding: 20px;
+    text-align: center;
+}
+.bb-overlay.hidden { display: none; }
+
+.bb-overlay-emoji { font-size: 40px; margin-bottom: 8px; animation: bb-bob 2.5s ease-in-out infinite; }
+@keyframes bb-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+.bb-overlay-title { font-size: 20px; font-weight: 900; color: #fff; letter-spacing: 0.1em; }
+.bb-overlay-sub { font-size: 12px; color: #9ca3af; letter-spacing: 0.1em; margin-top: 4px; margin-bottom: 12px; }
+.bb-role-tag {
+    padding: 4px 12px; border-radius: 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+}
+.bb-role-tag.p1 { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.25); }
+.bb-role-tag.p2 { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+.bb-waiting {
+    font-size: 11px; color: #6b7280; margin-top: 12px;
+    animation: bb-pulse 1.4s ease-in-out infinite;
+}
+@keyframes bb-pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+/* Game Over */
+.bb-result-text { font-size: 24px; font-weight: 900; text-shadow: 0 0 25px currentColor; margin-bottom: 8px; }
+.bb-final-row { display: flex; gap: 30px; margin-bottom: 15px; align-items: flex-end; }
+.bb-final-block { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bb-final-circle {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 900; color: #fff;
+}
+.bb-final-circle.p1 { background: linear-gradient(180deg,#60a5fa,#2563eb); box-shadow: 0 3px 0 #1d4ed8; }
+.bb-final-circle.p2 { background: linear-gradient(180deg,#f87171,#dc2626); box-shadow: 0 3px 0 #b91c1c; }
+.bb-next-round {
+    font-size: 11px; color: #9ca3af; margin-top: 8px;
+    animation: bb-pulse 1s ease-in-out infinite;
+}
+
+/* Score pop */
+@keyframes bb-pop { 0%{transform:scale(1)} 50%{transform:scale(1.2)} 100%{transform:scale(1)} }
+.bb-pop { animation: bb-pop 0.25s ease-out; }
+</style>
+
+<div class="bb-wrapper">
+    <!-- Compact header -->
+    <div class="bb-header">
+        <div style="display:flex; gap:6px; align-items:center;">
+            <button class="bb-exit-btn" onclick="exitGame()" title="Exit">✕</button>
+            <button class="bb-exit-btn" id="bb-mic-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+            <button class="bb-exit-btn" id="bb-spk-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">🔊</button>
+        </div>
+        <div class="bb-score-strip">
+            <div class="bb-ps" id="bb-ps1">
+                <div class="bb-av c1" id="bb-av1"></div>
+                <div class="bb-pinfo">
+                    <div class="bb-pn" id="bb-pn1">P1</div>
+                    <div class="bb-pt" id="bb-pt1"></div>
+                </div>
+            </div>
+            <div class="bb-scores">
+                <div class="bb-sn c1" id="bb-s1">0</div>
+                <div class="bb-sdash">–</div>
+                <div class="bb-sn c2" id="bb-s2">0</div>
+            </div>
+            <div class="bb-ps right" id="bb-ps2">
+                <div class="bb-av c2" id="bb-av2"></div>
+                <div class="bb-pinfo">
+                    <div class="bb-pn" id="bb-pn2">P2</div>
+                    <div class="bb-pt" id="bb-pt2"></div>
+                </div>
+            </div>
+        </div>
+        <div class="bb-round-badge" id="bb-round"></div>
+    </div>
+
+    <!-- Canvas arena -->
+    <div class="bb-canvas-wrap" id="bb-canvas-wrap">
+        <canvas id="bb-canvas"></canvas>
+
+        <!-- Menu -->
+        <div class="bb-overlay" id="bb-menu">
+            <div class="bb-overlay-emoji">🏖️</div>
+            <div class="bb-overlay-title">BEACH BALL</div>
+            <div class="bb-overlay-sub" id="bb-role-text"></div>
+            <div class="bb-waiting" id="bb-wait-text">Starting game...</div>
+        </div>
+
+        <!-- Game Result -->
+        <div class="bb-overlay hidden" id="bb-gameover">
+            <div class="bb-overlay-emoji" id="bb-go-emoji">🏆</div>
+            <div class="bb-result-text" id="bb-go-text">WINNER!</div>
+            <div class="bb-final-row">
+                <div class="bb-final-block">
+                    <div class="bb-final-circle p1" id="bb-go-s1">0</div>
+                    <div style="color:#60a5fa;font-size:10px;font-weight:700">P1</div>
+                </div>
+                <div class="bb-final-block">
+                    <div class="bb-final-circle p2" id="bb-go-s2">0</div>
+                    <div style="color:#f87171;font-size:10px;font-weight:700">P2</div>
+                </div>
+            </div>
+            <div class="bb-next-round" id="bb-next-text"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    /* ========== CONFIGURATION ========== */
+    const CONFIG = {
+        WIN_SCORE: 5,
+        BALL_FRICTION: 0.995,
+        BALL_DRAG: 0.025,
+        BALL_RADIUS: 40,
+        STONE_SPEED: 10,
+        STONE_RADIUS: 10,
+        HIT_FORCE_CENTER: 7,
+        HIT_FORCE_SIDE: 2.5,
+        HIT_FORCE_EDGE: 0.5,
+        WALL_BOUNCE: 0.85,
+        PLAYER_SIZE: 30,
+        ROTATION_SPEED: 2.0,
+        THROW_COOLDOWN: 1000,
+    };
+
+    const POOL_WIDTH = 280;
+    const POOL_HEIGHT = 420;
+
+    const COLORS = {
+        grass1: '#4ade80', grass2: '#22c55e', grass3: '#16a34a', grassDark: '#15803d',
+        water1: '#38bdf8', water2: '#0ea5e9', water3: '#0284c7',
+        poolEdge: '#fef3c7', poolBorder: '#1e293b',
+        player1: '#3b82f6', player1Light: '#60a5fa',
+        player2: '#ef4444', player2Light: '#f87171',
+    };
+
+    const SERVE_DELAY = 1500;
+
+    class BeachBallGame extends BaseGame {
+        constructor() {
+            super();
+            this.gameMode = 'real_time';
+            this.myRole = null;
+            this.playing = false;
+            this.totalRounds = 1;
+            this._waitingForServer = false;
+
+            /* Game state */
+            this.game = {
+                running: false,
+                time: 0,
+                scores: [0, 0],
+                ball: null,
+                players: [],
+                stones: [],
+                ripples: [],
+                pool: null,
+                trees: [],
+                grassBlades: []
+            };
+
+            /* Canvas */
+            this.canvas = document.getElementById('bb-canvas');
+            this.ctx = this.canvas.getContext('2d');
+
+            /* DOM */
+            this.menuOv = document.getElementById('bb-menu');
+            this.goOv = document.getElementById('bb-gameover');
+            this.s1El = document.getElementById('bb-s1');
+            this.s2El = document.getElementById('bb-s2');
+
+            /* Timers */
+            this._raf = null;
+            this._inputTimer = null;
+            this._syncTimer = null;
+            this._serveTimer = null;
+            this._lastTime = 0;
+        }
+
+        /* ===== INIT ===== */
+        init(state) {
+            this.state = state;
+            const gp = state.players;
+            this.myRole = (gp['P1'] === USER) ? 'P1' : 'P2';
+            this.myPlayerIdx = (this.myRole === 'P1') ? 0 : 1;
+            this.totalRounds = state.total_rounds || 1;
+
+            this._updateRoundBadge();
+            this._setupScoreboard(gp);
+
+            const rt = document.getElementById('bb-role-text');
+            rt.innerHTML = `<span class="bb-role-tag ${this.myRole==='P1'?'p1':'p2'}">You are ${this.myRole==='P1'?'Blue (Opponent)':'Red (Owner)'}</span>`;
+
+            /* Flip canvas 180° for P1 so they play from bottom too */
+            if (this.myRole === 'P1') {
+                document.getElementById('bb-canvas-wrap').classList.add('bb-flipped');
+            }
+
+            this._resize();
+            window.addEventListener('resize', () => this._resize());
+            this._bindControls();
+
+            setTimeout(() => this._startMatch(), 2000);
+        }
+
+        _setupScoreboard(gp) {
+            const roomP = (typeof players !== 'undefined') ? players : {};
+
+            for (const role of ['P1', 'P2']) {
+                const uname = gp[role];
+                const n = role==='P1'?'1':'2';
+
+                document.getElementById('bb-pn'+n).textContent = uname || role;
+
+                const avEl = document.getElementById('bb-av'+n);
+                const pd = roomP[uname];
+
+                if (pd && pd.gender === 'female') {
+                    avEl.innerHTML = `<img src="/static/games/icons/avatar_female.png" alt="">`;
+                } else if (pd && pd.gender) {
+                    avEl.innerHTML = `<img src="/static/games/icons/avatar_male.png" alt="">`;
+                } else {
+                    avEl.innerHTML = `<span style="font-size:14px">👤</span>`;
+                }
+
+                const tag = document.getElementById('bb-pt'+n);
+                if (uname === USER) { tag.textContent = 'YOU'; tag.className = 'bb-pt you'; }
+                else { tag.textContent = 'OPP'; tag.className = 'bb-pt opp'; }
+            }
+        }
+
+        /* ===== CANVAS RESIZE ===== */
+        _resize() {
+            const wrap = document.getElementById('bb-canvas-wrap');
+            this.canvas.width = Math.min(wrap.clientWidth, 460);
+            this.canvas.height = wrap.clientHeight;
+            this._initGameState();
+        }
+
+        _initGameState() {
+            const w = this.canvas.width;
+            const h = this.canvas.height;
+            const poolX = (w - POOL_WIDTH) / 2;
+            const poolY = (h - POOL_HEIGHT) / 2;
+
+            this.game.pool = {
+                x: poolX, y: poolY, w: POOL_WIDTH, h: POOL_HEIGHT,
+                goalH: 26
+            };
+
+            this.game.ball = {
+                x: poolX + POOL_WIDTH/2, y: poolY + POOL_HEIGHT/2,
+                vx: 0, vy: 0,
+                r: CONFIG.BALL_RADIUS,
+                rot: 0
+            };
+
+            this.game.players = [
+                { x: poolX + POOL_WIDTH/2, y: poolY - 45, rot: Math.PI/2, lastThrow: 0, isP1: true },
+                { x: poolX + POOL_WIDTH/2, y: poolY + POOL_HEIGHT + 45, rot: -Math.PI/2, lastThrow: 0, isP1: false }
+            ];
+
+            this.game.stones = [];
+            this.game.ripples = [];
+
+            this.game.trees = [
+                { x: poolX - 30, y: poolY - 40, scale: 0.9 },
+                { x: poolX + POOL_WIDTH + 30, y: poolY - 30, scale: 0.85 },
+                { x: poolX - 35, y: poolY + POOL_HEIGHT + 50, scale: 0.95 },
+                { x: poolX + POOL_WIDTH + 35, y: poolY + POOL_HEIGHT + 40, scale: 0.9 },
+                { x: poolX - 25, y: poolY + POOL_HEIGHT/2 - 60, scale: 0.8 },
+                { x: poolX + POOL_WIDTH + 25, y: poolY + POOL_HEIGHT/2 + 60, scale: 0.85 }
+            ];
+
+            this.game.grassBlades = [];
+            for (let i = 0; i < 200; i++) {
+                this.game.grassBlades.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    h: 4 + Math.random() * 8,
+                    w: 1 + Math.random() * 2,
+                    sway: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        /* ===== CONTROLS ===== */
+        _doThrow() {
+            if (!this.game.running) return;
+            const idx = this.myPlayerIdx;
+            const stone = this._throwStone(idx);
+            if (stone) {
+                /* Send actual stone position & velocity for perfect sync */
+                const p = this.game.pool;
+                this.sendInput({
+                    type: 'throw',
+                    playerIdx: idx,
+                    sx: stone.x - p.x, sy: stone.y - p.y,
+                    svx: stone.vx, svy: stone.vy,
+                    isP1: stone.isP1
+                });
+            }
+        }
+
+        _bindControls() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'w' || e.key === 'W' || e.key === ' ' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this._doThrow();
+                }
+            });
+
+            this.canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this._doThrow();
+            });
+
+            this.canvas.addEventListener('click', () => {
+                this._doThrow();
+            });
+        }
+
+        /* ===== NETWORKING ===== */
+        onRemoteInput(player, d) {
+            if (player === USER) return;
+
+            if (d.type === 'throw') {
+                /* Spawn stone with exact position/velocity from sender */
+                const p = this.game.pool;
+                if (d.sx !== undefined) {
+                    this.game.stones.push({
+                        x: d.sx + p.x, y: d.sy + p.y,
+                        vx: d.svx, vy: d.svy,
+                        isP1: d.isP1
+                    });
+                    /* Update player lastThrow so cooldown ring shows */
+                    this.game.players[d.playerIdx].lastThrow = Date.now();
+                } else {
+                    this._throwStone(d.playerIdx);
+                }
+            }
+            else if (d.type === 'sync' && this.myRole === 'P2') {
+                /* Smooth sync ball state from P1 */
+                if (d.ball) {
+                    const p = this.game.pool;
+                    const targetX = d.ball.x + p.x;
+                    const targetY = d.ball.y + p.y;
+                    /* Interpolate position for smooth visuals */
+                    this.game.ball.x += (targetX - this.game.ball.x) * 0.5;
+                    this.game.ball.y += (targetY - this.game.ball.y) * 0.5;
+                    this.game.ball.vx = d.ball.vx;
+                    this.game.ball.vy = d.ball.vy;
+                    this.game.ball.rot = d.ball.rot;
+                }
+                if (d.scores) {
+                    this.game.scores = d.scores;
+                    this._showScore();
+                }
+            }
+            else if (d.type === 'serve') {
+                this._resetBall();
+                if (d.scores) {
+                    this.game.scores = d.scores;
+                    this._showScore();
+                }
+            }
+            else if (d.type === 'goal') {
+                if (d.scores) {
+                    this.game.scores = d.scores;
+                    this._showScore();
+                }
+                this._resetBall();
+            }
+        }
+
+        _sendSync() {
+            if (this.myRole !== 'P1') return;
+            const b = this.game.ball;
+            const p = this.game.pool;
+            this.sendInput({
+                type: 'sync',
+                ball: {
+                    x: Math.round((b.x - p.x) * 10) / 10,
+                    y: Math.round((b.y - p.y) * 10) / 10,
+                    vx: Math.round(b.vx * 100) / 100,
+                    vy: Math.round(b.vy * 100) / 100,
+                    rot: Math.round(b.rot * 100) / 100
+                },
+                scores: this.game.scores
+            });
+        }
+
+        /* ===== MATCH FLOW ===== */
+        _startMatch() {
+            this.playing = true;
+            this.game.running = true;
+            this.game.scores = [0, 0];
+            this._showScore();
+            this._updateRoundBadge();
+            this.menuOv.classList.add('hidden');
+            this.goOv.classList.add('hidden');
+
+            /* Start sync timer for P1 — 20fps for smoother experience */
+            if (this.myRole === 'P1') {
+                if (this._syncTimer) clearInterval(this._syncTimer);
+                this._syncTimer = setInterval(() => this._sendSync(), 1000 / 20);
+            }
+
+            this._resetBall();
+            if (this.myRole === 'P1') {
+                this.sendInput({ type: 'serve', scores: this.game.scores });
+            }
+
+            this._lastTime = 0;
+            this._loop(performance.now());
+        }
+
+        /* ===== THROW STONE ===== */
+        _throwStone(playerIdx) {
+            const player = this.game.players[playerIdx];
+            if (!player) return null;
+            const now = Date.now();
+            if (now - player.lastThrow < CONFIG.THROW_COOLDOWN) return null;
+
+            const stone = {
+                x: player.x + Math.cos(player.rot) * 40,
+                y: player.y + Math.sin(player.rot) * 40,
+                vx: Math.cos(player.rot) * CONFIG.STONE_SPEED,
+                vy: Math.sin(player.rot) * CONFIG.STONE_SPEED,
+                isP1: player.isP1
+            };
+            this.game.stones.push(stone);
+            player.lastThrow = now;
+            return stone;
+        }
+
+        /* ===== PHYSICS ===== */
+        _updateBall() {
+            const b = this.game.ball;
+            const p = this.game.pool;
+
+            const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+            if (speed > 0.05) {
+                b.vx *= CONFIG.BALL_FRICTION;
+                b.vy *= CONFIG.BALL_FRICTION;
+                b.vx -= (b.vx / speed) * CONFIG.BALL_DRAG * speed * speed;
+                b.vy -= (b.vy / speed) * CONFIG.BALL_DRAG * speed * speed;
+            } else {
+                b.vx = 0;
+                b.vy = 0;
+            }
+
+            b.x += b.vx;
+            b.y += b.vy;
+            b.rot += Math.sqrt(b.vx*b.vx + b.vy*b.vy) * 0.04;
+
+            /* Side walls */
+            if (b.x - b.r < p.x) {
+                b.x = p.x + b.r;
+                b.vx = Math.abs(b.vx) * CONFIG.WALL_BOUNCE;
+                this._addRipple(b.x, b.y, 0.4);
+            }
+            if (b.x + b.r > p.x + p.w) {
+                b.x = p.x + p.w - b.r;
+                b.vx = -Math.abs(b.vx) * CONFIG.WALL_BOUNCE;
+                this._addRipple(b.x, b.y, 0.4);
+            }
+
+            /* Goal check */
+            if (b.y - b.r < p.y) {
+                this._onScore(1); // P2 scores (ball went into P1's goal)
+            } else if (b.y + b.r > p.y + p.h) {
+                this._onScore(0); // P1 scores (ball went into P2's goal)
+            }
+        }
+
+        _updateStones() {
+            const p = this.game.pool;
+            const isAuthority = (this.myRole === 'P1');
+
+            for (let i = this.game.stones.length - 1; i >= 0; i--) {
+                const s = this.game.stones[i];
+                s.x += s.vx;
+                s.y += s.vy;
+
+                if (s.x - CONFIG.STONE_RADIUS < p.x) {
+                    s.x = p.x + CONFIG.STONE_RADIUS;
+                    s.vx = Math.abs(s.vx);
+                }
+                if (s.x + CONFIG.STONE_RADIUS > p.x + p.w) {
+                    s.x = p.x + p.w - CONFIG.STONE_RADIUS;
+                    s.vx = -Math.abs(s.vx);
+                }
+
+                /* Ball collision — ONLY on P1 (authoritative) */
+                if (isAuthority) {
+                    const b = this.game.ball;
+                    const dx = b.x - s.x;
+                    const dy = b.y - s.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < b.r + CONFIG.STONE_RADIUS) {
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+
+                        const stoneAngle = Math.atan2(s.vy, s.vx);
+                        const hitAngle = Math.atan2(ny, nx);
+                        let angleDiff = Math.abs(stoneAngle - hitAngle);
+                        if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+
+                        const centeredness = Math.max(0, Math.cos(angleDiff));
+
+                        let force;
+                        if (centeredness > 0.85) {
+                            force = CONFIG.HIT_FORCE_CENTER;
+                        } else if (centeredness > 0.5) {
+                            const t = (centeredness - 0.5) / 0.35;
+                            force = CONFIG.HIT_FORCE_SIDE + (CONFIG.HIT_FORCE_CENTER - CONFIG.HIT_FORCE_SIDE) * t;
+                        } else if (centeredness > 0.2) {
+                            const t = (centeredness - 0.2) / 0.3;
+                            force = CONFIG.HIT_FORCE_EDGE + (CONFIG.HIT_FORCE_SIDE - CONFIG.HIT_FORCE_EDGE) * t;
+                        } else {
+                            force = CONFIG.HIT_FORCE_EDGE;
+                        }
+
+                        b.vx += nx * force + s.vx * 0.15 * centeredness;
+                        b.vy += ny * force + s.vy * 0.15 * centeredness;
+
+                        this._addRipple(s.x, s.y, centeredness);
+                        this.game.stones.splice(i, 1);
+                        continue;
+                    }
+                } else {
+                    /* P2: just show ripple if stone visually reaches ball area, then remove */
+                    const b = this.game.ball;
+                    const dx = b.x - s.x;
+                    const dy = b.y - s.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < b.r + CONFIG.STONE_RADIUS) {
+                        this._addRipple(s.x, s.y, 0.5);
+                        this.game.stones.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                if (s.y < p.y - 60 || s.y > p.y + p.h + 60) {
+                    this.game.stones.splice(i, 1);
+                }
+            }
+        }
+
+        _updatePlayers(dt) {
+            this.game.players[0].rot += CONFIG.ROTATION_SPEED * dt;
+            this.game.players[1].rot -= CONFIG.ROTATION_SPEED * dt;
+        }
+
+        _updateRipples() {
+            for (let i = this.game.ripples.length - 1; i >= 0; i--) {
+                const r = this.game.ripples[i];
+                r.radius += 1.5;
+                r.alpha -= 0.025;
+                if (r.alpha <= 0) this.game.ripples.splice(i, 1);
+            }
+        }
+
+        _addRipple(x, y, intensity = 0.5) {
+            const size = 8 + intensity * 15;
+            const alpha = 0.3 + intensity * 0.4;
+            this.game.ripples.push({ x, y, radius: size, alpha: alpha });
+            if (intensity > 0.7) {
+                this.game.ripples.push({ x, y, radius: size * 0.5, alpha: alpha * 0.8 });
+            }
+        }
+
+        _onScore(playerIdx) {
+            if (this.myRole !== 'P1') return; /* Only P1 is authoritative */
+            if (this._waitingForServer) return;
+
+            this.game.scores[playerIdx]++;
+            this._showScore();
+
+            this.sendInput({ type: 'goal', scores: this.game.scores });
+
+            if (this.game.scores[playerIdx] >= CONFIG.WIN_SCORE) {
+                /* Round is done */
+                const winner = playerIdx === 0 ? 'P1' : 'P2';
+                this.sendMove('round_end', {
+                    winner: winner,
+                    p1_score: this.game.scores[0],
+                    p2_score: this.game.scores[1]
+                });
+                this._waitingForServer = true;
+            } else {
+                this._resetBall();
+                this.sendInput({ type: 'serve', scores: this.game.scores });
+            }
+        }
+
+        _resetBall() {
+            const p = this.game.pool;
+            this.game.ball.x = p.x + POOL_WIDTH / 2;
+            this.game.ball.y = p.y + POOL_HEIGHT / 2;
+            this.game.ball.vx = 0;
+            this.game.ball.vy = 0;
+            this.game.stones = [];
+        }
+
+        /* ===== ROUND / GAME LIFECYCLE ===== */
+        _updateRoundBadge() {
+            const played = this.game.scores[0] + this.game.scores[1];
+            const badge = document.getElementById('bb-round');
+            badge.textContent = `R${Math.min((this.state ? this.state.current_round : 1), this.totalRounds)}/${this.totalRounds}`;
+        }
+
+        _showScore() {
+            this.s1El.textContent = this.game.scores[0];
+            this.s2El.textContent = this.game.scores[1];
+            this.s1El.classList.remove('bb-pop'); this.s2El.classList.remove('bb-pop');
+            void this.s1El.offsetWidth;
+            this.s1El.classList.add('bb-pop'); this.s2El.classList.add('bb-pop');
+        }
+
+        update(state) { this.state = state; }
+
+        onRoundEnd(result) {
+            this._waitingForServer = false;
+
+            const gs = result && result.game_state;
+            const cr = gs ? gs.current_round : 0;
+            const tr = gs ? gs.total_rounds : 999;
+            this._updateRoundBadge();
+
+            if (cr > tr) {
+                /* All rounds done */
+                this.playing = false;
+                this.game.running = false;
+                if (this._syncTimer) clearInterval(this._syncTimer);
+
+                let w = 'draw';
+                if (this.game.scores[0] > this.game.scores[1]) w = 'P1';
+                else if (this.game.scores[1] > this.game.scores[0]) w = 'P2';
+                this._showGameOver(w, true);
+                return;
+            }
+
+            /* More rounds — reset and re-serve */
+            this._serveTimer = setTimeout(() => {
+                this._serveTimer = null;
+                this.game.scores = [0, 0];
+                this._showScore();
+                this._resetBall();
+                if (this.myRole === 'P1') {
+                    this.sendInput({ type: 'serve', scores: this.game.scores });
+                }
+            }, SERVE_DELAY);
+        }
+
+        onGameEnd(result) {
+            this.playing = false;
+            this.game.running = false;
+            if (this._syncTimer) clearInterval(this._syncTimer);
+
+            let w = 'draw';
+            if (this.game.scores[0] > this.game.scores[1]) w = 'P1';
+            else if (this.game.scores[1] > this.game.scores[0]) w = 'P2';
+            this._showGameOver(w, true);
+        }
+
+        _showGameOver(w, isFinal) {
+            const t = document.getElementById('bb-go-text');
+            const e = document.getElementById('bb-go-emoji');
+            let wName = this.state.players[w];
+            if (w === 'draw') {
+                t.textContent = "DRAW!"; e.textContent = '🤝'; t.style.color = '#fff';
+            } else {
+                if (wName === USER) { t.textContent = "YOU WIN! 🎉"; e.textContent = '🏆'; }
+                else { t.textContent = `${wName} WINS!`; e.textContent = '😔'; }
+                t.style.color = w==='P1'?'#60a5fa':'#f87171';
+            }
+            document.getElementById('bb-go-s1').textContent = this.game.scores[0];
+            document.getElementById('bb-go-s2').textContent = this.game.scores[1];
+            document.getElementById('bb-next-text').textContent = isFinal ? 'Returning to lobby...' : '';
+            this.goOv.classList.remove('hidden');
+
+            if (isFinal) {
+                setTimeout(() => {
+                    if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({ event: 'game_exit' }));
+                    }
+                }, 4000);
+            }
+        }
+
+        /* ===== DRAWING ===== */
+        _drawGrass() {
+            const ctx = this.ctx;
+            const grad = ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+            grad.addColorStop(0, COLORS.grass1);
+            grad.addColorStop(0.5, COLORS.grass2);
+            grad.addColorStop(1, COLORS.grass3);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+            ctx.fillStyle = COLORS.grassDark;
+            for (let i = 0; i < 80; i++) {
+                const x = (i * 47 + this.game.time * 0.01) % this.canvas.width;
+                const y = (i * 31) % this.canvas.height;
+                ctx.beginPath();
+                ctx.ellipse(x, y, 15, 8, 0.3, 0, Math.PI * 2);
+                ctx.globalAlpha = 0.15;
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            this.game.grassBlades.forEach(blade => {
+                const sway = Math.sin(this.game.time * 0.002 + blade.sway) * 2;
+                ctx.strokeStyle = Math.random() > 0.5 ? COLORS.grass3 : COLORS.grassDark;
+                ctx.lineWidth = blade.w;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(blade.x, blade.y);
+                ctx.quadraticCurveTo(blade.x + sway, blade.y - blade.h/2, blade.x + sway * 1.5, blade.y - blade.h);
+                ctx.stroke();
+            });
+        }
+
+        _drawTree(tree) {
+            const ctx = this.ctx;
+            const {x, y, scale} = tree;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.ellipse(5, 35, 22, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            const trunkGrad = ctx.createLinearGradient(-8, 0, 8, 0);
+            trunkGrad.addColorStop(0, '#92400e');
+            trunkGrad.addColorStop(0.3, '#b45309');
+            trunkGrad.addColorStop(0.7, '#92400e');
+            trunkGrad.addColorStop(1, '#78350f');
+            ctx.fillStyle = trunkGrad;
+            ctx.beginPath();
+            ctx.moveTo(-6, 30); ctx.lineTo(-8, 10);
+            ctx.quadraticCurveTo(-4, 5, 0, 0);
+            ctx.quadraticCurveTo(4, 5, 8, 10);
+            ctx.lineTo(6, 30); ctx.closePath(); ctx.fill();
+
+            ctx.strokeStyle = '#78350f';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(-2, 28); ctx.lineTo(-1, 8);
+            ctx.moveTo(3, 25); ctx.lineTo(2, 12);
+            ctx.stroke();
+
+            const foliageColors = ['#15803d', '#16a34a', '#22c55e', '#4ade80'];
+            const foliageLayers = [
+                [{dx: 0, dy: -15, r: 22}],
+                [{dx: -18, dy: -5, r: 18}, {dx: 18, dy: -5, r: 18}],
+                [{dx: -10, dy: -20, r: 16}, {dx: 10, dy: -20, r: 16}],
+                [{dx: 0, dy: -8, r: 20}, {dx: -12, dy: 0, r: 15}, {dx: 12, dy: 0, r: 15}]
+            ];
+
+            foliageLayers.forEach((layer, i) => {
+                layer.forEach(leaf => {
+                    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                    ctx.beginPath();
+                    ctx.arc(leaf.dx + 2, leaf.dy + 2, leaf.r, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    const leafGrad = ctx.createRadialGradient(leaf.dx - 5, leaf.dy - 5, 0, leaf.dx, leaf.dy, leaf.r);
+                    leafGrad.addColorStop(0, foliageColors[3]);
+                    leafGrad.addColorStop(0.7, foliageColors[i % foliageColors.length]);
+                    leafGrad.addColorStop(1, foliageColors[0]);
+                    ctx.fillStyle = leafGrad;
+                    ctx.beginPath();
+                    ctx.arc(leaf.dx, leaf.dy, leaf.r, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = '#15803d';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                });
+            });
+            ctx.restore();
+        }
+
+        _drawPool() {
+            const ctx = this.ctx;
+            const p = this.game.pool;
+
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.roundRect(p.x - 10, p.y - 6, p.w + 20, p.h + 18, 14);
+            ctx.fill();
+
+            ctx.fillStyle = COLORS.poolBorder;
+            ctx.beginPath();
+            ctx.roundRect(p.x - 10, p.y - 10, p.w + 20, p.h + 20, 12);
+            ctx.fill();
+
+            ctx.fillStyle = '#334155';
+            ctx.beginPath();
+            ctx.roundRect(p.x - 6, p.y - 6, p.w + 12, p.h + 12, 10);
+            ctx.fill();
+
+            const edgeGrad = ctx.createLinearGradient(p.x, p.y, p.x + p.w, p.y);
+            edgeGrad.addColorStop(0, '#fef3c7');
+            edgeGrad.addColorStop(0.5, '#fef9c3');
+            edgeGrad.addColorStop(1, '#fef3c7');
+            ctx.fillStyle = edgeGrad;
+            ctx.beginPath();
+            ctx.roundRect(p.x - 3, p.y - 3, p.w + 6, p.h + 6, 6);
+            ctx.fill();
+
+            ctx.strokeStyle = '#fcd34d';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < p.w; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(p.x + i, p.y - 3);
+                ctx.lineTo(p.x + i, p.y + p.h + 3);
+                ctx.globalAlpha = 0.3;
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+
+            const waterGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+            waterGrad.addColorStop(0, COLORS.water1);
+            waterGrad.addColorStop(0.3, COLORS.water2);
+            waterGrad.addColorStop(0.7, COLORS.water2);
+            waterGrad.addColorStop(1, COLORS.water3);
+            ctx.fillStyle = waterGrad;
+            ctx.fillRect(p.x, p.y, p.w, p.h);
+
+            ctx.globalAlpha = 0.15;
+            for (let i = 0; i < 8; i++) {
+                const cx = p.x + 30 + (i * 40 + this.game.time * 0.02) % (p.w - 60);
+                const cy = p.y + 30 + Math.sin(this.game.time * 0.001 + i) * 20 + (i * 50) % (p.h - 60);
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, 25 + Math.sin(this.game.time * 0.003 + i) * 10, 15, 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(p.x + 15, p.y + 25);
+            ctx.quadraticCurveTo(p.x + p.w/3, p.y + 40, p.x + p.w/2, p.y + p.h/3);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(p.x + 25, p.y + 45);
+            ctx.quadraticCurveTo(p.x + p.w/4, p.y + 60, p.x + p.w/3, p.y + p.h/2);
+            ctx.stroke();
+
+            this.game.ripples.forEach(r => {
+                ctx.strokeStyle = `rgba(255,255,255,${r.alpha})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+
+            this._drawGoalZone(p.x, p.y, p.w, p.goalH, COLORS.player1, COLORS.player1Light);
+            this._drawGoalZone(p.x, p.y + p.h - p.goalH, p.w, p.goalH, COLORS.player2, COLORS.player2Light);
+        }
+
+        _drawGoalZone(x, y, w, h, c1, c2) {
+            const ctx = this.ctx;
+            const size = 13;
+            const cols = Math.ceil(w / size);
+            for (let i = 0; i < cols; i++) {
+                ctx.fillStyle = i % 2 === 0 ? c1 : c2;
+                ctx.fillRect(x + i * size, y, Math.min(size, w - i * size), h);
+            }
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, w, h);
+        }
+
+        _drawPlayer(player, isP1) {
+            const ctx = this.ctx;
+            const {x, y, rot} = player;
+            const c = isP1 ? COLORS.player1 : COLORS.player2;
+            const cL = isP1 ? COLORS.player1Light : COLORS.player2Light;
+
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.fillStyle = 'rgba(0,0,0,0.25)';
+            ctx.beginPath();
+            ctx.ellipse(4, 6, CONFIG.PLAYER_SIZE - 4, CONFIG.PLAYER_SIZE/2 - 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowColor = c;
+            ctx.shadowBlur = 15;
+
+            const bodyGrad = ctx.createRadialGradient(-8, -8, 0, 0, 0, CONFIG.PLAYER_SIZE);
+            bodyGrad.addColorStop(0, cL);
+            bodyGrad.addColorStop(0.6, c);
+            bodyGrad.addColorStop(1, isP1 ? '#1d4ed8' : '#b91c1c');
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, CONFIG.PLAYER_SIZE - 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.strokeStyle = isP1 ? '#1e40af' : '#991b1b';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.beginPath();
+            ctx.ellipse(-10, -10, 8, 5, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.rotate(rot);
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.moveTo(CONFIG.PLAYER_SIZE - 5, -4);
+            ctx.lineTo(CONFIG.PLAYER_SIZE + 18, 2);
+            ctx.lineTo(CONFIG.PLAYER_SIZE - 5, 6);
+            ctx.closePath(); ctx.fill();
+
+            const beakGrad = ctx.createLinearGradient(CONFIG.PLAYER_SIZE, -5, CONFIG.PLAYER_SIZE + 15, 0);
+            beakGrad.addColorStop(0, '#fbbf24');
+            beakGrad.addColorStop(1, '#f59e0b');
+            ctx.fillStyle = beakGrad;
+            ctx.beginPath();
+            ctx.moveTo(CONFIG.PLAYER_SIZE - 8, -5);
+            ctx.lineTo(CONFIG.PLAYER_SIZE + 15, 0);
+            ctx.lineTo(CONFIG.PLAYER_SIZE - 8, 5);
+            ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = '#d97706';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.rotate(-rot);
+
+            const eyeX = Math.cos(rot) * 12;
+            const eyeY = Math.sin(rot) * 12 - 4;
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(eyeX, eyeY, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(eyeX + 2, eyeY - 2, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            const now = Date.now();
+            const cd = CONFIG.THROW_COOLDOWN - (now - player.lastThrow);
+            if (cd > 0) {
+                const prog = 1 - cd / CONFIG.THROW_COOLDOWN;
+                ctx.strokeStyle = c;
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.arc(0, 0, CONFIG.PLAYER_SIZE + 6, -Math.PI/2, -Math.PI/2 + prog * Math.PI * 2);
+                ctx.stroke();
+            } else {
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, CONFIG.PLAYER_SIZE + 6, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            /* Label */
+            const p1Name = this.state.players['P1'];
+            const p2Name = this.state.players['P2'];
+            const label = isP1
+                ? (p1Name === USER ? 'YOU' : 'OPP')
+                : (p2Name === USER ? 'YOU' : 'OPP');
+            ctx.fillStyle = c;
+            ctx.font = 'bold 11px Nunito, Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, 0, CONFIG.PLAYER_SIZE + 20);
+
+            ctx.restore();
+        }
+
+        _drawBall() {
+            const ctx = this.ctx;
+            const b = this.game.ball;
+
+            ctx.save();
+            ctx.translate(b.x, b.y);
+            ctx.rotate(b.rot);
+
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(4, 6, b.r - 3, b.r/2, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(0, 0, b.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            const segColors = ['#ef4444', '#3b82f6', '#fbbf24', '#22c55e', '#fff', '#f97316'];
+            for (let i = 0; i < 6; i++) {
+                ctx.fillStyle = segColors[i];
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, b.r - 2, i * Math.PI/3, (i + 1) * Math.PI/3);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 6; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(i * Math.PI/3) * b.r, Math.sin(i * Math.PI/3) * b.r);
+                ctx.stroke();
+            }
+
+            const centerGrad = ctx.createRadialGradient(-2, -2, 0, 0, 0, 12);
+            centerGrad.addColorStop(0, '#fff');
+            centerGrad.addColorStop(1, '#e5e7eb');
+            ctx.fillStyle = centerGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#9ca3af';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.strokeStyle = '#374151';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, b.r, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.beginPath();
+            ctx.ellipse(-b.r/3, -b.r/3, b.r/4, b.r/5, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        _drawStone(stone) {
+            const ctx = this.ctx;
+            ctx.save();
+            ctx.translate(stone.x, stone.y);
+
+            const c = stone.isP1 ? COLORS.player1 : COLORS.player2;
+            const cL = stone.isP1 ? COLORS.player1Light : COLORS.player2Light;
+
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(2, 3, CONFIG.STONE_RADIUS, CONFIG.STONE_RADIUS/2, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowColor = c;
+            ctx.shadowBlur = 8;
+
+            const grad = ctx.createRadialGradient(-3, -3, 0, 0, 0, CONFIG.STONE_RADIUS);
+            grad.addColorStop(0, cL);
+            grad.addColorStop(1, c);
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, CONFIG.STONE_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.strokeStyle = stone.isP1 ? '#1e40af' : '#991b1b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.beginPath();
+            ctx.arc(-3, -3, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        /* ===== GAME LOOP ===== */
+        _loop(ts) {
+            if (!this.playing) return;
+            const dt = Math.min((ts - this._lastTime) / 1000, 0.05);
+            this._lastTime = ts;
+            this.game.time = ts;
+
+            const ctx = this.ctx;
+            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+            this._drawGrass();
+            this.game.trees.forEach(t => this._drawTree(t));
+            this._drawPlayer(this.game.players[0], true);
+            this._drawPlayer(this.game.players[1], false);
+            this._drawPool();
+
+            if (this.game.running) {
+                this._updatePlayers(dt);
+                this._updateStones();
+                if (this.myRole === 'P1') {
+                    this._updateBall();
+                } else {
+                    /* P2: apply velocity for smooth interpolation between syncs */
+                    const b = this.game.ball;
+                    b.x += b.vx * 0.3;
+                    b.y += b.vy * 0.3;
+                    b.rot += Math.sqrt(b.vx*b.vx + b.vy*b.vy) * 0.02;
+                }
+                this._updateRipples();
+            }
+
+            this.game.stones.forEach(s => this._drawStone(s));
+            this._drawBall();
+
+            this._raf = requestAnimationFrame(t => this._loop(t));
+        }
+
+        /* ===== CLEANUP ===== */
+        destroy() {
+            this.playing = false;
+            this.game.running = false;
+            if (this._syncTimer) clearInterval(this._syncTimer);
+            if (this._serveTimer) clearTimeout(this._serveTimer);
+            if (this._raf) cancelAnimationFrame(this._raf);
+            super.destroy();
+        }
+    }
+
+    window.GameClasses = window.GameClasses || {};
+    window.GameClasses['beachball'] = BeachBallGame;
+})();
+
+// Exit game
+window.exitGame = window.exitGame || function() {
+    if (confirm('Leave the game? Both players will return to lobby.')) {
+        if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ event: 'game_exit' }));
+        }
+    }
+};
+</script>

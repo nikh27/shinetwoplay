@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Carrom - Two Player</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            color: #fff;
+            transition: background 0.6s ease;
+        }
+
+        body.player1-turn {
+            background: linear-gradient(180deg, #1a0000 0%, #3a0a0a 30%, #2a0505 100%);
+        }
+
+        body.player2-turn {
+            background: linear-gradient(180deg, #000a1a 0%, #0a1a3a 30%, #05102a 100%);
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* Top bar */
+        .top-bar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            justify-content: space-between;
+        }
+
+        .close-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: background 0.2s;
+        }
+
+        .close-btn:active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .turn-badge {
+            font-size: 11px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        body.player1-turn .turn-badge {
+            background: rgba(220,50,50,0.3);
+            color: #ff8888;
+            border: 1px solid rgba(220,50,50,0.3);
+        }
+
+        body.player2-turn .turn-badge {
+            background: rgba(50,100,220,0.3);
+            color: #88aaff;
+            border: 1px solid rgba(50,100,220,0.3);
+        }
+
+        /* Score bar */
+        .score-bar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 16px 10px;
+        }
+
+        .player-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 14px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .player-card.active {
+            background: rgba(255,255,255,0.08);
+        }
+
+        .player-card .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .player-card.p1 .dot {
+            background: #333;
+            border: 2px solid #666;
+        }
+
+        .player-card.p2 .dot {
+            background: #f0e6d0;
+            border: 2px solid #ccc;
+        }
+
+        .player-card .info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .player-card .name {
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .player-card .score {
+            font-family: 'Cinzel', serif;
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        body.player1-turn .player-card.p1 .score { color: #ff6666; }
+        body.player1-turn .player-card.p2 .score { color: #aaa; }
+        body.player2-turn .player-card.p2 .score { color: #6688ff; }
+        body.player2-turn .player-card.p1 .score { color: #aaa; }
+
+        .vs-text {
+            font-family: 'Cinzel', serif;
+            font-size: 12px;
+            color: rgba(255,255,255,0.3);
+            font-weight: 600;
+        }
+
+        /* Game Board */
+        .board-container {
+            position: relative;
+            width: calc(100% - 16px);
+            max-width: 450px;
+            aspect-ratio: 1;
+            flex-shrink: 0;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            box-shadow:
+                0 8px 32px rgba(0,0,0,0.6),
+                0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        /* Hint text */
+        .striker-instructions {
+            text-align: center;
+            padding: 10px 20px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 0.3px;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            padding: 30px 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 24px;
+            color: #FFD700;
+            margin-bottom: 8px;
+        }
+
+        .modal p {
+            font-size: 15px;
+            color: #aaa;
+            margin-bottom: 24px;
+        }
+
+        .modal-btn {
+            padding: 12px 35px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(145deg, #d4a843, #b8860b);
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Foul indicator */
+        .foul-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(220, 20, 60, 0.95);
+            color: white;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            z-index: 500;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .foul-message.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        @media (max-height: 700px) {
+            .score-bar { padding: 4px 12px 6px; }
+            .top-bar { padding: 4px 10px; }
+        }
+    </style>
+</head>
+<body class="player1-turn">
+    <div class="game-container">
+        <!-- Top bar: close + turn indicator -->
+        <div class="top-bar">
+            <button class="close-btn" onclick="window.history.back()">&#10005;</button>
+            <span class="turn-badge" id="turn-indicator">Player 1's Turn</span>
+            <div style="width:36px"></div>
+        </div>
+
+        <!-- Score bar -->
+        <div class="score-bar">
+            <div class="player-card p1 active" id="player1-card">
+                <div class="dot"></div>
+                <div class="info">
+                    <span class="name">Player 1</span>
+                    <span class="score" id="player1-score">0</span>
+                </div>
+            </div>
+            <span class="vs-text">VS</span>
+            <div class="player-card p2" id="player2-card">
+                <div class="info" style="text-align:right">
+                    <span class="name">Player 2</span>
+                    <span class="score" id="player2-score">0</span>
+                </div>
+                <div class="dot"></div>
+            </div>
+        </div>
+
+        <!-- Game Board -->
+        <div class="board-container">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <!-- Striker Instructions -->
+        <div class="striker-instructions" id="strikerHint">
+            Drag striker to position, then pull back and release to shoot
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div class="modal-overlay" id="winModal">
+        <div class="modal">
+            <h2 id="winner-text">Player 1 Wins!</h2>
+            <p id="winner-score">Final Score: 0 - 0</p>
+            <button class="modal-btn" onclick="resetGame()">Play Again</button>
+        </div>
+    </div>
+
+    <!-- Foul Message -->
+    <div class="foul-message" id="foulMessage">Foul!</div>
+
+    <script>
+        // ==================== GAME CONFIGURATION ====================
+        const CONFIG = {
+            boardSize: 500,
+            boardPadding: 40,
+            pocketRadius: 24,
+            strikerLineOffset: 70,
+
+            // Physics
+            coinFriction: 0.980,
+            strikerFriction: 0.975,
+            minVelocity: 0.15,
+            restitution: 0.80,
+            physicsSteps: 3,
+            pocketGravity: 0.01,
+            maxDragPower: 9,
+            dragScale: 0.08,
+
+            // Pieces
+            coinRadius: 12,
+            strikerRadius: 17,
+            queenRadius: 12,
+
+            // Scoring
+            blackCoinValue: 10,
+            whiteCoinValue: 20,
+            queenValue: 50
+        };
+
+        const POCKETS = [
+            { x: CONFIG.boardPadding, y: CONFIG.boardPadding },
+            { x: CONFIG.boardSize - CONFIG.boardPadding, y: CONFIG.boardPadding },
+            { x: CONFIG.boardPadding, y: CONFIG.boardSize - CONFIG.boardPadding },
+            { x: CONFIG.boardSize - CONFIG.boardPadding, y: CONFIG.boardSize - CONFIG.boardPadding }
+        ];
+
+        // ==================== GAME STATE ====================
+        let gameState = {
+            currentPlayer: 1,
+            player1Score: 0,
+            player2Score: 0,
+            player1Color: 'black',
+            player2Color: 'white',
+            queenPocketed: false,
+            queenCovered: false,
+            lastQueenPocketedBy: null,
+            isAnimating: false,
+            gameOver: false,
+            strikerPosition: { x: 0, y: 0 },
+            pieces: [],
+            striker: null,
+            pocketedThisTurn: [],
+            turnEndPending: false
+        };
+
+        // ==================== CANVAS SETUP ====================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let scale = 1;
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const size = Math.min(container.clientWidth, container.clientHeight);
+            canvas.width = size * window.devicePixelRatio;
+            canvas.height = size * window.devicePixelRatio;
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+            scale = canvas.width / CONFIG.boardSize;
+            ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        }
+
+        // ==================== PIECE CLASS ====================
+        class Piece {
+            constructor(x, y, radius, type) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.radius = radius;
+                this.type = type;
+                this.pocketed = false;
+                this.mass = type === 'striker' ? 1.5 : 1;
+            }
+
+            draw() {
+                if (this.pocketed) return;
+                ctx.save();
+
+                // Shadow
+                ctx.beginPath();
+                ctx.arc(this.x + 1.5, this.y + 1.5, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.25)';
+                ctx.fill();
+
+                // Main body
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+
+                if (this.type === 'black') {
+                    const g = ctx.createRadialGradient(this.x - this.radius/3, this.y - this.radius/3, 0, this.x, this.y, this.radius);
+                    g.addColorStop(0, '#555'); g.addColorStop(0.6, '#2a2a2a'); g.addColorStop(1, '#111');
+                    ctx.fillStyle = g;
+                } else if (this.type === 'white') {
+                    const g = ctx.createRadialGradient(this.x - this.radius/3, this.y - this.radius/3, 0, this.x, this.y, this.radius);
+                    g.addColorStop(0, '#fffff0'); g.addColorStop(0.6, '#f5f0d8'); g.addColorStop(1, '#e0d8b8');
+                    ctx.fillStyle = g;
+                } else if (this.type === 'queen') {
+                    const g = ctx.createRadialGradient(this.x - this.radius/3, this.y - this.radius/3, 0, this.x, this.y, this.radius);
+                    g.addColorStop(0, '#ff5555'); g.addColorStop(0.6, '#cc1111'); g.addColorStop(1, '#880000');
+                    ctx.fillStyle = g;
+                } else if (this.type === 'striker') {
+                    const g = ctx.createRadialGradient(this.x - this.radius/4, this.y - this.radius/4, 0, this.x, this.y, this.radius);
+                    g.addColorStop(0, '#fff'); g.addColorStop(0.4, '#f5edd8'); g.addColorStop(1, '#d4c098');
+                    ctx.fillStyle = g;
+                }
+
+                ctx.fill();
+
+                // Outer ring
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius - 1, 0, Math.PI * 2);
+                ctx.strokeStyle = this.type === 'striker' ? 'rgba(139,69,19,0.4)' : 'rgba(0,0,0,0.2)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Inner ring for coins
+                if (this.type !== 'striker') {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius * 0.5, 0, Math.PI * 2);
+                    ctx.strokeStyle = this.type === 'black' ? 'rgba(255,255,255,0.12)' :
+                                     this.type === 'white' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.25)';
+                    ctx.lineWidth = 0.8;
+                    ctx.stroke();
+                }
+
+                // Striker cross-hatch pattern
+                if (this.type === 'striker') {
+                    ctx.beginPath();
+                    for (let i = 0; i < 12; i++) {
+                        const a = (i / 12) * Math.PI * 2;
+                        ctx.moveTo(this.x + Math.cos(a) * this.radius * 0.3, this.y + Math.sin(a) * this.radius * 0.3);
+                        ctx.lineTo(this.x + Math.cos(a) * this.radius * 0.6, this.y + Math.sin(a) * this.radius * 0.6);
+                    }
+                    ctx.strokeStyle = 'rgba(139,69,19,0.3)';
+                    ctx.lineWidth = 0.8;
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+
+            stepPhysics() {
+                if (this.pocketed) return;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                const baseFriction = this.type === 'striker' ? CONFIG.strikerFriction : CONFIG.coinFriction;
+                const stepFriction = Math.pow(baseFriction, 1 / CONFIG.physicsSteps);
+                this.vx *= stepFriction;
+                this.vy *= stepFriction;
+
+                if (Math.abs(this.vx) < CONFIG.minVelocity && Math.abs(this.vy) < CONFIG.minVelocity) {
+                    this.vx = 0;
+                    this.vy = 0;
+                }
+
+                this.handleBoardCollision();
+            }
+
+            handleBoardCollision() {
+                const pad = CONFIG.boardPadding;
+                const bs = CONFIG.boardSize;
+                const pocketR = CONFIG.pocketRadius;
+
+                for (const pocket of POCKETS) {
+                    const dx = this.x - pocket.x;
+                    const dy = this.y - pocket.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (this.type !== 'striker' && dist < pocketR + this.radius * 2 && dist > 0) {
+                        const pull = CONFIG.pocketGravity * (1 - dist / (pocketR + this.radius * 2));
+                        this.vx -= (dx / dist) * pull;
+                        this.vy -= (dy / dist) * pull;
+                    }
+
+                    if (dist < pocketR + this.radius) {
+                        this.x = Math.max(0, Math.min(bs, this.x));
+                        this.y = Math.max(0, Math.min(bs, this.y));
+                        return;
+                    }
+                }
+
+                if (this.x - this.radius < pad) { this.x = pad + this.radius; this.vx = -this.vx * CONFIG.restitution; }
+                if (this.x + this.radius > bs - pad) { this.x = bs - pad - this.radius; this.vx = -this.vx * CONFIG.restitution; }
+                if (this.y - this.radius < pad) { this.y = pad + this.radius; this.vy = -this.vy * CONFIG.restitution; }
+                if (this.y + this.radius > bs - pad) { this.y = bs - pad - this.radius; this.vy = -this.vy * CONFIG.restitution; }
+            }
+
+            isMoving() {
+                return Math.abs(this.vx) > CONFIG.minVelocity || Math.abs(this.vy) > CONFIG.minVelocity;
+            }
+        }
+
+        // ==================== PREMIUM BOARD DRAWING ====================
+        function drawBoard() {
+            const size = CONFIG.boardSize;
+            const pad = CONFIG.boardPadding;
+
+            // === OUTER FRAME (dark premium wood) ===
+            const frameGrad = ctx.createLinearGradient(0, 0, size, size);
+            frameGrad.addColorStop(0, '#5c3317');
+            frameGrad.addColorStop(0.3, '#6b3a1f');
+            frameGrad.addColorStop(0.5, '#7a4528');
+            frameGrad.addColorStop(0.7, '#6b3a1f');
+            frameGrad.addColorStop(1, '#4a2510');
+            ctx.fillStyle = frameGrad;
+            ctx.fillRect(0, 0, size, size);
+
+            // Frame wood grain texture
+            ctx.save();
+            ctx.globalAlpha = 0.08;
+            ctx.strokeStyle = '#2a1508';
+            ctx.lineWidth = 0.8;
+            for (let i = 0; i < 80; i++) {
+                ctx.beginPath();
+                const y = (i / 80) * size;
+                ctx.moveTo(0, y + Math.sin(i * 0.7) * 4);
+                ctx.bezierCurveTo(size * 0.3, y + Math.sin(i * 1.3) * 6, size * 0.7, y + Math.cos(i) * 5, size, y + Math.sin(i * 0.5) * 3);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // Frame inner edge bevel (light)
+            ctx.strokeStyle = 'rgba(180,130,70,0.4)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(pad - 2, pad - 2, size - (pad - 2) * 2, size - (pad - 2) * 2);
+
+            // Frame outer edge
+            ctx.strokeStyle = 'rgba(30,15,5,0.6)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(1, 1, size - 2, size - 2);
+
+            // === PLAYING SURFACE (light birch wood) ===
+            const innerGrad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size * 0.45);
+            innerGrad.addColorStop(0, '#f7e8c8');
+            innerGrad.addColorStop(0.5, '#f0ddb5');
+            innerGrad.addColorStop(1, '#e8d0a0');
+            ctx.fillStyle = innerGrad;
+            ctx.fillRect(pad, pad, size - pad * 2, size - pad * 2);
+
+            // Surface wood grain (subtle horizontal)
+            ctx.save();
+            ctx.globalAlpha = 0.06;
+            ctx.strokeStyle = '#a08050';
+            ctx.lineWidth = 0.6;
+            for (let i = 0; i < 60; i++) {
+                ctx.beginPath();
+                const y = pad + (i / 60) * (size - pad * 2);
+                ctx.moveTo(pad, y + Math.sin(i * 0.8) * 2);
+                ctx.bezierCurveTo(size * 0.35, y + Math.sin(i * 1.5) * 4, size * 0.65, y + Math.cos(i * 1.2) * 3, size - pad, y + Math.sin(i * 0.6) * 2);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // === INNER BORDER LINES (double border like real carrom) ===
+            const innerPad = pad + 25;
+            const innerPad2 = pad + 30;
+
+            // Outer line
+            ctx.strokeStyle = '#8B5E3C';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(innerPad, innerPad, size - innerPad * 2, size - innerPad * 2);
+
+            // Inner line
+            ctx.strokeStyle = '#8B5E3C';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(innerPad2, innerPad2, size - innerPad2 * 2, size - innerPad2 * 2);
+
+            // === CORNER DIAGONAL LINES (arrow marks) ===
+            ctx.strokeStyle = '#8B5E3C';
+            ctx.lineWidth = 2;
+            const dLen = 35;
+            const dOff = innerPad + 5;
+
+            // Top-left
+            ctx.beginPath(); ctx.moveTo(dOff, dOff + dLen); ctx.lineTo(dOff + dLen, dOff); ctx.stroke();
+            // Top-right
+            ctx.beginPath(); ctx.moveTo(size - dOff, dOff + dLen); ctx.lineTo(size - dOff - dLen, dOff); ctx.stroke();
+            // Bottom-left
+            ctx.beginPath(); ctx.moveTo(dOff, size - dOff - dLen); ctx.lineTo(dOff + dLen, size - dOff); ctx.stroke();
+            // Bottom-right
+            ctx.beginPath(); ctx.moveTo(size - dOff, size - dOff - dLen); ctx.lineTo(size - dOff - dLen, size - dOff); ctx.stroke();
+
+            // === CENTER CIRCLES ===
+            // Outer circle
+            ctx.strokeStyle = '#8B5E3C';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(size/2, size/2, 38, 0, Math.PI * 2); ctx.stroke();
+
+            // Inner circle
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(size/2, size/2, 22, 0, Math.PI * 2); ctx.stroke();
+
+            // Tiny center dot
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#8B5E3C';
+            ctx.fill();
+
+            // === EDGE POSITION DOTS (circles on each side midpoint) ===
+            const dotPositions = [
+                { x: pad + 22, y: size / 2 },
+                { x: size - pad - 22, y: size / 2 },
+                { x: size / 2, y: pad + 22 },
+                { x: size / 2, y: size - pad - 22 }
+            ];
+
+            dotPositions.forEach(p => {
+                // Outer ring
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+                ctx.fillStyle = '#c8a050';
+                ctx.fill();
+                ctx.strokeStyle = '#8B5E3C';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                // Inner dot
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#8B5E3C';
+                ctx.fill();
+            });
+
+            // === CORNER POSITION DOTS ===
+            const cornerDots = [
+                { x: innerPad + 20, y: innerPad + 20 },
+                { x: size - innerPad - 20, y: innerPad + 20 },
+                { x: innerPad + 20, y: size - innerPad - 20 },
+                { x: size - innerPad - 20, y: size - innerPad - 20 }
+            ];
+
+            cornerDots.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#c8a050';
+                ctx.fill();
+                ctx.strokeStyle = '#8B5E3C';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            // === DECORATIVE PATTERN: Four arcs around center ===
+            ctx.strokeStyle = 'rgba(139,94,60,0.5)';
+            ctx.lineWidth = 1.2;
+            for (let q = 0; q < 4; q++) {
+                const angle = (q / 4) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.arc(size/2, size/2, 30, angle - 0.3, angle + 0.3);
+                ctx.stroke();
+            }
+
+            drawPockets();
+            drawStrikerLines();
+        }
+
+        function drawPockets() {
+            const pocketR = CONFIG.pocketRadius;
+            POCKETS.forEach(pocket => {
+                ctx.save();
+
+                // Pocket hole shadow (outer glow)
+                ctx.beginPath();
+                ctx.arc(pocket.x, pocket.y, pocketR + 6, 0, Math.PI * 2);
+                const outerGlow = ctx.createRadialGradient(pocket.x, pocket.y, pocketR - 2, pocket.x, pocket.y, pocketR + 6);
+                outerGlow.addColorStop(0, 'rgba(0,0,0,0.4)');
+                outerGlow.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = outerGlow;
+                ctx.fill();
+
+                // Pocket rim (wooden ring)
+                ctx.beginPath();
+                ctx.arc(pocket.x, pocket.y, pocketR + 3, 0, Math.PI * 2);
+                const rimGrad = ctx.createRadialGradient(pocket.x, pocket.y, pocketR - 1, pocket.x, pocket.y, pocketR + 3);
+                rimGrad.addColorStop(0, '#5c3317');
+                rimGrad.addColorStop(0.5, '#7a4528');
+                rimGrad.addColorStop(1, '#4a2510');
+                ctx.fillStyle = rimGrad;
+                ctx.fill();
+
+                // Inner bevel ring
+                ctx.beginPath();
+                ctx.arc(pocket.x, pocket.y, pocketR + 1, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(180,130,70,0.3)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // The actual hole (dark depth)
+                ctx.beginPath();
+                ctx.arc(pocket.x, pocket.y, pocketR, 0, Math.PI * 2);
+                const holeGrad = ctx.createRadialGradient(pocket.x - 2, pocket.y - 2, 0, pocket.x, pocket.y, pocketR);
+                holeGrad.addColorStop(0, '#1a1a1a');
+                holeGrad.addColorStop(0.4, '#0d0d0d');
+                holeGrad.addColorStop(0.8, '#050505');
+                holeGrad.addColorStop(1, '#000000');
+                ctx.fillStyle = holeGrad;
+                ctx.fill();
+
+                // Subtle net mesh pattern inside hole
+                ctx.globalAlpha = 0.08;
+                ctx.strokeStyle = '#444';
+                ctx.lineWidth = 0.5;
+                for (let i = -pocketR; i <= pocketR; i += 5) {
+                    ctx.beginPath();
+                    ctx.moveTo(pocket.x + i, pocket.y - pocketR);
+                    ctx.lineTo(pocket.x + i, pocket.y + pocketR);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(pocket.x - pocketR, pocket.y + i);
+                    ctx.lineTo(pocket.x + pocketR, pocket.y + i);
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+
+                ctx.restore();
+            });
+        }
+
+        function drawStrikerLines() {
+            const size = CONFIG.boardSize;
+            const pad = CONFIG.boardPadding;
+            const innerPad = pad + 25;
+            const lineY = size - CONFIG.strikerLineOffset;
+            const topLineY = CONFIG.strikerLineOffset;
+
+            ctx.strokeStyle = '#8B5E3C';
+            ctx.lineWidth = 1.5;
+
+            // Bottom striker line
+            ctx.beginPath();
+            ctx.moveTo(innerPad + 35, lineY);
+            ctx.lineTo(size - innerPad - 35, lineY);
+            ctx.stroke();
+
+            // Bottom line end circles
+            ctx.fillStyle = '#c8a050';
+            ctx.beginPath(); ctx.arc(innerPad + 35, lineY, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#8B5E3C'; ctx.lineWidth = 1; ctx.stroke();
+            ctx.beginPath(); ctx.arc(size - innerPad - 35, lineY, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.stroke();
+
+            // Top striker line
+            ctx.strokeStyle = '#8B5E3C';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(innerPad + 35, topLineY);
+            ctx.lineTo(size - innerPad - 35, topLineY);
+            ctx.stroke();
+
+            // Top line end circles
+            ctx.fillStyle = '#c8a050';
+            ctx.beginPath(); ctx.arc(innerPad + 35, topLineY, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#8B5E3C'; ctx.lineWidth = 1; ctx.stroke();
+            ctx.beginPath(); ctx.arc(size - innerPad - 35, topLineY, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.stroke();
+        }
+
+        // ==================== PIECE INITIALIZATION ====================
+        function initializePieces() {
+            gameState.pieces = [];
+            const center = CONFIG.boardSize / 2;
+            const coinR = CONFIG.coinRadius;
+
+            const innerRadius = coinR * 2.2;
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+                const x = center + Math.cos(angle) * innerRadius;
+                const y = center + Math.sin(angle) * innerRadius;
+                gameState.pieces.push(new Piece(x, y, coinR, i % 2 === 0 ? 'white' : 'black'));
+            }
+
+            const outerRadius = coinR * 4.2;
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                const x = center + Math.cos(angle) * outerRadius;
+                const y = center + Math.sin(angle) * outerRadius;
+                gameState.pieces.push(new Piece(x, y, coinR, i % 2 === 0 ? 'black' : 'white'));
+            }
+
+            gameState.pieces.push(new Piece(center, center, CONFIG.queenRadius, 'queen'));
+            resetStriker();
+        }
+
+        function resetStriker() {
+            const size = CONFIG.boardSize;
+            const pad = CONFIG.boardPadding;
+            const innerPad = pad + 25;
+
+            let strikerY = gameState.currentPlayer === 1 ? size - CONFIG.strikerLineOffset : CONFIG.strikerLineOffset;
+            let strikerX = size / 2;
+
+            if (gameState.pieces && gameState.pieces.length > 0) {
+                const minX = innerPad + 35 + CONFIG.strikerRadius;
+                const maxX = size - innerPad - 35 - CONFIG.strikerRadius;
+                for (let attempts = 0; attempts < 50; attempts++) {
+                    let blocked = false;
+                    for (const piece of gameState.pieces) {
+                        if (piece.pocketed) continue;
+                        const dx = strikerX - piece.x;
+                        const dy = strikerY - piece.y;
+                        if (Math.sqrt(dx * dx + dy * dy) < CONFIG.strikerRadius + piece.radius + 2) {
+                            blocked = true; break;
+                        }
+                    }
+                    if (!blocked) break;
+                    strikerX += (attempts % 2 === 0 ? 1 : -1) * (attempts + 1) * 5;
+                    strikerX = Math.max(minX, Math.min(maxX, strikerX));
+                }
+            }
+
+            gameState.striker = new Piece(strikerX, strikerY, CONFIG.strikerRadius, 'striker');
+            gameState.strikerPosition = { x: strikerX, y: strikerY };
+        }
+
+        // Return a coin to center (find empty spot near center)
+        function returnToCenter(piece) {
+            piece.pocketed = false;
+            piece.vx = 0;
+            piece.vy = 0;
+            const center = CONFIG.boardSize / 2;
+
+            // Try center first, then spiral outward to find empty spot
+            const positions = [{ x: center, y: center }];
+            for (let r = CONFIG.coinRadius * 2.5; r < 80; r += CONFIG.coinRadius * 2.5) {
+                for (let a = 0; a < 6; a++) {
+                    const angle = (a / 6) * Math.PI * 2;
+                    positions.push({ x: center + Math.cos(angle) * r, y: center + Math.sin(angle) * r });
+                }
+            }
+
+            for (const pos of positions) {
+                let overlap = false;
+                for (const other of gameState.pieces) {
+                    if (other === piece || other.pocketed) continue;
+                    const dx = pos.x - other.x;
+                    const dy = pos.y - other.y;
+                    if (Math.sqrt(dx * dx + dy * dy) < piece.radius + other.radius + 2) {
+                        overlap = true; break;
+                    }
+                }
+                if (!overlap) {
+                    piece.x = pos.x;
+                    piece.y = pos.y;
+                    return;
+                }
+            }
+
+            // Fallback: just place at center
+            piece.x = center;
+            piece.y = center;
+        }
+
+        // ==================== COLLISION DETECTION ====================
+        function checkCollision(p1, p2) {
+            if (p1.pocketed || p2.pocketed) return false;
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            return (dx * dx + dy * dy) < (p1.radius + p2.radius) * (p1.radius + p2.radius);
+        }
+
+        function resolveCollision(p1, p2) {
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist === 0) return;
+
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const dvx = p1.vx - p2.vx;
+            const dvy = p1.vy - p2.vy;
+            const dvn = dvx * nx + dvy * ny;
+            if (dvn < 0) return;
+
+            const impulse = (2 * dvn) / (p1.mass + p2.mass);
+            p1.vx -= impulse * p2.mass * nx * CONFIG.restitution;
+            p1.vy -= impulse * p2.mass * ny * CONFIG.restitution;
+            p2.vx += impulse * p1.mass * nx * CONFIG.restitution;
+            p2.vy += impulse * p1.mass * ny * CONFIG.restitution;
+
+            const overlap = (p1.radius + p2.radius - dist) / 2 + 0.5;
+            p1.x -= overlap * nx;
+            p1.y -= overlap * ny;
+            p2.x += overlap * nx;
+            p2.y += overlap * ny;
+        }
+
+        function checkPockets() {
+            const pocketR = CONFIG.pocketRadius;
+            const allPieces = [...gameState.pieces, gameState.striker];
+
+            allPieces.forEach(piece => {
+                if (piece.pocketed) return;
+                for (const pocket of POCKETS) {
+                    const dx = piece.x - pocket.x;
+                    const dy = piece.y - pocket.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < pocketR) {
+                        piece.pocketed = true;
+                        piece.vx = 0;
+                        piece.vy = 0;
+                        if (piece.type !== 'striker') {
+                            gameState.pocketedThisTurn.push(piece);
+                        }
+                        break;
+                    }
+                }
+            });
+        }
+
+        // ==================== GAME LOGIC ====================
+        function shoot(vx, vy) {
+            if (gameState.isAnimating || gameState.gameOver) return;
+            gameState.striker.vx = vx;
+            gameState.striker.vy = vy;
+            gameState.isAnimating = true;
+            gameState.pocketedThisTurn = [];
+        }
+
+        function processTurnEnd() {
+            const pocketed = gameState.pocketedThisTurn;
+            const strikerPocketed = gameState.striker.pocketed;
+
+            let anyCoinPocketed = false;
+            let ownColorPocketed = false;
+            const currentColor = gameState.currentPlayer === 1 ? gameState.player1Color : gameState.player2Color;
+
+            // If striker was pocketed (FOUL):
+            // - All coins pocketed this turn come back to center
+            // - Player loses 10 points (min 0)
+            if (strikerPocketed) {
+                showFoulMessage('Foul! -10 points');
+
+                // Return all coins pocketed this turn to center
+                pocketed.forEach(piece => {
+                    returnToCenter(piece);
+                });
+
+                // Deduct 10 points
+                if (gameState.currentPlayer === 1) {
+                    gameState.player1Score = Math.max(0, gameState.player1Score - 10);
+                } else {
+                    gameState.player2Score = Math.max(0, gameState.player2Score - 10);
+                }
+
+                // Switch turn
+                gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+            } else {
+                // No foul — process normally
+                pocketed.forEach(piece => {
+                    if (piece.type === 'queen') {
+                        gameState.queenPocketed = true;
+                        gameState.lastQueenPocketedBy = gameState.currentPlayer;
+                        anyCoinPocketed = true;
+                    } else {
+                        anyCoinPocketed = true;
+                        const points = piece.type === 'black' ? CONFIG.blackCoinValue : CONFIG.whiteCoinValue;
+                        if (piece.type === 'black') {
+                            gameState.player1Score += points;
+                        } else {
+                            gameState.player2Score += points;
+                        }
+                        if (piece.type === currentColor) ownColorPocketed = true;
+                    }
+                });
+
+                // Queen cover rule: queen needs another own-color coin pocketed same turn
+                if (gameState.queenPocketed && !gameState.queenCovered) {
+                    if (ownColorPocketed) {
+                        // Queen is covered! Award points
+                        gameState.queenCovered = true;
+                        if (gameState.lastQueenPocketedBy === 1) gameState.player1Score += CONFIG.queenValue;
+                        else gameState.player2Score += CONFIG.queenValue;
+                    } else {
+                        // Queen pocketed alone without cover — return queen to center
+                        const queen = gameState.pieces.find(p => p.type === 'queen');
+                        if (queen && queen.pocketed) {
+                            returnToCenter(queen);
+                            gameState.queenPocketed = false;
+                            gameState.lastQueenPocketedBy = null;
+                        }
+                    }
+                }
+
+                // Turn switching
+                if (!anyCoinPocketed) {
+                    gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+                }
+            }
+
+            updateScoreDisplay();
+
+            if (checkWinCondition()) return;
+
+            resetStriker();
+            gameState.isAnimating = false;
+            updateTurnIndicator();
+        }
+
+        function checkWinCondition() {
+            let blackRemaining = 0, whiteRemaining = 0;
+            gameState.pieces.forEach(p => {
+                if (!p.pocketed) {
+                    if (p.type === 'black') blackRemaining++;
+                    if (p.type === 'white') whiteRemaining++;
+                }
+            });
+
+            if (blackRemaining === 0 && (!gameState.queenPocketed || gameState.queenCovered)) {
+                showWinModal(1); return true;
+            }
+            if (whiteRemaining === 0 && (!gameState.queenPocketed || gameState.queenCovered)) {
+                showWinModal(2); return true;
+            }
+            return false;
+        }
+
+        function showFoulMessage(message) {
+            const el = document.getElementById('foulMessage');
+            el.textContent = message;
+            el.classList.add('active');
+            setTimeout(() => el.classList.remove('active'), 2000);
+        }
+
+        function showWinModal(winner) {
+            gameState.gameOver = true;
+            document.getElementById('winner-text').textContent = `Player ${winner} Wins!`;
+            document.getElementById('winner-score').textContent = `Final Score: ${gameState.player1Score} - ${gameState.player2Score}`;
+            document.getElementById('winModal').classList.add('active');
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('player1-score').textContent = gameState.player1Score;
+            document.getElementById('player2-score').textContent = gameState.player2Score;
+        }
+
+        function updateTurnIndicator() {
+            const isP1 = gameState.currentPlayer === 1;
+            document.getElementById('turn-indicator').textContent =
+                `Player ${gameState.currentPlayer}'s Turn`;
+
+            document.body.classList.toggle('player1-turn', isP1);
+            document.body.classList.toggle('player2-turn', !isP1);
+
+            document.getElementById('player1-card').classList.toggle('active', isP1);
+            document.getElementById('player2-card').classList.toggle('active', !isP1);
+        }
+
+        function resetGame() {
+            gameState = {
+                currentPlayer: 1, player1Score: 0, player2Score: 0,
+                player1Color: 'black', player2Color: 'white',
+                queenPocketed: false, queenCovered: false, lastQueenPocketedBy: null,
+                isAnimating: false, gameOver: false,
+                strikerPosition: { x: 0, y: 0 }, pieces: [], striker: null,
+                pocketedThisTurn: [], turnEndPending: false
+            };
+            document.getElementById('winModal').classList.remove('active');
+            initializePieces();
+            updateScoreDisplay();
+            updateTurnIndicator();
+        }
+
+        // ==================== DRAWING HELPERS ====================
+        function drawSlingshot() {
+            if (gameState.isAnimating || gameState.gameOver) return;
+            if (!dragState.isAiming) return;
+
+            const s = gameState.striker;
+            const dx = dragState.currentX - s.x;
+            const dy = dragState.currentY - s.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 5) return;
+
+            // Pull line
+            ctx.beginPath();
+            ctx.moveTo(s.x, s.y);
+            ctx.lineTo(dragState.currentX, dragState.currentY);
+            ctx.strokeStyle = 'rgba(200,80,80,0.4)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Drag handle
+            ctx.beginPath();
+            ctx.arc(dragState.currentX, dragState.currentY, 5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(200,80,80,0.6)';
+            ctx.fill();
+
+            // Shoot direction (dashed)
+            const shootDist = Math.min(dist, CONFIG.maxDragPower / CONFIG.dragScale);
+            const shootX = s.x - (dx / dist) * shootDist * 0.8;
+            const shootY = s.y - (dy / dist) * shootDist * 0.8;
+
+            ctx.beginPath();
+            ctx.setLineDash([4, 4]);
+            ctx.moveTo(s.x, s.y);
+            ctx.lineTo(shootX, shootY);
+            ctx.strokeStyle = 'rgba(255,200,80,0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Arrow tip
+            ctx.beginPath();
+            ctx.arc(shootX, shootY, 4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,200,80,0.8)';
+            ctx.fill();
+
+            // Power %
+            const power = Math.min(dist * CONFIG.dragScale, CONFIG.maxDragPower);
+            const powerPercent = Math.round((power / CONFIG.maxDragPower) * 100);
+            ctx.font = '11px Poppins';
+            ctx.fillStyle = powerPercent > 70 ? '#ff6666' : 'rgba(255,200,80,0.9)';
+            ctx.textAlign = 'center';
+            ctx.fillText(powerPercent + '%', dragState.currentX, dragState.currentY - 10);
+        }
+
+        // ==================== GAME LOOP ====================
+        function gameLoop() {
+            ctx.clearRect(0, 0, CONFIG.boardSize, CONFIG.boardSize);
+            drawBoard();
+
+            if (gameState.isAnimating) {
+                for (let step = 0; step < CONFIG.physicsSteps; step++) {
+                    if (gameState.striker && !gameState.striker.pocketed) {
+                        gameState.striker.stepPhysics();
+                    }
+                    gameState.pieces.forEach(p => p.stepPhysics());
+
+                    const activePieces = gameState.pieces.filter(p => !p.pocketed);
+                    if (gameState.striker && !gameState.striker.pocketed) activePieces.push(gameState.striker);
+
+                    for (let pass = 0; pass < 2; pass++) {
+                        for (let i = 0; i < activePieces.length; i++) {
+                            for (let j = i + 1; j < activePieces.length; j++) {
+                                if (checkCollision(activePieces[i], activePieces[j])) {
+                                    resolveCollision(activePieces[i], activePieces[j]);
+                                }
+                            }
+                        }
+                    }
+
+                    checkPockets();
+                }
+
+                let anyMoving = false;
+                if (gameState.striker && !gameState.striker.pocketed && gameState.striker.isMoving()) anyMoving = true;
+                gameState.pieces.forEach(p => { if (p.isMoving()) anyMoving = true; });
+
+                if (!anyMoving && !gameState.turnEndPending) {
+                    gameState.turnEndPending = true;
+                    setTimeout(() => {
+                        processTurnEnd();
+                        gameState.turnEndPending = false;
+                    }, 400);
+                }
+            }
+
+            gameState.pieces.forEach(p => p.draw());
+            if (gameState.striker) gameState.striker.draw();
+            if (!gameState.isAnimating) drawSlingshot();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ==================== DRAG & SLINGSHOT CONTROLS ====================
+        const dragState = {
+            isDragging: false,
+            isAiming: false,
+            startX: 0, startY: 0,
+            currentX: 0, currentY: 0
+        };
+
+        function getCanvasPos(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: ((clientX - rect.left) / rect.width) * CONFIG.boardSize,
+                y: ((clientY - rect.top) / rect.height) * CONFIG.boardSize
+            };
+        }
+
+        function isOnStriker(x, y) {
+            const s = gameState.striker;
+            return Math.sqrt((x - s.x) ** 2 + (y - s.y) ** 2) < s.radius * 2.5;
+        }
+
+        function tryPositionStriker(x) {
+            const size = CONFIG.boardSize;
+            const innerPad = CONFIG.boardPadding + 25;
+            const strikerY = gameState.currentPlayer === 1 ? size - CONFIG.strikerLineOffset : CONFIG.strikerLineOffset;
+            const minX = innerPad + 35 + CONFIG.strikerRadius;
+            const maxX = size - innerPad - 35 - CONFIG.strikerRadius;
+            const cx = Math.max(minX, Math.min(maxX, x));
+
+            for (const piece of gameState.pieces) {
+                if (piece.pocketed) continue;
+                const dx = cx - piece.x;
+                const dy = strikerY - piece.y;
+                if (Math.sqrt(dx * dx + dy * dy) < CONFIG.strikerRadius + piece.radius + 2) return false;
+            }
+            gameState.striker.x = cx;
+            gameState.striker.y = strikerY;
+            return true;
+        }
+
+        function handlePointerDown(clientX, clientY) {
+            if (gameState.isAnimating || gameState.gameOver) return;
+            const pos = getCanvasPos(clientX, clientY);
+
+            if (isOnStriker(pos.x, pos.y)) {
+                dragState.isDragging = true;
+                dragState.startX = pos.x;
+                dragState.startY = pos.y;
+            }
+        }
+
+        function handlePointerMove(clientX, clientY) {
+            if (!dragState.isDragging && !dragState.isAiming) return;
+            const pos = getCanvasPos(clientX, clientY);
+
+            if (dragState.isDragging && !dragState.isAiming) {
+                const s = gameState.striker;
+                const strikerY = gameState.currentPlayer === 1 ?
+                    CONFIG.boardSize - CONFIG.strikerLineOffset : CONFIG.strikerLineOffset;
+                const distFromLine = Math.abs(pos.y - strikerY);
+                const distFromStart = Math.sqrt((pos.x - dragState.startX) ** 2 + (pos.y - dragState.startY) ** 2);
+
+                if (distFromLine < 30 && !dragState.isAiming) {
+                    tryPositionStriker(pos.x);
+                } else if (distFromStart > 15) {
+                    dragState.isAiming = true;
+                    dragState.currentX = pos.x;
+                    dragState.currentY = pos.y;
+                    document.getElementById('strikerHint').textContent = 'Release to shoot!';
+                }
+            }
+
+            if (dragState.isAiming) {
+                dragState.currentX = pos.x;
+                dragState.currentY = pos.y;
+            }
+        }
+
+        function handlePointerUp() {
+            if (dragState.isAiming) {
+                const s = gameState.striker;
+                const dx = dragState.currentX - s.x;
+                const dy = dragState.currentY - s.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > 10) {
+                    const power = Math.min(dist * CONFIG.dragScale, CONFIG.maxDragPower);
+                    const vx = -(dx / dist) * power;
+                    const vy = -(dy / dist) * power;
+                    shoot(vx, vy);
+                }
+
+                document.getElementById('strikerHint').textContent =
+                    'Drag striker to position, then pull back and release to shoot';
+            }
+
+            dragState.isDragging = false;
+            dragState.isAiming = false;
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', (e) => handlePointerDown(e.clientX, e.clientY));
+        document.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
+        document.addEventListener('mouseup', () => handlePointerUp());
+
+        // Touch events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        });
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            handlePointerUp();
+        });
+
+        // ==================== INITIALIZE ====================
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            initializePieces();
+            updateTurnIndicator();
+            gameLoop();
+        });
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+</html>
