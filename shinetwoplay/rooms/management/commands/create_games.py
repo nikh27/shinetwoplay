@@ -49,6 +49,12 @@ class Command(BaseCommand):
                 'image_url': '/static/games/treecutter.png',
                 'description': 'Race to chop 100 logs! Dodge the branches or get stunned!',
             },
+            {
+                'game_id': 'snakes',
+                'name': 'Snakes',
+                'image_url': '/static/games/snakes.png',
+                'description': 'Real-time 2-player snake battle! Control your snake and outlast your opponent!',
+            },
         ]
 
         created_count = 0

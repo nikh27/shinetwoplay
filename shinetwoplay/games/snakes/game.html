@@ -1,0 +1,946 @@
+<!-- Snakes Game UI — Real-time 2-player online snake battle -->
+<style>
+/* ===== Snakes Styles ===== */
+.sn-wrapper {
+    display: flex; flex-direction: column; align-items: center;
+    width: 100%; max-width: 100vw; height: 100%;
+    user-select: none; -webkit-user-select: none;
+    overflow: hidden; position: relative;
+    font-family: 'Inter', sans-serif;
+    background: #080810;
+    touch-action: none;
+}
+
+/* Header */
+.sn-header {
+    display: flex; align-items: center; width: 100%;
+    padding: 6px 10px; box-sizing: border-box; flex-shrink: 0;
+    gap: 8px; background: rgba(0,0,0,0.4); z-index: 10;
+}
+.sn-exit-btn {
+    width: 30px; height: 30px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6);
+    font-size: 14px; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0;
+}
+.sn-exit-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+.sn-score-strip {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.sn-ps { display: flex; align-items: center; gap: 6px; }
+.sn-ps.right { flex-direction: row-reverse; }
+.sn-av {
+    width: 30px; height: 30px; border-radius: 50%; overflow: hidden;
+    border: 2px solid; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.3); flex-shrink: 0;
+}
+.sn-av.c1 { border-color: #ef4444; }
+.sn-av.c2 { border-color: #38bdf8; }
+.sn-av img { width: 100%; height: 100%; object-fit: cover; }
+.sn-pinfo { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.sn-ps.right .sn-pinfo { align-items: flex-end; }
+.sn-pn {
+    font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.9);
+    max-width: 70px; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; line-height: 1.2;
+}
+.sn-pt { font-size: 8px; font-weight: 800; letter-spacing: 0.1em; line-height: 1; }
+.sn-pt.you { color: #34d399; }
+.sn-pt.opp { color: #fbbf24; }
+
+.sn-scores { display: flex; align-items: center; gap: 6px; padding: 0 4px; }
+.sn-sn {
+    font-size: 28px; font-weight: 900; font-family: 'Orbitron', 'Inter', monospace;
+    min-width: 24px; text-align: center;
+}
+.sn-sn.c1 { color: #ef4444; text-shadow: 0 0 10px rgba(239,68,68,0.5); }
+.sn-sn.c2 { color: #38bdf8; text-shadow: 0 0 10px rgba(56,189,248,0.5); }
+.sn-sdash { color: #888; font-weight: 700; font-size: 14px; }
+.sn-round-badge {
+    padding: 3px 8px; border-radius: 8px;
+    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4);
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em; flex-shrink: 0;
+}
+
+/* Arena */
+.sn-arena-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    width: 100%; min-height: 0; overflow: hidden; position: relative;
+}
+.sn-arena-wrap canvas { display: block; }
+/* P2 sees flipped arena */
+.sn-arena-wrap.flipped canvas { transform: rotate(180deg); }
+
+/* Joystick zone — bottom */
+.sn-joy-zone {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    height: 110px; width: 100%; position: relative;
+    background: linear-gradient(0deg, rgba(255,255,255,0.02), transparent);
+}
+.sn-joystick { width: 90px; height: 90px; position: relative; }
+.sn-joy-base {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
+    border: 1.5px solid rgba(255,255,255,0.06);
+}
+.sn-joy-knob {
+    position: absolute; width: 42px; height: 42px; border-radius: 50%;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    transition: transform 0.05s ease-out; pointer-events: none;
+}
+.sn-joy-knob.p1 {
+    background: radial-gradient(circle at 35% 30%, #f87171, #b91c1c);
+    box-shadow: 0 2px 14px rgba(239,68,68,0.5), inset 0 1px 2px rgba(255,255,255,0.2);
+}
+.sn-joy-knob.p2 {
+    background: radial-gradient(circle at 35% 30%, #7dd3fc, #0369a1);
+    box-shadow: 0 2px 14px rgba(56,189,248,0.5), inset 0 1px 2px rgba(255,255,255,0.2);
+}
+.sn-joy-lbl {
+    position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%);
+    font-family: 'Orbitron', sans-serif; font-size: 0.48em; letter-spacing: 2px;
+    color: #333; white-space: nowrap;
+}
+
+/* Overlays */
+.sn-overlay {
+    position: absolute; inset: 0;
+    background: rgba(5,5,10,0.9); backdrop-filter: blur(14px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 50; padding: 20px; text-align: center;
+}
+.sn-overlay.hidden { display: none; }
+.sn-overlay-emoji { font-size: 40px; margin-bottom: 8px; animation: sn-bob 2.5s ease-in-out infinite; }
+@keyframes sn-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+.sn-overlay-title {
+    font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900;
+    letter-spacing: 3px; color: #fff;
+    background: linear-gradient(135deg, #ef4444, #f97316, #ef4444);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.sn-overlay-sub { font-size: 12px; color: #9ca3af; letter-spacing: 0.1em; margin-top: 4px; }
+.sn-role-tag {
+    padding: 4px 12px; border-radius: 14px; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; margin-top: 8px; display: inline-block;
+}
+.sn-role-tag.p1 { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.25); }
+.sn-role-tag.p2 { background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.25); }
+.sn-waiting {
+    font-size: 11px; color: #6b7280; margin-top: 12px;
+    animation: sn-pulse 1.4s ease-in-out infinite;
+}
+@keyframes sn-pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+/* Countdown */
+.sn-cd {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    z-index: 90; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px);
+}
+.sn-cd.hidden { display: none; }
+.sn-cd-n {
+    font-family: 'Orbitron', sans-serif; font-size: 4.5em; font-weight: 900;
+    color: #fff; text-shadow: 0 0 40px rgba(255,255,255,0.3);
+    animation: sn-cdp 0.5s ease-out;
+}
+@keyframes sn-cdp { 0%{transform:scale(2.5);opacity:0} 100%{transform:scale(1);opacity:1} }
+
+/* Game Over / Round Over */
+.sn-result-text {
+    font-size: 24px; font-weight: 900; text-shadow: 0 0 25px currentColor; margin-bottom: 8px;
+}
+.sn-final-row { display: flex; gap: 30px; margin-bottom: 15px; align-items: flex-end; }
+.sn-final-block { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.sn-final-circle {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 900; color: #fff;
+}
+.sn-final-circle.p1 { background: linear-gradient(180deg, #ef4444, #dc2626); box-shadow: 0 3px 0 #961f14; }
+.sn-final-circle.p2 { background: linear-gradient(180deg, #38bdf8, #0284c7); box-shadow: 0 3px 0 #0c4a6e; }
+.sn-next-round {
+    font-size: 11px; color: #9ca3af; margin-top: 8px;
+    animation: sn-pulse 1s ease-in-out infinite;
+}
+
+@keyframes sn-pop { 0%{transform:scale(1)} 50%{transform:scale(1.2)} 100%{transform:scale(1)} }
+.sn-pop { animation: sn-pop 0.25s ease-out; }
+
+/* HUD timer overlaid on canvas */
+.sn-hud-timer {
+    position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif; font-size: 0.55em; color: #333;
+    letter-spacing: 2px; z-index: 5; pointer-events: none;
+}
+</style>
+
+<div class="sn-wrapper">
+    <!-- Header -->
+    <div class="sn-header">
+        <div style="display:flex;gap:6px;align-items:center;">
+            <button class="sn-exit-btn" onclick="exitGame()" title="Exit">✕</button>
+            <button class="sn-exit-btn" id="sn-mic-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+            <button class="sn-exit-btn" id="sn-spk-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">🔊</button>
+        </div>
+        <div class="sn-score-strip">
+            <div class="sn-ps" id="sn-ps1">
+                <div class="sn-av c1" id="sn-av1"></div>
+                <div class="sn-pinfo">
+                    <div class="sn-pn" id="sn-pn1">P1</div>
+                    <div class="sn-pt" id="sn-pt1"></div>
+                </div>
+            </div>
+            <div class="sn-scores">
+                <div class="sn-sn c1" id="sn-s1">0</div>
+                <div class="sn-sdash">–</div>
+                <div class="sn-sn c2" id="sn-s2">0</div>
+            </div>
+            <div class="sn-ps right" id="sn-ps2">
+                <div class="sn-av c2" id="sn-av2"></div>
+                <div class="sn-pinfo">
+                    <div class="sn-pn" id="sn-pn2">P2</div>
+                    <div class="sn-pt" id="sn-pt2"></div>
+                </div>
+            </div>
+        </div>
+        <div class="sn-round-badge" id="sn-round"></div>
+    </div>
+
+    <!-- Arena -->
+    <div class="sn-arena-wrap" id="sn-arena-wrap">
+        <canvas id="sn-canvas"></canvas>
+        <div class="sn-hud-timer" id="sn-timer">00:00</div>
+
+        <!-- Start overlay -->
+        <div class="sn-overlay" id="sn-menu">
+            <div class="sn-overlay-emoji">🐍</div>
+            <div class="sn-overlay-title">SNAKES</div>
+            <div class="sn-overlay-sub">2 PLAYER BATTLE</div>
+            <div id="sn-role-text"></div>
+            <div class="sn-waiting" id="sn-wait-text">Starting game...</div>
+        </div>
+
+        <!-- Countdown -->
+        <div class="sn-cd hidden" id="sn-cd"><div class="sn-cd-n" id="sn-cd-n">3</div></div>
+
+        <!-- Game Over -->
+        <div class="sn-overlay hidden" id="sn-gameover">
+            <div class="sn-overlay-emoji" id="sn-go-emoji">🏆</div>
+            <div class="sn-result-text" id="sn-go-text">WINNER!</div>
+            <div class="sn-final-row">
+                <div class="sn-final-block">
+                    <div class="sn-final-circle p1" id="sn-go-s1">0</div>
+                    <div style="color:#ef4444;font-size:10px;font-weight:700" id="sn-go-l1">P1</div>
+                </div>
+                <div class="sn-final-block">
+                    <div class="sn-final-circle p2" id="sn-go-s2">0</div>
+                    <div style="color:#38bdf8;font-size:10px;font-weight:700" id="sn-go-l2">P2</div>
+                </div>
+            </div>
+            <div class="sn-next-round" id="sn-next-text"></div>
+        </div>
+    </div>
+
+    <!-- Joystick at bottom -->
+    <div class="sn-joy-zone" id="sn-joy-zone">
+        <div class="sn-joystick" id="sn-joy">
+            <div class="sn-joy-base"></div>
+            <div class="sn-joy-knob" id="sn-knob"></div>
+            <div class="sn-joy-lbl" id="sn-joy-lbl">YOU</div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    /* ========== LINK FONT ========== */
+    if (!document.querySelector('link[href*="Orbitron"]')) {
+        const lk = document.createElement('link');
+        lk.rel = 'stylesheet';
+        lk.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;700&display=swap';
+        document.head.appendChild(lk);
+    }
+
+    /* ========== CONSTANTS ========== */
+    const SPEED = 1.8;
+    const SEG_SP = 6;
+    const HEAD_R = 13;
+    const BODY_R = 10;
+    const GROW_MS = 300;
+    const HIT_R = 15;
+    const TURN_SPEED = 0.13;
+
+    const C1 = {h:'#ef4444',b:'#dc2626',d:'#7f1d1d',s:'#b91c1c',g:'rgba(239,68,68,0.4)',t:'#fca5a5'};
+    const C2 = {h:'#38bdf8',b:'#0284c7',d:'#0c4a6e',s:'#0369a1',g:'rgba(56,189,248,0.4)',t:'#bae6fd'};
+
+    class SnakesGame extends BaseGame {
+        constructor() {
+            super();
+            this.gameMode = 'real_time';
+            this.myRole = null;
+            this.playing = false;
+            this.totalRounds = 1;
+            this._waitingForServer = false;
+
+            this.canvas = document.getElementById('sn-canvas');
+            this.ctx = this.canvas.getContext('2d');
+            this.AW = 375; this.AH = 500;
+
+            this.s1 = []; this.s2 = [];
+            this.a1 = 0; this.a2 = 0;
+            this.jA = null; // my joystick angle
+            this.remoteJA = null; // opponent joystick angle
+            this.score = { p1: 0, p2: 0 };
+            this.lastGrow = 0;
+            this.startT = 0;
+            this.fc = 0;
+
+            this._raf = null;
+            this._inputTimer = null;
+            this._syncTimer = null;
+            this._joyOn = false;
+            this._joyTid = null;
+        }
+
+        /* ===== INIT ===== */
+        init(state) {
+            this.state = state;
+            const gp = state.players;
+            this.myRole = (gp['P1'] === USER) ? 'P1' : 'P2';
+            this.totalRounds = state.total_rounds || 1;
+
+            this._setupScoreboard(gp);
+            this._updateRoundBadge();
+
+            // Set role tag
+            const rt = document.getElementById('sn-role-text');
+            rt.innerHTML = `<span class="sn-role-tag ${this.myRole==='P1'?'p1':'p2'}">You are ${this.myRole==='P1'?'Red Snake':'Blue Snake'}</span>`;
+
+            // Flip arena for P2 so their controller is at bottom relative to their snake
+            if (this.myRole === 'P2') {
+                document.getElementById('sn-arena-wrap').classList.add('flipped');
+            }
+
+            // Set joystick knob color
+            const knob = document.getElementById('sn-knob');
+            knob.className = 'sn-joy-knob ' + (this.myRole === 'P1' ? 'p1' : 'p2');
+
+            this._resizeCanvas();
+            window.addEventListener('resize', () => this._resizeCanvas());
+            this._setupJoystick();
+
+            // Start after 2s
+            setTimeout(() => this._startMatch(), 2000);
+        }
+
+        _setupScoreboard(gp) {
+            const roomP = (typeof players !== 'undefined') ? players : {};
+            for (const role of ['P1', 'P2']) {
+                const uname = gp[role];
+                const n = role === 'P1' ? '1' : '2';
+                document.getElementById('sn-pn' + n).textContent = uname || role;
+
+                const avEl = document.getElementById('sn-av' + n);
+                const pd = roomP[uname];
+                if (pd && pd.gender === 'female') avEl.innerHTML = `<img src="/static/games/icons/avatar_female.png" alt="">`;
+                else if (pd && pd.gender) avEl.innerHTML = `<img src="/static/games/icons/avatar_male.png" alt="">`;
+                else avEl.innerHTML = `<span style="font-size:14px">👤</span>`;
+
+                const tag = document.getElementById('sn-pt' + n);
+                if (uname === USER) { tag.textContent = 'YOU'; tag.className = 'sn-pt you'; }
+                else { tag.textContent = 'OPP'; tag.className = 'sn-pt opp'; }
+            }
+
+            // Game over labels
+            document.getElementById('sn-go-l1').textContent = gp['P1'] || 'P1';
+            document.getElementById('sn-go-l2').textContent = gp['P2'] || 'P2';
+        }
+
+        _resizeCanvas() {
+            const wrap = document.getElementById('sn-arena-wrap');
+            this.AW = Math.min(wrap.clientWidth, 430);
+            this.AH = wrap.clientHeight;
+            if (this.AW < 100) this.AW = 375;
+            if (this.AH < 100) this.AH = 500;
+            this.canvas.width = this.AW;
+            this.canvas.height = this.AH;
+        }
+
+        _updateRoundBadge() {
+            const badge = document.getElementById('sn-round');
+            const cr = this.state ? Math.min(this.state.current_round || 1, this.totalRounds) : 1;
+            badge.textContent = `R${cr}/${this.totalRounds}`;
+        }
+
+        /* ===== JOYSTICK ===== */
+        _setupJoystick() {
+            const el = document.getElementById('sn-joy');
+            const knob = document.getElementById('sn-knob');
+            let cx, cy, rad;
+            const self = this;
+
+            function mv(px, py) {
+                const dx = px - cx, dy = py - cy;
+                const d = Math.sqrt(dx * dx + dy * dy);
+                const mx = rad - 21;
+                let nx = dx, ny = dy;
+                if (d > mx) { nx = dx / d * mx; ny = dy / d * mx; }
+                knob.style.transform = `translate(calc(-50% + ${nx}px),calc(-50% + ${ny}px))`;
+                if (d > 8) {
+                    self.jA = Math.atan2(dy, dx);
+                }
+            }
+            function rst() { knob.style.transform = 'translate(-50%,-50%)'; self._joyOn = false; self._joyTid = null; }
+
+            el.addEventListener('touchstart', e => {
+                e.preventDefault(); if (self._joyOn) return;
+                const t = e.changedTouches[0]; self._joyTid = t.identifier; self._joyOn = true;
+                const r = el.getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; rad = r.width / 2;
+                mv(t.clientX, t.clientY);
+            }, { passive: false });
+            el.addEventListener('touchmove', e => {
+                e.preventDefault(); if (!self._joyOn) return;
+                for (const t of e.changedTouches) if (t.identifier === self._joyTid) { mv(t.clientX, t.clientY); break; }
+            }, { passive: false });
+            const end = e => { for (const t of e.changedTouches) if (t.identifier === self._joyTid) { rst(); break; } };
+            el.addEventListener('touchend', end);
+            el.addEventListener('touchcancel', end);
+
+            el.addEventListener('mousedown', e => {
+                self._joyOn = true;
+                const r = el.getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; rad = r.width / 2;
+                mv(e.clientX, e.clientY);
+                const mm = ev => { if (self._joyOn) mv(ev.clientX, ev.clientY); };
+                const mu = () => { rst(); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+                document.addEventListener('mousemove', mm); document.addEventListener('mouseup', mu);
+            });
+
+            // Keyboard fallback
+            this._kd = {};
+            this._kbHandler = e => { this._kd[e.key] = true; };
+            this._kuHandler = e => { this._kd[e.key] = false; };
+            document.addEventListener('keydown', this._kbHandler);
+            document.addEventListener('keyup', this._kuHandler);
+        }
+
+        _readKeyboard() {
+            let x = 0, y = 0;
+            const kd = this._kd;
+            if (this.myRole === 'P1') {
+                if (kd.w || kd.W) y--; if (kd.s || kd.S) y++; if (kd.a || kd.A) x--; if (kd.d || kd.D) x++;
+            } else {
+                if (kd.ArrowUp) y--; if (kd.ArrowDown) y++; if (kd.ArrowLeft) x--; if (kd.ArrowRight) x++;
+            }
+            if (x || y) this.jA = Math.atan2(y, x);
+        }
+
+        /* ===== MATCH FLOW ===== */
+        _startMatch() {
+            document.getElementById('sn-menu').classList.add('hidden');
+            document.getElementById('sn-gameover').classList.add('hidden');
+
+            this._initSnakes();
+            this._drawFrame();
+
+            // Countdown
+            this._doCountdown(() => {
+                this.playing = true;
+                this.lastGrow = performance.now();
+                this.startT = performance.now();
+                this.fc = 0;
+
+                // Start input streaming
+                if (this._inputTimer) clearInterval(this._inputTimer);
+                this._inputTimer = setInterval(() => this._sendJoy(), 1000 / 15);
+
+                // P1 syncs state
+                if (this.myRole === 'P1') {
+                    if (this._syncTimer) clearInterval(this._syncTimer);
+                    this._syncTimer = setInterval(() => this._sendSync(), 1000 / 12);
+                }
+
+                this._loop(performance.now());
+            });
+        }
+
+        _initSnakes() {
+            const AW = this.AW, AH = this.AH;
+            const n = 10;
+            this.s1 = [];
+            for (let i = 0; i < n; i++) this.s1.push({ x: AW * 0.35, y: AH - 80 + i * SEG_SP });
+            this.a1 = -Math.PI / 2;
+
+            this.s2 = [];
+            for (let i = 0; i < n; i++) this.s2.push({ x: AW * 0.65, y: 80 - i * SEG_SP });
+            this.a2 = Math.PI / 2;
+
+            this.jA = null;
+            this.remoteJA = null;
+        }
+
+        _doCountdown(cb) {
+            const el = document.getElementById('sn-cd');
+            const n = document.getElementById('sn-cd-n');
+            el.classList.remove('hidden');
+            let c = 3;
+            n.textContent = c;
+            n.style.color = '#fff';
+            const iv = setInterval(() => {
+                c--;
+                if (c > 0) {
+                    n.textContent = c;
+                    n.style.animation = 'none'; void n.offsetWidth; n.style.animation = 'sn-cdp 0.5s ease-out';
+                } else if (c === 0) {
+                    n.textContent = 'GO!'; n.style.color = '#10b981';
+                    n.style.animation = 'none'; void n.offsetWidth; n.style.animation = 'sn-cdp 0.5s ease-out';
+                } else {
+                    clearInterval(iv); el.classList.add('hidden'); cb();
+                }
+            }, 700);
+        }
+
+        /* ===== NETWORKING ===== */
+        _sendJoy() {
+            if (this.jA !== null) {
+                this.sendInput({ type: 'j', a: this.jA });
+            }
+        }
+        _sendSync() {
+            if (this.myRole !== 'P1' || !this.playing) return;
+            this.sendInput({
+                type: 'sync',
+                s1: this.s1.filter((_, i) => i % 2 === 0), // send every other segment to save bandwidth
+                s2: this.s2.filter((_, i) => i % 2 === 0),
+                a1: this.a1, a2: this.a2,
+                l1: this.s1.length, l2: this.s2.length,
+                sc: this.score,
+                t: performance.now() - this.startT
+            });
+        }
+
+        onRemoteInput(player, d) {
+            if (player === USER) return;
+
+            if (d.type === 'j') {
+                this.remoteJA = d.a;
+            }
+            else if (d.type === 'sync' && this.myRole === 'P2') {
+                // Reconstruct full snake from sparse data
+                this.a1 = d.a1; this.a2 = d.a2;
+                this._interpolateSnake(this.s1, d.s1, d.l1);
+                this._interpolateSnake(this.s2, d.s2, d.l2);
+                if (d.sc) { this.score = d.sc; this._showScore(); }
+            }
+            else if (d.type === 'round_result') {
+                // P1 sent round result — P2 should show it
+                if (this.myRole === 'P2' && this.playing) {
+                    this.playing = false;
+                    if (this._raf) cancelAnimationFrame(this._raf);
+                    this._flashCanvas();
+                    this.score = d.sc || this.score;
+                    this._showScore();
+                }
+            }
+        }
+
+        _interpolateSnake(target, sparse, fullLen) {
+            // Fill target from sparse points (every other segment was sent)
+            target.length = 0;
+            for (let i = 0; i < sparse.length; i++) {
+                target.push({ x: sparse[i].x, y: sparse[i].y });
+                // Interpolate a point between this and next
+                if (i < sparse.length - 1) {
+                    target.push({
+                        x: (sparse[i].x + sparse[i + 1].x) / 2,
+                        y: (sparse[i].y + sparse[i + 1].y) / 2
+                    });
+                }
+            }
+            // Adjust to match expected length
+            while (target.length < fullLen && target.length > 0) {
+                target.push({ ...target[target.length - 1] });
+            }
+            while (target.length > fullLen) {
+                target.pop();
+            }
+        }
+
+        /* ===== GAME PHYSICS (P1 only) ===== */
+        _loop(ts) {
+            if (!this.playing) return;
+
+            if (this.myRole === 'P1') {
+                this._update();
+            } else {
+                // P2 just applies local joystick for responsiveness (will be corrected by sync)
+                this._readKeyboard();
+            }
+
+            this._drawFrame();
+            this._updateTimer();
+            this._raf = requestAnimationFrame(t => this._loop(t));
+        }
+
+        _update() {
+            this._readKeyboard();
+
+            // Apply joystick angles
+            const myJA = this.jA;
+            const oppJA = this.remoteJA;
+
+            // P1 controls s1, remote is P2 controlling s2
+            if (myJA !== null) this.a1 = this._lerpA(this.a1, myJA, TURN_SPEED);
+            if (oppJA !== null) this.a2 = this._lerpA(this.a2, oppJA, TURN_SPEED);
+
+            const AW = this.AW, AH = this.AH;
+
+            // Move heads
+            this.s1.unshift({ x: this._wrap(this.s1[0].x + Math.cos(this.a1) * SPEED, AW), y: this._wrap(this.s1[0].y + Math.sin(this.a1) * SPEED, AH) });
+            this.s2.unshift({ x: this._wrap(this.s2[0].x + Math.cos(this.a2) * SPEED, AW), y: this._wrap(this.s2[0].y + Math.sin(this.a2) * SPEED, AH) });
+
+            // Constrain body
+            this._constrainBody(this.s1);
+            this._constrainBody(this.s2);
+
+            // Grow
+            const now = performance.now();
+            if (now - this.lastGrow > GROW_MS) {
+                this.lastGrow = now;
+                this.s1.push({ ...this.s1[this.s1.length - 1] });
+                this.s2.push({ ...this.s2[this.s2.length - 1] });
+            }
+            this.s1.pop(); this.s2.pop();
+
+            // Collisions
+            const p1d = this._checkHit(this.s1, this.s2);
+            const p2d = this._checkHit(this.s2, this.s1);
+            const hh = this._wDist(this.s1[0], this.s2[0]) < HIT_R;
+
+            if (hh || (p1d && p2d)) { this._endRound('draw'); return; }
+            if (p1d) { this._endRound('P2'); return; }
+            if (p2d) { this._endRound('P1'); return; }
+
+            this.fc++;
+        }
+
+        _endRound(winner) {
+            this.playing = false;
+            if (this._raf) cancelAnimationFrame(this._raf);
+            this._flashCanvas();
+
+            this.score.p1 = this.s1.length;
+            this.score.p2 = this.s2.length;
+            this._showScore();
+
+            // Tell P2 about the result
+            this.sendInput({ type: 'round_result', winner, sc: this.score });
+
+            // Send to server
+            this.sendMove('round_end', {
+                winner: winner,
+                p1_score: this.score.p1,
+                p2_score: this.score.p2
+            });
+            this._waitingForServer = true;
+        }
+
+        _flashCanvas() {
+            this.canvas.style.filter = 'brightness(2.5)';
+            setTimeout(() => { this.canvas.style.filter = ''; }, 120);
+        }
+
+        /* ===== HELPERS ===== */
+        _wrap(v, max) { return ((v % max) + max) % max; }
+        _wDist(a, b) {
+            let dx = Math.abs(a.x - b.x), dy = Math.abs(a.y - b.y);
+            if (dx > this.AW / 2) dx = this.AW - dx;
+            if (dy > this.AH / 2) dy = this.AH - dy;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        _wDelta(ax, ay, bx, by) {
+            let dx = bx - ax, dy = by - ay;
+            if (dx > this.AW / 2) dx -= this.AW; if (dx < -this.AW / 2) dx += this.AW;
+            if (dy > this.AH / 2) dy -= this.AH; if (dy < -this.AH / 2) dy += this.AH;
+            return { dx, dy };
+        }
+        _lerpA(cur, tgt, spd) {
+            let d = tgt - cur;
+            while (d > Math.PI) d -= Math.PI * 2;
+            while (d < -Math.PI) d += Math.PI * 2;
+            return Math.abs(d) < spd ? tgt : cur + Math.sign(d) * spd;
+        }
+        _constrainBody(sn) {
+            for (let i = 1; i < sn.length; i++) {
+                const p = sn[i - 1], c = sn[i];
+                const { dx, dy } = this._wDelta(p.x, p.y, c.x, c.y);
+                const d = Math.sqrt(dx * dx + dy * dy);
+                if (d > SEG_SP) {
+                    const r = SEG_SP / d;
+                    sn[i].x = this._wrap(p.x + dx * r, this.AW);
+                    sn[i].y = this._wrap(p.y + dy * r, this.AH);
+                }
+            }
+        }
+        _checkHit(my, other) {
+            const h = my[0];
+            for (let i = 10; i < my.length; i++) if (this._wDist(h, my[i]) < HIT_R) return true;
+            for (let i = 0; i < other.length; i++) if (this._wDist(h, other[i]) < HIT_R) return true;
+            return false;
+        }
+
+        /* ===== DRAWING ===== */
+        _drawFrame() {
+            const ctx = this.ctx, AW = this.AW, AH = this.AH;
+            ctx.fillStyle = '#0b1015';
+            ctx.fillRect(0, 0, AW, AH);
+
+            // Subtle noise texture
+            ctx.fillStyle = 'rgba(255,255,255,0.008)';
+            for (let i = 0; i < 100; i++) { ctx.fillRect((i * 173 + 31) % AW, (i * 259 + 47) % AH, 1, 1); }
+
+            // Vignette
+            const vg = ctx.createRadialGradient(AW / 2, AH / 2, AH * 0.25, AW / 2, AH / 2, AH * 0.7);
+            vg.addColorStop(0, 'transparent'); vg.addColorStop(1, 'rgba(0,0,0,0.25)');
+            ctx.fillStyle = vg; ctx.fillRect(0, 0, AW, AH);
+
+            if (this.s2.length > 1) this._drawSnake(this.s2, this.a2, C2);
+            if (this.s1.length > 1) this._drawSnake(this.s1, this.a1, C1);
+        }
+
+        _drawSnake(sn, hAng, c) {
+            const ctx = this.ctx, AW = this.AW, AH = this.AH;
+            const len = sn.length; if (len < 2) return;
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+            const pairs = [];
+            for (let i = 0; i < len - 1; i++) {
+                const a = sn[i], b = sn[i + 1];
+                const { dx, dy } = this._wDelta(a.x, a.y, b.x, b.y);
+                const realDist = Math.sqrt(dx * dx + dy * dy);
+                if (realDist > SEG_SP * 3) continue;
+                const bx = a.x + dx, by = a.y + dy;
+                pairs.push({ ax: a.x, ay: a.y, bx, by, i });
+
+                const margin = BODY_R + 4;
+                const offsets = [];
+                if (a.x < margin || bx < margin) offsets.push({ ox: AW, oy: 0 });
+                if (a.x > AW - margin || bx > AW - margin) offsets.push({ ox: -AW, oy: 0 });
+                if (a.y < margin || by < margin) offsets.push({ ox: 0, oy: AH });
+                if (a.y > AH - margin || by > AH - margin) offsets.push({ ox: 0, oy: -AH });
+                if ((a.x < margin || bx < margin) && (a.y < margin || by < margin)) offsets.push({ ox: AW, oy: AH });
+                if ((a.x > AW - margin || bx > AW - margin) && (a.y < margin || by < margin)) offsets.push({ ox: -AW, oy: AH });
+                if ((a.x < margin || bx < margin) && (a.y > AH - margin || by > AH - margin)) offsets.push({ ox: AW, oy: -AH });
+                if ((a.x > AW - margin || bx > AW - margin) && (a.y > AH - margin || by > AH - margin)) offsets.push({ ox: -AW, oy: -AH });
+
+                for (const o of offsets) pairs.push({ ax: a.x + o.ox, ay: a.y + o.oy, bx: bx + o.ox, by: by + o.oy, i });
+            }
+
+            // Shadow
+            ctx.save(); ctx.globalAlpha = 0.18;
+            for (const p of pairs) {
+                const taper = 1 - (p.i / len) * 0.35;
+                ctx.lineWidth = BODY_R * 2 * taper + 3; ctx.strokeStyle = '#000';
+                ctx.beginPath(); ctx.moveTo(p.ax + 2, p.ay + 3); ctx.lineTo(p.bx + 2, p.by + 3); ctx.stroke();
+            }
+            ctx.restore();
+
+            // Body outer
+            for (const p of pairs) {
+                const taper = 1 - (p.i / len) * 0.35;
+                ctx.lineWidth = BODY_R * 2 * taper + 2; ctx.strokeStyle = c.d;
+                ctx.beginPath(); ctx.moveTo(p.ax, p.ay); ctx.lineTo(p.bx, p.by); ctx.stroke();
+            }
+            // Body main
+            for (const p of pairs) {
+                const taper = 1 - (p.i / len) * 0.35;
+                ctx.lineWidth = BODY_R * 2 * taper - 1; ctx.strokeStyle = (p.i % 4 < 2) ? c.b : c.s;
+                ctx.beginPath(); ctx.moveTo(p.ax, p.ay); ctx.lineTo(p.bx, p.by); ctx.stroke();
+            }
+
+            // Highlight stripe
+            ctx.save(); ctx.globalAlpha = 0.1;
+            for (const p of pairs) {
+                const taper = 1 - (p.i / len) * 0.35;
+                ctx.lineWidth = BODY_R * taper; ctx.strokeStyle = '#fff';
+                ctx.beginPath(); ctx.moveTo(p.ax - 2, p.ay - 2); ctx.lineTo(p.bx - 2, p.by - 2); ctx.stroke();
+            }
+            ctx.restore();
+
+            // Scale lines
+            ctx.save(); ctx.globalAlpha = 0.06; ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.6;
+            for (let i = 4; i < len; i += 4) {
+                const seg = sn[i], prev = sn[Math.max(0, i - 1)];
+                if (this._wDist(seg, prev) > SEG_SP * 3) continue;
+                const ang = Math.atan2(seg.y - prev.y, seg.x - prev.x) + Math.PI / 2;
+                const taper = 1 - (i / len) * 0.35;
+                const r = BODY_R * taper;
+                ctx.beginPath();
+                ctx.moveTo(seg.x + Math.cos(ang) * r, seg.y + Math.sin(ang) * r);
+                ctx.lineTo(seg.x - Math.cos(ang) * r, seg.y - Math.sin(ang) * r);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // Head
+            this._drawHead(sn[0].x, sn[0].y, hAng, c);
+            const hm = HEAD_R + 6;
+            if (sn[0].x < hm) this._drawHead(sn[0].x + AW, sn[0].y, hAng, c);
+            if (sn[0].x > AW - hm) this._drawHead(sn[0].x - AW, sn[0].y, hAng, c);
+            if (sn[0].y < hm) this._drawHead(sn[0].x, sn[0].y + AH, hAng, c);
+            if (sn[0].y > AH - hm) this._drawHead(sn[0].x, sn[0].y - AH, hAng, c);
+        }
+
+        _drawHead(hx, hy, hAng, c) {
+            const ctx = this.ctx;
+            ctx.save();
+            ctx.translate(hx, hy);
+            ctx.rotate(hAng);
+
+            ctx.shadowColor = c.g; ctx.shadowBlur = 22;
+            const hg = ctx.createRadialGradient(-3, -3, 0, 0, 0, HEAD_R);
+            hg.addColorStop(0, c.h); hg.addColorStop(0.6, c.b); hg.addColorStop(1, c.d);
+            ctx.fillStyle = hg;
+            ctx.beginPath(); ctx.ellipse(0, 0, HEAD_R * 1.2, HEAD_R, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = 'rgba(255,255,255,0.12)';
+            ctx.beginPath(); ctx.ellipse(-2, -4, HEAD_R * 0.45, HEAD_R * 0.2, -0.3, 0, Math.PI * 2); ctx.fill();
+
+            // Tongue
+            if (this.fc % 40 < 20) {
+                ctx.strokeStyle = c.t; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(HEAD_R * 0.8, 0); ctx.lineTo(HEAD_R + 9, 0); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(HEAD_R + 9, 0); ctx.lineTo(HEAD_R + 14, -3.5); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(HEAD_R + 9, 0); ctx.lineTo(HEAD_R + 14, 3.5); ctx.stroke();
+            }
+
+            // Eyes
+            for (const side of [-1, 1]) {
+                const ex = HEAD_R * 0.3, ey = side * HEAD_R * 0.52;
+                ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 2;
+                ctx.beginPath(); ctx.ellipse(ex, ey, 4, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#111';
+                ctx.beginPath(); ctx.ellipse(ex + 1.2, ey, 1.5, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.beginPath(); ctx.arc(ex - 0.5, ey - 2, 1.2, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        /* ===== HUD ===== */
+        _showScore() {
+            const s1El = document.getElementById('sn-s1');
+            const s2El = document.getElementById('sn-s2');
+            s1El.textContent = this.score.p1;
+            s2El.textContent = this.score.p2;
+            s1El.classList.remove('sn-pop'); s2El.classList.remove('sn-pop');
+            void s1El.offsetWidth;
+            s1El.classList.add('sn-pop'); s2El.classList.add('sn-pop');
+        }
+
+        _updateTimer() {
+            if (this.fc % 6 !== 0) return;
+            const sec = Math.floor((performance.now() - this.startT) / 1000);
+            document.getElementById('sn-timer').textContent =
+                String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
+        }
+
+        /* ===== ROUND/GAME END ===== */
+        update(state) { this.state = state; }
+
+        onRoundEnd(result) {
+            this._waitingForServer = false;
+
+            const gs = result && result.game_state;
+            const cr = gs ? gs.current_round : 0;
+            const tr = gs ? gs.total_rounds : 999;
+
+            if (gs) this.state = gs;
+            this._updateRoundBadge();
+
+            if (cr > tr) {
+                // All rounds done
+                let w = 'draw';
+                if (this.score.p1 > this.score.p2) w = 'P1';
+                else if (this.score.p2 > this.score.p1) w = 'P2';
+                this._showGameOver(w, this.score, true);
+                return;
+            }
+
+            // Show round result briefly, then restart
+            const rw = result.round_winner;
+            this._showGameOver(rw, this.score, false);
+
+            setTimeout(() => {
+                document.getElementById('sn-gameover').classList.add('hidden');
+                this.score = { p1: 0, p2: 0 };
+                this._showScore();
+                this._startMatch();
+            }, 3000);
+        }
+
+        onGameEnd(result) {
+            this.playing = false;
+            if (this._inputTimer) clearInterval(this._inputTimer);
+            if (this._syncTimer) clearInterval(this._syncTimer);
+
+            let w = 'draw';
+            if (this.score.p1 > this.score.p2) w = 'P1';
+            else if (this.score.p2 > this.score.p1) w = 'P2';
+            this._showGameOver(w, this.score, true);
+        }
+
+        _showGameOver(w, sc, isFinal) {
+            const t = document.getElementById('sn-go-text');
+            const e = document.getElementById('sn-go-emoji');
+            const gp = this.state.players;
+
+            if (w === 'draw') {
+                t.textContent = "DRAW!"; e.textContent = '💥'; t.style.color = '#f59e0b';
+            } else {
+                const wName = gp[w];
+                if (wName === USER) { t.textContent = "YOU WIN! 🎉"; e.textContent = '👑'; }
+                else { t.textContent = `${wName} WINS!`; e.textContent = '😔'; }
+                t.style.color = w === 'P1' ? '#ef4444' : '#38bdf8';
+            }
+
+            document.getElementById('sn-go-s1').textContent = sc.p1;
+            document.getElementById('sn-go-s2').textContent = sc.p2;
+            document.getElementById('sn-next-text').textContent = isFinal ? 'Returning to lobby...' : 'Next round starting...';
+            document.getElementById('sn-gameover').classList.remove('hidden');
+
+            if (isFinal) {
+                setTimeout(() => {
+                    if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({ event: 'game_exit' }));
+                    }
+                }, 4000);
+            }
+        }
+
+        destroy() {
+            this.playing = false;
+            if (this._inputTimer) clearInterval(this._inputTimer);
+            if (this._syncTimer) clearInterval(this._syncTimer);
+            if (this._raf) cancelAnimationFrame(this._raf);
+            if (this._kbHandler) document.removeEventListener('keydown', this._kbHandler);
+            if (this._kuHandler) document.removeEventListener('keyup', this._kuHandler);
+            super.destroy();
+        }
+    }
+
+    window.GameClasses = window.GameClasses || {};
+    window.GameClasses['snakes'] = SnakesGame;
+})();
+
+// Exit game — sends WebSocket event to return both players to lobby
+window.exitGame = window.exitGame || function() {
+    if (confirm('Leave the game? Both players will return to lobby.')) {
+        if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ event: 'game_exit' }));
+        }
+    }
+};
+</script>

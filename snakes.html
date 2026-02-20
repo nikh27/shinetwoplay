@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Snakes - 2 Player</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:none;user-select:none}
+        html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:#080810}
+        body{display:flex;flex-direction:column;align-items:center;justify-content:center}
+
+        /* Full screen phone layout */
+        #game{
+            position:fixed;inset:0;
+            display:flex;flex-direction:column;
+            width:100%;height:100%;
+            max-width:430px;
+            margin:0 auto;
+            background:#080810;
+        }
+
+        /* P2 joystick zone - TOP */
+        .joy-zone{
+            flex-shrink:0;display:flex;align-items:center;justify-content:center;
+            padding:8px;position:relative;
+        }
+        .joy-zone.hidden{display:none}
+        .joy-top{height:100px;background:linear-gradient(180deg,rgba(56,189,248,0.04),transparent)}
+        .joy-bot{height:100px;background:linear-gradient(0deg,rgba(239,68,68,0.04),transparent)}
+
+        /* Canvas fills the middle */
+        .arena-wrap{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+        canvas{display:block}
+
+        /* HUD overlaid on canvas */
+        .hud{
+            position:absolute;top:0;left:0;right:0;
+            display:flex;justify-content:space-between;align-items:center;
+            padding:6px 10px;z-index:10;
+            background:linear-gradient(180deg,rgba(0,0,0,0.5),transparent);
+            pointer-events:none;
+        }
+        .hud.hidden{display:none}
+        .hud-p{
+            display:flex;align-items:center;gap:5px;
+            padding:3px 10px;border-radius:14px;
+            font-family:'Orbitron',sans-serif;font-size:0.6em;font-weight:700;color:#fff;
+        }
+        .hp1{background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.12)}
+        .hp2{background:rgba(56,189,248,0.2);border:1px solid rgba(56,189,248,0.12)}
+        .hd{width:6px;height:6px;border-radius:50%}
+        .hp1 .hd{background:#ef4444;box-shadow:0 0 5px #ef4444}
+        .hp2 .hd{background:#38bdf8;box-shadow:0 0 5px #38bdf8}
+        .hud-t{font-family:'Orbitron',sans-serif;font-size:0.55em;color:#333;letter-spacing:2px}
+
+        /* Joystick */
+        .joystick{width:90px;height:90px;position:relative}
+        .joy-base{
+            position:absolute;inset:0;border-radius:50%;
+            background:radial-gradient(circle,rgba(255,255,255,0.02),rgba(255,255,255,0.005));
+            border:1.5px solid rgba(255,255,255,0.06);
+        }
+        .joy-knob{
+            position:absolute;width:42px;height:42px;border-radius:50%;
+            top:50%;left:50%;transform:translate(-50%,-50%);
+            transition:transform 0.05s ease-out;pointer-events:none;
+        }
+        .j1 .joy-knob{
+            background:radial-gradient(circle at 35% 30%,#f87171,#b91c1c);
+            box-shadow:0 2px 14px rgba(239,68,68,0.5),inset 0 1px 2px rgba(255,255,255,0.2);
+        }
+        .j2 .joy-knob{
+            background:radial-gradient(circle at 35% 30%,#7dd3fc,#0369a1);
+            box-shadow:0 2px 14px rgba(56,189,248,0.5),inset 0 1px 2px rgba(255,255,255,0.2);
+        }
+        .joy-lbl{
+            position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);
+            font-family:'Orbitron',sans-serif;font-size:0.48em;letter-spacing:2px;
+            color:#333;white-space:nowrap;
+        }
+        /* P2 label on left side */
+        .j2 .joy-lbl{left:auto;right:calc(100% + 10px)}
+
+        /* Overlays */
+        .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;background:rgba(5,5,10,0.9);backdrop-filter:blur(14px)}
+        .overlay.hidden{display:none}
+        .panel{
+            background:linear-gradient(160deg,rgba(16,16,24,0.98),rgba(10,10,16,0.98));
+            border:1px solid rgba(255,255,255,0.05);border-radius:24px;
+            padding:28px 22px;text-align:center;color:#ddd;
+            width:88%;max-width:340px;
+            box-shadow:0 20px 60px rgba(0,0,0,0.7);
+        }
+        .game-icon{font-size:2.4em;margin-bottom:4px;display:block}
+        .panel h1{
+            font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.5em;letter-spacing:3px;margin-bottom:2px;
+            background:linear-gradient(135deg,#ef4444,#f97316,#ef4444);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+        }
+        .panel .sub{font-size:0.68em;color:#444;letter-spacing:4px;text-transform:uppercase;margin-bottom:14px}
+        .panel h2{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.2em;margin-bottom:5px;letter-spacing:2px}
+        .panel p{font-size:0.78em;color:#555;margin-bottom:4px;line-height:1.5}
+
+        .pr{display:flex;gap:8px;margin:12px 0}
+        .pc{flex:1;padding:10px 6px;border-radius:12px;text-align:center;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04)}
+        .pc .dt{width:20px;height:20px;border-radius:50%;margin:0 auto 5px;box-shadow:0 0 12px currentColor}
+        .pc.c1 .dt{background:linear-gradient(135deg,#ef4444,#dc2626);color:rgba(239,68,68,0.4)}
+        .pc.c2 .dt{background:linear-gradient(135deg,#38bdf8,#0284c7);color:rgba(56,189,248,0.4)}
+        .pc .nm{font-family:'Orbitron',sans-serif;font-size:0.58em;letter-spacing:1px;color:#777}
+        .pc .ps{font-size:0.55em;color:#444;margin-top:2px}
+
+        .rl{background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.03);border-radius:12px;padding:10px 12px;margin:10px 0;text-align:left}
+        .rl li{color:#666;font-size:0.7em;margin:4px 0;list-style:none;padding-left:12px;position:relative}
+        .rl li::before{content:'';position:absolute;left:0;top:5px;width:4px;height:4px;border-radius:50%}
+        .rl li:nth-child(1)::before{background:#ef4444}
+        .rl li:nth-child(2)::before{background:#38bdf8}
+        .rl li:nth-child(3)::before{background:#10b981}
+
+        .btn{
+            display:inline-block;margin-top:14px;padding:13px 44px;
+            font-size:0.9em;font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:2px;
+            color:#fff;border:none;border-radius:50px;cursor:pointer;
+            background:linear-gradient(135deg,#ef4444,#dc2626,#b91c1c);
+            box-shadow:0 6px 24px rgba(239,68,68,0.3),inset 0 1px 0 rgba(255,255,255,0.12);
+            transition:transform 0.12s;
+        }
+        .btn:active{transform:scale(0.95)}
+
+        .w-crown{font-size:2.4em;display:block;margin-bottom:2px}
+        .w-p1{color:#ef4444}.w-p2{color:#38bdf8}.w-draw{color:#f59e0b}
+        .sr{display:flex;justify-content:center;gap:14px;margin:10px 0;font-family:'Orbitron',sans-serif;font-size:0.75em}
+        .sr span{padding:5px 14px;border-radius:8px}
+        .sr .s1{background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.1)}
+        .sr .s2{background:rgba(56,189,248,0.1);color:#38bdf8;border:1px solid rgba(56,189,248,0.1)}
+
+        .cd{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:90;background:rgba(0,0,0,0.5);backdrop-filter:blur(3px)}
+        .cd.hidden{display:none}
+        .cd-n{font-family:'Orbitron',sans-serif;font-size:4.5em;font-weight:900;color:#fff;text-shadow:0 0 40px rgba(255,255,255,0.3);animation:cdp 0.5s ease-out}
+        @keyframes cdp{0%{transform:scale(2.5);opacity:0}100%{transform:scale(1);opacity:1}}
+    </style>
+</head>
+<body>
+<div id="game">
+    <!-- Start -->
+    <div class="overlay" id="startScreen">
+        <div class="panel">
+            <span class="game-icon">🐍</span>
+            <h1>SNAKES</h1>
+            <div class="sub">2 PLAYER BATTLE</div>
+            <div class="pr">
+                <div class="pc c1"><div class="dt"></div><div class="nm">PLAYER 1</div><div class="ps">Bottom side</div></div>
+                <div class="pc c2"><div class="dt"></div><div class="nm">PLAYER 2</div><div class="ps">Top side</div></div>
+            </div>
+            <ul class="rl">
+                <li>Drag joystick anywhere — full 360° movement</li>
+                <li>Snakes grow longer over time, speed stays constant</li>
+                <li>Hit the other snake or yourself = you lose!</li>
+            </ul>
+            <button class="btn" id="startBtn">START</button>
+        </div>
+    </div>
+
+    <!-- Countdown -->
+    <div class="cd hidden" id="cd"><div class="cd-n" id="cdN">3</div></div>
+
+    <!-- Game Over -->
+    <div class="overlay hidden" id="goScreen">
+        <div class="panel">
+            <span class="w-crown" id="crI"></span>
+            <h2 id="wT"></h2>
+            <p id="gM"></p>
+            <div class="sr">
+                <span class="s1">P1: <b id="fP1">0</b></span>
+                <span class="s2">P2: <b id="fP2">0</b></span>
+            </div>
+            <button class="btn" id="restartBtn">REMATCH</button>
+        </div>
+    </div>
+
+    <!-- P2 joystick at TOP -->
+    <div class="joy-zone joy-top hidden" id="joyTop">
+        <div class="joystick j2" id="joy2">
+            <div class="joy-base"></div>
+            <div class="joy-knob" id="k2"></div>
+            <div class="joy-lbl">PLAYER 2</div>
+        </div>
+    </div>
+
+    <!-- Arena -->
+    <div class="arena-wrap" id="arenaWrap">
+        <div class="hud hidden" id="hud">
+            <div class="hud-p hp1"><span class="hd"></span>P1: <span id="h1">0</span></div>
+            <div class="hud-t" id="hT">00:00</div>
+            <div class="hud-p hp2"><span class="hd"></span>P2: <span id="h2">0</span></div>
+        </div>
+        <canvas id="c"></canvas>
+    </div>
+
+    <!-- P1 joystick at BOTTOM -->
+    <div class="joy-zone joy-bot hidden" id="joyBot">
+        <div class="joystick j1" id="joy1">
+            <div class="joy-base"></div>
+            <div class="joy-knob" id="k1"></div>
+            <div class="joy-lbl">PLAYER 1</div>
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// Arena fills available space
+let AW, AH;
+function resize() {
+    const wrap = document.getElementById('arenaWrap');
+    AW = Math.min(wrap.clientWidth, 430);
+    AH = wrap.clientHeight;
+    if (AW < 100) AW = 375;
+    if (AH < 100) AH = 500;
+    canvas.width = AW;
+    canvas.height = AH;
+}
+resize();
+window.addEventListener('resize', () => { resize(); if (!running) drawIdle(); });
+
+// ========== CONSTANTS ==========
+const SPEED = 1.8;
+const SEG_SP = 6;           // segment spacing (px between centers)
+const HEAD_R = 13;           // head radius — THICK
+const BODY_R = 10;           // body radius — THICK
+const GROW_MS = 300;
+const HIT_R = 15;            // collision radius
+const TURN_SPEED = 0.13;
+
+let s1, s2, a1, a2;
+let running = false, rafId = null, lastGrow = 0, startT = 0, fc = 0;
+let jA1 = null, jA2 = null;
+
+const C1 = {h:'#ef4444',b:'#dc2626',d:'#7f1d1d',s:'#b91c1c',g:'rgba(239,68,68,0.4)',t:'#fca5a5'};
+const C2 = {h:'#38bdf8',b:'#0284c7',d:'#0c4a6e',s:'#0369a1',g:'rgba(56,189,248,0.4)',t:'#bae6fd'};
+
+// ========== INIT ==========
+function initGame() {
+    resize();
+    const n = 10;
+    s1 = [];
+    for (let i = 0; i < n; i++) s1.push({x: AW * 0.35, y: AH - 80 + i * SEG_SP});
+    a1 = -Math.PI / 2;
+
+    s2 = [];
+    for (let i = 0; i < n; i++) s2.push({x: AW * 0.65, y: 80 - i * SEG_SP});
+    a2 = Math.PI / 2;
+
+    jA1 = null; jA2 = null;
+    lastGrow = 0; startT = performance.now(); fc = 0;
+}
+
+// ========== JOYSTICK ==========
+function setupJoy(el, knob, pNum) {
+    let on = false, cx, cy, rad, tid = null;
+    function mv(px, py) {
+        const dx = px - cx, dy = py - cy;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        const mx = rad - 21;
+        let nx = dx, ny = dy;
+        if (d > mx) { nx = dx/d*mx; ny = dy/d*mx; }
+        knob.style.transform = `translate(calc(-50% + ${nx}px),calc(-50% + ${ny}px))`;
+        if (d > 8) { if (pNum===1) jA1 = Math.atan2(dy,dx); else jA2 = Math.atan2(dy,dx); }
+    }
+    function rst() { knob.style.transform='translate(-50%,-50%)'; on=false; tid=null; }
+
+    el.addEventListener('touchstart', e => {
+        e.preventDefault(); if(on) return;
+        const t=e.changedTouches[0]; tid=t.identifier; on=true;
+        const r=el.getBoundingClientRect(); cx=r.left+r.width/2; cy=r.top+r.height/2; rad=r.width/2;
+        mv(t.clientX,t.clientY);
+    },{passive:false});
+    el.addEventListener('touchmove', e => {
+        e.preventDefault(); if(!on) return;
+        for(const t of e.changedTouches) if(t.identifier===tid){mv(t.clientX,t.clientY);break;}
+    },{passive:false});
+    const end = e => { for(const t of e.changedTouches) if(t.identifier===tid){rst();break;} };
+    el.addEventListener('touchend',end);
+    el.addEventListener('touchcancel',end);
+
+    el.addEventListener('mousedown', e => {
+        on=true; const r=el.getBoundingClientRect(); cx=r.left+r.width/2; cy=r.top+r.height/2; rad=r.width/2;
+        mv(e.clientX,e.clientY);
+        const mm=ev=>{if(on)mv(ev.clientX,ev.clientY)};
+        const mu=()=>{rst();document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu)};
+        document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
+    });
+}
+setupJoy(document.getElementById('joy1'),document.getElementById('k1'),1);
+setupJoy(document.getElementById('joy2'),document.getElementById('k2'),2);
+
+// ========== KEYBOARD ==========
+const kd={};
+document.addEventListener('keydown',e=>{kd[e.key]=true;e.preventDefault()});
+document.addEventListener('keyup',e=>{kd[e.key]=false});
+function kbAng() {
+    let x=0,y=0;
+    if(kd.w||kd.W)y--;if(kd.s||kd.S)y++;if(kd.a||kd.A)x--;if(kd.d||kd.D)x++;
+    if(x||y) jA1=Math.atan2(y,x);
+    x=y=0;
+    if(kd.ArrowUp)y--;if(kd.ArrowDown)y++;if(kd.ArrowLeft)x--;if(kd.ArrowRight)x++;
+    if(x||y) jA2=Math.atan2(y,x);
+}
+
+// ========== ANGLE LERP ==========
+function lerpA(cur,tgt,spd) {
+    let d=tgt-cur;
+    while(d>Math.PI)d-=Math.PI*2; while(d<-Math.PI)d+=Math.PI*2;
+    return Math.abs(d)<spd ? tgt : cur+Math.sign(d)*spd;
+}
+
+// ========== WRAP HELPERS ==========
+function wrap(v,max) { return ((v%max)+max)%max; }
+function wDist(a,b) {
+    let dx=Math.abs(a.x-b.x), dy=Math.abs(a.y-b.y);
+    if(dx>AW/2) dx=AW-dx; if(dy>AH/2) dy=AH-dy;
+    return Math.sqrt(dx*dx+dy*dy);
+}
+// Wrapped delta from a to b (shortest path)
+function wDelta(ax,ay,bx,by) {
+    let dx=bx-ax, dy=by-ay;
+    if(dx>AW/2) dx-=AW; if(dx<-AW/2) dx+=AW;
+    if(dy>AH/2) dy-=AH; if(dy<-AH/2) dy+=AH;
+    return {dx,dy};
+}
+
+// ========== UPDATE ==========
+function update() {
+    kbAng();
+    // CONSTANT SPEED — never changes regardless of snake length
+    if(jA1!==null) a1=lerpA(a1,jA1,TURN_SPEED);
+    if(jA2!==null) a2=lerpA(a2,jA2,TURN_SPEED);
+
+    // Move heads
+    s1.unshift({x:wrap(s1[0].x+Math.cos(a1)*SPEED,AW), y:wrap(s1[0].y+Math.sin(a1)*SPEED,AH)});
+    s2.unshift({x:wrap(s2[0].x+Math.cos(a2)*SPEED,AW), y:wrap(s2[0].y+Math.sin(a2)*SPEED,AH)});
+
+    // Constrain body segments — keep spacing, handle wrapping
+    constrainBody(s1);
+    constrainBody(s2);
+
+    // Grow
+    const now=performance.now();
+    if(now-lastGrow > GROW_MS) {
+        lastGrow=now;
+        s1.push({...s1[s1.length-1]});
+        s2.push({...s2[s2.length-1]});
+    }
+    s1.pop(); s2.pop();
+
+    // Collisions
+    const p1d=checkHit(s1,s2), p2d=checkHit(s2,s1);
+    const hh=wDist(s1[0],s2[0])<HIT_R;
+    if(hh||(p1d&&p2d)){endGame(0);return}
+    if(p1d){endGame(2);return}
+    if(p2d){endGame(1);return}
+
+    fc++;
+    if(fc%6===0) updateHUD();
+}
+
+function constrainBody(sn) {
+    for(let i=1;i<sn.length;i++) {
+        const p=sn[i-1], c=sn[i];
+        const {dx,dy}=wDelta(p.x,p.y,c.x,c.y);
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d>SEG_SP) {
+            const r=SEG_SP/d;
+            sn[i].x=wrap(p.x+dx*r,AW);
+            sn[i].y=wrap(p.y+dy*r,AH);
+        }
+    }
+}
+
+function checkHit(my,other) {
+    const h=my[0];
+    for(let i=10;i<my.length;i++) if(wDist(h,my[i])<HIT_R) return true;
+    for(let i=0;i<other.length;i++) if(wDist(h,other[i])<HIT_R) return true;
+    return false;
+}
+
+// ========== DRAW ==========
+function draw() {
+    // Plain dark surface
+    ctx.fillStyle='#0b1015';
+    ctx.fillRect(0,0,AW,AH);
+
+    // Subtle noise texture
+    ctx.fillStyle='rgba(255,255,255,0.008)';
+    for(let i=0;i<100;i++){ctx.fillRect((i*173+31)%AW,(i*259+47)%AH,1,1);}
+
+    // Vignette
+    const vg=ctx.createRadialGradient(AW/2,AH/2,AH*0.25,AW/2,AH/2,AH*0.7);
+    vg.addColorStop(0,'transparent'); vg.addColorStop(1,'rgba(0,0,0,0.25)');
+    ctx.fillStyle=vg; ctx.fillRect(0,0,AW,AH);
+
+    drawSnake(s2,a2,C2);
+    drawSnake(s1,a1,C1);
+}
+
+function drawSnake(sn,hAng,c) {
+    const len=sn.length; if(len<2) return;
+    ctx.lineCap='round'; ctx.lineJoin='round';
+
+    // For each pair of adjacent segments, we may need to draw on both sides of the wrap
+    // Draw body as thick connected lines — using "ghost" copies at edges
+
+    // Collect drawable segments: for each pair, if they wrap, draw the line plus a ghost copy
+    const pairs=[];
+    for(let i=0;i<len-1;i++){
+        const a=sn[i], b=sn[i+1];
+        const {dx,dy}=wDelta(a.x,a.y,b.x,b.y);
+        const realDist=Math.sqrt(dx*dx+dy*dy);
+        if(realDist>SEG_SP*3) continue; // safety skip
+
+        // b relative to a (unwrapped)
+        const bx=a.x+dx, by=a.y+dy;
+        pairs.push({ax:a.x,ay:a.y,bx,by,i});
+
+        // If either point is near an edge, draw ghost copies shifted by AW/AH
+        const margin=BODY_R+4;
+        const offsets=[];
+        // Check if line crosses or is near boundary
+        if(a.x<margin||bx<margin) offsets.push({ox:AW,oy:0});
+        if(a.x>AW-margin||bx>AW-margin) offsets.push({ox:-AW,oy:0});
+        if(a.y<margin||by<margin) offsets.push({ox:0,oy:AH});
+        if(a.y>AH-margin||by>AH-margin) offsets.push({ox:0,oy:-AH});
+        // Corners
+        if((a.x<margin||bx<margin)&&(a.y<margin||by<margin)) offsets.push({ox:AW,oy:AH});
+        if((a.x>AW-margin||bx>AW-margin)&&(a.y<margin||by<margin)) offsets.push({ox:-AW,oy:AH});
+        if((a.x<margin||bx<margin)&&(a.y>AH-margin||by>AH-margin)) offsets.push({ox:AW,oy:-AH});
+        if((a.x>AW-margin||bx>AW-margin)&&(a.y>AH-margin||by>AH-margin)) offsets.push({ox:-AW,oy:-AH});
+
+        for(const o of offsets) pairs.push({ax:a.x+o.ox,ay:a.y+o.oy,bx:bx+o.ox,by:by+o.oy,i});
+    }
+
+    // Shadow
+    ctx.save(); ctx.globalAlpha=0.18;
+    for(const p of pairs){
+        const taper=1-(p.i/len)*0.35;
+        ctx.lineWidth=BODY_R*2*taper+3;
+        ctx.strokeStyle='#000';
+        ctx.beginPath(); ctx.moveTo(p.ax+2,p.ay+3); ctx.lineTo(p.bx+2,p.by+3); ctx.stroke();
+    }
+    ctx.restore();
+
+    // Body outer
+    for(const p of pairs){
+        const taper=1-(p.i/len)*0.35;
+        ctx.lineWidth=BODY_R*2*taper+2;
+        ctx.strokeStyle=c.d;
+        ctx.beginPath(); ctx.moveTo(p.ax,p.ay); ctx.lineTo(p.bx,p.by); ctx.stroke();
+    }
+
+    // Body main
+    for(const p of pairs){
+        const taper=1-(p.i/len)*0.35;
+        ctx.lineWidth=BODY_R*2*taper-1;
+        ctx.strokeStyle=(p.i%4<2)?c.b:c.s;
+        ctx.beginPath(); ctx.moveTo(p.ax,p.ay); ctx.lineTo(p.bx,p.by); ctx.stroke();
+    }
+
+    // Highlight stripe
+    ctx.save(); ctx.globalAlpha=0.1;
+    for(const p of pairs){
+        const taper=1-(p.i/len)*0.35;
+        ctx.lineWidth=BODY_R*taper;
+        ctx.strokeStyle='#fff';
+        ctx.beginPath(); ctx.moveTo(p.ax-2,p.ay-2); ctx.lineTo(p.bx-2,p.by-2); ctx.stroke();
+    }
+    ctx.restore();
+
+    // Scale lines
+    ctx.save(); ctx.globalAlpha=0.06; ctx.strokeStyle='#fff'; ctx.lineWidth=0.6;
+    for(let i=4;i<len;i+=4){
+        const seg=sn[i], prev=sn[Math.max(0,i-1)];
+        if(wDist(seg,prev)>SEG_SP*3) continue;
+        const ang=Math.atan2(seg.y-prev.y,seg.x-prev.x)+Math.PI/2;
+        const taper=1-(i/len)*0.35;
+        const r=BODY_R*taper;
+        ctx.beginPath();
+        ctx.moveTo(seg.x+Math.cos(ang)*r, seg.y+Math.sin(ang)*r);
+        ctx.lineTo(seg.x-Math.cos(ang)*r, seg.y-Math.sin(ang)*r);
+        ctx.stroke();
+        // Ghost copies for edge scales
+        if(seg.x<BODY_R) { ctx.beginPath(); ctx.moveTo(seg.x+AW+Math.cos(ang)*r,seg.y+Math.sin(ang)*r); ctx.lineTo(seg.x+AW-Math.cos(ang)*r,seg.y-Math.sin(ang)*r); ctx.stroke(); }
+        if(seg.x>AW-BODY_R) { ctx.beginPath(); ctx.moveTo(seg.x-AW+Math.cos(ang)*r,seg.y+Math.sin(ang)*r); ctx.lineTo(seg.x-AW-Math.cos(ang)*r,seg.y-Math.sin(ang)*r); ctx.stroke(); }
+    }
+    ctx.restore();
+
+    // Head — draw at main position + ghost if near edge
+    drawHead(sn[0].x, sn[0].y, hAng, c);
+    const hm=HEAD_R+6;
+    if(sn[0].x<hm) drawHead(sn[0].x+AW, sn[0].y, hAng, c);
+    if(sn[0].x>AW-hm) drawHead(sn[0].x-AW, sn[0].y, hAng, c);
+    if(sn[0].y<hm) drawHead(sn[0].x, sn[0].y+AH, hAng, c);
+    if(sn[0].y>AH-hm) drawHead(sn[0].x, sn[0].y-AH, hAng, c);
+}
+
+function drawHead(hx,hy,hAng,c) {
+    ctx.save();
+    ctx.translate(hx,hy);
+    ctx.rotate(hAng);
+
+    // Glow
+    ctx.shadowColor=c.g; ctx.shadowBlur=22;
+
+    // Head shape
+    const hg=ctx.createRadialGradient(-3,-3,0,0,0,HEAD_R);
+    hg.addColorStop(0,c.h); hg.addColorStop(0.6,c.b); hg.addColorStop(1,c.d);
+    ctx.fillStyle=hg;
+    ctx.beginPath(); ctx.ellipse(0,0,HEAD_R*1.2,HEAD_R,0,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+
+    // Highlight
+    ctx.fillStyle='rgba(255,255,255,0.12)';
+    ctx.beginPath(); ctx.ellipse(-2,-4,HEAD_R*0.45,HEAD_R*0.2,-0.3,0,Math.PI*2); ctx.fill();
+
+    // Tongue
+    if(fc%40<20){
+        ctx.strokeStyle=c.t; ctx.lineWidth=1.5; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(HEAD_R*0.8,0); ctx.lineTo(HEAD_R+9,0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(HEAD_R+9,0); ctx.lineTo(HEAD_R+14,-3.5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(HEAD_R+9,0); ctx.lineTo(HEAD_R+14,3.5); ctx.stroke();
+    }
+
+    // Eyes
+    for(const side of [-1,1]){
+        const ex=HEAD_R*0.3, ey=side*HEAD_R*0.52;
+        ctx.fillStyle='#fff'; ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=2;
+        ctx.beginPath(); ctx.ellipse(ex,ey,4,4.5,0,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+        ctx.fillStyle='#111';
+        ctx.beginPath(); ctx.ellipse(ex+1.2,ey,1.5,3.2,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,0.8)';
+        ctx.beginPath(); ctx.arc(ex-0.5,ey-2,1.2,0,Math.PI*2); ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+function gameLoop() {
+    if(!running) return;
+    update();
+    draw();
+    rafId=requestAnimationFrame(gameLoop);
+}
+
+// ========== HUD ==========
+function updateHUD() {
+    document.getElementById('h1').textContent=s1.length;
+    document.getElementById('h2').textContent=s2.length;
+    const sec=Math.floor((performance.now()-startT)/1000);
+    document.getElementById('hT').textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+}
+
+// ========== START / END ==========
+function doCD(cb) {
+    const el=document.getElementById('cd'), n=document.getElementById('cdN');
+    el.classList.remove('hidden');
+    let c=3; n.textContent=c; n.style.color='#fff';
+    const iv=setInterval(()=>{
+        c--;
+        if(c>0){n.textContent=c;n.style.animation='none';void n.offsetWidth;n.style.animation='cdp 0.5s ease-out';}
+        else if(c===0){n.textContent='GO!';n.style.color='#10b981';n.style.animation='none';void n.offsetWidth;n.style.animation='cdp 0.5s ease-out';}
+        else{clearInterval(iv);el.classList.add('hidden');cb();}
+    },700);
+}
+
+function startGame() {
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('goScreen').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+    document.getElementById('joyTop').classList.remove('hidden');
+    document.getElementById('joyBot').classList.remove('hidden');
+    initGame();
+    draw();
+    doCD(()=>{running=true;lastGrow=performance.now();rafId=requestAnimationFrame(gameLoop);});
+}
+
+function endGame(w) {
+    running=false; if(rafId) cancelAnimationFrame(rafId);
+    canvas.style.filter='brightness(2.5)';
+    setTimeout(()=>{canvas.style.filter=''},120);
+    setTimeout(()=>{
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('joyTop').classList.add('hidden');
+        document.getElementById('joyBot').classList.add('hidden');
+        document.getElementById('fP1').textContent=s1.length;
+        document.getElementById('fP2').textContent=s2.length;
+        const cr=document.getElementById('crI'),wt=document.getElementById('wT'),gm=document.getElementById('gM');
+        if(w===0){cr.textContent='💥';wt.textContent="DRAW!";wt.className='w-draw';gm.textContent='Both snakes crashed!';}
+        else{cr.textContent='👑';wt.textContent=`PLAYER ${w} WINS!`;wt.className=w===1?'w-p1':'w-p2';gm.textContent=w===1?'Red snake survives!':'Blue snake survives!';}
+        document.getElementById('goScreen').classList.remove('hidden');
+    },400);
+}
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+document.getElementById('restartBtn').addEventListener('click',startGame);
+
+function drawIdle(){
+    ctx.fillStyle='#0b1015'; ctx.fillRect(0,0,AW,AH);
+    if(s1&&s2){drawSnake(s2,a2,C2);drawSnake(s1,a1,C1);}
+}
+initGame(); drawIdle();
+</script>
+</body>
+</html>
