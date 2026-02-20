@@ -503,7 +503,9 @@
         /* ===== NETWORKING ===== */
         _sendJoy() {
             if (this.jA !== null) {
-                this.sendInput({ type: 'j', a: this.jA });
+                // P2's arena is flipped 180°, so rotate the angle by π to match game coordinates
+                const angle = this.myRole === 'P2' ? this.jA + Math.PI : this.jA;
+                this.sendInput({ type: 'j', a: angle });
             }
         }
         _sendSync() {
