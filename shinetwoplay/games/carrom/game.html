@@ -130,6 +130,26 @@
     padding: 2px 0 0;
 }
 
+/* Mode selector */
+.cr-mode-select {
+    display: flex; gap: 8px; margin: 12px 0 4px; justify-content: center;
+}
+.cr-mode-btn {
+    padding: 8px 16px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    cursor: pointer; transition: all 0.2s;
+}
+.cr-mode-btn:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); }
+.cr-mode-btn.active {
+    border-color: #34d399; color: #34d399; background: rgba(52,211,153,0.15);
+    box-shadow: 0 0 12px rgba(52,211,153,0.2);
+}
+.cr-mode-label {
+    font-size: 10px; color: rgba(255,255,255,0.35); letter-spacing: 0.08em;
+    text-align: center; margin-top: 4px;
+}
+
 /* Foul message */
 .cr-foul {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -244,6 +264,13 @@
             <div class="cr-overlay-emoji">🎯</div>
             <div class="cr-overlay-title">CARROM</div>
             <div class="cr-overlay-sub" id="cr-role-text"></div>
+            <div id="cr-mode-area">
+                <div class="cr-mode-select" id="cr-mode-select">
+                    <button class="cr-mode-btn active" id="cr-mode-long" data-mode="long">👑 Long Format</button>
+                    <button class="cr-mode-btn" id="cr-mode-short" data-mode="short">⚡ Short Format</button>
+                </div>
+                <div class="cr-mode-label" id="cr-mode-label">Long: Queen + all coins • Any coin = your points</div>
+            </div>
             <div class="cr-waiting" id="cr-wait-text">Starting game...</div>
         </div>
 
@@ -313,10 +340,10 @@
                     const pull = CONFIG.pocketGravity * (1 - dist / (pocketR + this.radius * 2));
                     this.vx -= (dx / dist) * pull; this.vy -= (dy / dist) * pull;
                 }
-                // Skip wall collision if near a pocket
+                // Skip wall collision if near a pocket — but still clamp inside playable area
                 if (dist < pocketR + this.radius) {
-                    this.x = Math.max(0, Math.min(bs, this.x));
-                    this.y = Math.max(0, Math.min(bs, this.y));
+                    this.x = Math.max(pad + this.radius, Math.min(bs - pad - this.radius, this.x));
+                    this.y = Math.max(pad + this.radius, Math.min(bs - pad - this.radius, this.y));
                     return;
                 }
             }
@@ -381,11 +408,9 @@
         _freshGameState() {
             return {
                 currentPlayer: 1, player1Color: 'black', player2Color: 'white',
-                // Per-player pocketed coin stacks (for scoring & foul penalties)
+                mode: 'long', // 'long' or 'short'
                 p1Pocketed: [], p2Pocketed: [],
-                // Queen state
                 queenPending: false, queenPendingFor: null, queenCovered: false,
-                // Game state
                 isAnimating: false, gameOver: false,
                 strikerPosition: { x: 0, y: 0 }, pieces: [], striker: null,
                 pocketedThisTurn: [], turnEndPending: false
@@ -409,7 +434,48 @@
             window.addEventListener('resize', () => this._resizeCanvas());
             this._bindControls();
 
-            setTimeout(() => this._startMatch(), 2000);
+            // Mode selection — P1 (owner) picks, P2 waits
+            this._setupModeSelector();
+        }
+
+        _setupModeSelector() {
+            const modeArea = document.getElementById('cr-mode-area');
+            const waitText = document.getElementById('cr-wait-text');
+            const label = document.getElementById('cr-mode-label');
+
+            if (this.myRole === 'P1') {
+                // P1 is owner — can pick mode
+                const btns = document.querySelectorAll('.cr-mode-btn');
+                const labels = { long: 'Long: Queen + all coins • Any coin = your points', short: 'Short: No queen • Pocket only your color' };
+                let selectedMode = 'long';
+
+                btns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        btns.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        selectedMode = btn.dataset.mode;
+                        label.textContent = labels[selectedMode];
+                    });
+                });
+
+                waitText.textContent = 'Game starts in 3s...';
+                let countdown = 3;
+                const timer = setInterval(() => {
+                    countdown--;
+                    if (countdown > 0) {
+                        waitText.textContent = `Game starts in ${countdown}s...`;
+                    } else {
+                        clearInterval(timer);
+                        this.gameState.mode = selectedMode;
+                        this.sendInput({ type: 'mode_select', mode: selectedMode });
+                        this._startMatch();
+                    }
+                }, 1000);
+            } else {
+                // P2 waits for P1's mode choice
+                modeArea.style.display = 'none';
+                waitText.textContent = 'Waiting for host to pick mode...';
+            }
         }
 
         _setupScoreboard(gp) {
@@ -510,7 +576,10 @@
                 const angle = (i / 12) * Math.PI * 2;
                 this.gameState.pieces.push(new Piece(center + Math.cos(angle) * outerRadius, center + Math.sin(angle) * outerRadius, coinR, i % 2 === 0 ? 'black' : 'white'));
             }
-            this.gameState.pieces.push(new Piece(center, center, CONFIG.queenRadius, 'queen'));
+            // Queen only in long mode
+            if (this.gameState.mode === 'long') {
+                this.gameState.pieces.push(new Piece(center, center, CONFIG.queenRadius, 'queen'));
+            }
             this._resetStriker();
         }
 
@@ -620,9 +689,12 @@
                 this._showFoulMessage('FOUL! Striker pocketed');
                 // Return ALL coins pocketed this turn to center
                 pocketed.forEach(piece => this._returnToCenter(piece));
-                // Penalty: put one previously pocketed coin from your stack back to center
+                // Penalty: return lowest-value coin from your stack (10pt first, then 20pt)
                 if (myStack.length > 0) {
-                    const penaltyCoin = myStack.pop();
+                    let penaltyIdx = myStack.findIndex(p => p.type === 'black'); // 10pt
+                    if (penaltyIdx === -1) penaltyIdx = myStack.findIndex(p => p.type === 'white'); // 20pt
+                    if (penaltyIdx === -1) penaltyIdx = myStack.length - 1; // fallback
+                    const penaltyCoin = myStack.splice(penaltyIdx, 1)[0];
                     this._returnToCenter(penaltyCoin);
                 }
                 // If queen was pending for this player, queen goes back to center
@@ -637,50 +709,70 @@
                 // ========== Normal turn (no striker foul) ==========
                 let ownColorPocketed = false;
                 let queenPocketedThisTurn = false;
+                const ownCoins = [];
+                const oppCoins = [];
 
-                // All pocketed coins count — own go to own stack, opponent go to opponent stack
                 pocketed.forEach(piece => {
                     if (piece.type === 'queen') {
                         queenPocketedThisTurn = true;
                     } else if (piece.type === currentColor) {
                         ownColorPocketed = true;
-                        myStack.push(piece);
+                        ownCoins.push(piece);
                     } else {
-                        // Opponent's coin — still goes to YOUR stack (you pocketed it, you get points)
-                        myStack.push(piece);
+                        oppCoins.push(piece);
                     }
                 });
 
-                // Handle queen pocketed THIS turn
-                if (queenPocketedThisTurn) {
-                    if (ownColorPocketed) {
-                        // Queen + own coin same turn = queen confirmed immediately
-                        gs.queenPending = false; gs.queenPendingFor = null; gs.queenCovered = true;
-                        myStack.push(gs.pieces.find(p => p.type === 'queen'));
+                if (gs.mode === 'short') {
+                    // ===== SHORT MODE: foul for pocketing opponent's coin =====
+                    ownCoins.forEach(piece => myStack.push(piece));
+                    if (oppCoins.length > 0) {
+                        // FOUL: opponent's coins go back to center + penalty
+                        this._showFoulMessage('FOUL! Wrong color pocketed');
+                        oppCoins.forEach(piece => this._returnToCenter(piece));
+                        if (myStack.length > 0) {
+                            let penaltyIdx = myStack.findIndex(p => p.type === 'black');
+                            if (penaltyIdx === -1) penaltyIdx = myStack.findIndex(p => p.type === 'white');
+                            if (penaltyIdx === -1) penaltyIdx = myStack.length - 1;
+                            this._returnToCenter(myStack.splice(penaltyIdx, 1)[0]);
+                        }
+                        gs.currentPlayer = cp === 1 ? 2 : 1;
                     } else {
-                        // Queen alone — goes to pending state, must cover next turn
-                        gs.queenPending = true; gs.queenPendingFor = cp;
+                        if (ownColorPocketed) keepTurn = true;
+                        if (!keepTurn) gs.currentPlayer = cp === 1 ? 2 : 1;
                     }
-                }
+                } else {
+                    // ===== LONG MODE: all coins count for whoever pockets them =====
+                    ownCoins.forEach(piece => myStack.push(piece));
+                    oppCoins.forEach(piece => myStack.push(piece));
 
-                // Handle queen PENDING from previous turn
-                if (gs.queenPending && gs.queenPendingFor === cp && !queenPocketedThisTurn) {
-                    if (ownColorPocketed) {
-                        // Covered! Queen goes to player's stack
-                        gs.queenCovered = true;
-                        myStack.push(gs.pieces.find(p => p.type === 'queen'));
-                        gs.queenPending = false; gs.queenPendingFor = null;
-                    } else {
-                        // Failed to cover — queen goes back to center
-                        const queen = gs.pieces.find(p => p.type === 'queen');
-                        if (queen) { this._returnToCenter(queen); }
-                        gs.queenPending = false; gs.queenPendingFor = null;
+                    // Handle queen pocketed THIS turn
+                    if (queenPocketedThisTurn) {
+                        if (ownColorPocketed) {
+                            gs.queenPending = false; gs.queenPendingFor = null; gs.queenCovered = true;
+                            myStack.push(gs.pieces.find(p => p.type === 'queen'));
+                        } else {
+                            gs.queenPending = true; gs.queenPendingFor = cp;
+                        }
                     }
-                }
 
-                // Keep turn if pocketed ANY coin
-                if (pocketed.length > 0) keepTurn = true;
-                if (!keepTurn) gs.currentPlayer = cp === 1 ? 2 : 1;
+                    // Handle queen PENDING from previous turn
+                    if (gs.queenPending && gs.queenPendingFor === cp && !queenPocketedThisTurn) {
+                        if (ownColorPocketed) {
+                            gs.queenCovered = true;
+                            myStack.push(gs.pieces.find(p => p.type === 'queen'));
+                            gs.queenPending = false; gs.queenPendingFor = null;
+                        } else {
+                            const queen = gs.pieces.find(p => p.type === 'queen');
+                            if (queen) { this._returnToCenter(queen); }
+                            gs.queenPending = false; gs.queenPendingFor = null;
+                        }
+                    }
+
+                    // Keep turn if pocketed ANY coin
+                    if (pocketed.length > 0) keepTurn = true;
+                    if (!keepTurn) gs.currentPlayer = cp === 1 ? 2 : 1;
+                }
             }
 
             // Clear animation BEFORE updating UI so slider gets re-enabled
@@ -702,29 +794,37 @@
 
         _checkWinCondition() {
             const gs = this.gameState;
-            let blackRemaining = 0, whiteRemaining = 0;
-            const queenOnBoard = gs.pieces.find(p => p.type === 'queen' && !p.pocketed);
-            gs.pieces.forEach(p => {
-                if (!p.pocketed) {
-                    if (p.type === 'black') blackRemaining++;
-                    if (p.type === 'white') whiteRemaining++;
-                }
-            });
-            // P1 (black) wins if all black pocketed AND queen covered
-            if (blackRemaining === 0 && (gs.queenCovered || !queenOnBoard)) {
-                this._handleRoundWin(1); return true;
+
+            if (gs.mode === 'short') {
+                // SHORT MODE: own color all cleared = you win
+                let p1Remaining = 0, p2Remaining = 0;
+                gs.pieces.forEach(p => {
+                    if (!p.pocketed) {
+                        if (p.type === gs.player1Color) p1Remaining++;
+                        if (p.type === gs.player2Color) p2Remaining++;
+                    }
+                });
+                if (p1Remaining === 0) { this._handleRoundWin(1); return true; }
+                if (p2Remaining === 0) { this._handleRoundWin(2); return true; }
+                return false;
             }
-            // P2 (white) wins if all white pocketed AND queen covered
-            if (whiteRemaining === 0 && (gs.queenCovered || !queenOnBoard)) {
-                this._handleRoundWin(2); return true;
+
+            // LONG MODE: all coins gone → max score wins
+            let remaining = 0;
+            gs.pieces.forEach(p => { if (!p.pocketed) remaining++; });
+            if (remaining === 0) {
+                const s1 = this._getScore(1), s2 = this._getScore(2);
+                if (s1 > s2) { this._handleRoundWin(1); }
+                else if (s2 > s1) { this._handleRoundWin(2); }
+                else { this._handleRoundWin(0); }
+                return true;
             }
             return false;
         }
 
         _handleRoundWin(winner) {
             this.gameState.gameOver = true;
-            const winnerRole = winner === 1 ? 'P1' : 'P2';
-            // Only P1 (authoritative) sends round_end
+            const winnerRole = winner === 1 ? 'P1' : (winner === 2 ? 'P2' : 'draw');
             if (this.myRole === 'P1') {
                 this.sendMove('round_end', {
                     winner: winnerRole,
@@ -1072,6 +1172,10 @@
                 if (this.gameState.striker) {
                     this.gameState.striker.x = d.x; this.gameState.striker.y = d.y;
                 }
+            } else if (d.type === 'mode_select') {
+                // P2 receives P1's mode choice
+                this.gameState.mode = d.mode;
+                this._startMatch();
             }
         }
 
@@ -1132,10 +1236,19 @@
             document.getElementById('cr-go-s2').textContent = this._getScore(2);
             nextText.textContent = 'Returning to lobby...';
             goEl.classList.remove('hidden');
+
+            // Auto-return to lobby after 4 seconds
+            setTimeout(() => {
+                if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ event: 'game_exit' }));
+                }
+            }, 4000);
         }
 
         _resetForNewRound() {
+            const prevMode = this.gameState.mode;
             this.gameState = this._freshGameState();
+            this.gameState.mode = prevMode;
             this._initializePieces();
             this._updateScoreDisplay();
             this._updateTurnIndicator();
