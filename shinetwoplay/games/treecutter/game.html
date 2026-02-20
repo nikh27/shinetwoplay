@@ -18,15 +18,15 @@
       <div class="tc-round-badge" id="tc-round-info">Round 1/1</div>
   </div>
 
-  <!-- Tap zones: my half only -->
+  <!-- Tap zones: full screen left/right -->
   <div id="tc-tp-l" class="tc-tap"></div>
   <div id="tc-tp-r" class="tc-tap"></div>
 
   <!-- Scoreboard -->
   <div id="tc-sb">
-    <div class="tc-sb-b"><div class="tc-sb-l tc-c2">P2</div><div class="tc-sb-v" id="tc-sv2">0</div><div class="tc-sb-bar"><div class="tc-sb-f tc-f2" id="tc-bf2"></div></div><div class="tc-sb-rem" id="tc-rm2">100 left</div></div>
+    <div class="tc-sb-b"><div class="tc-sb-l tc-c2" id="tc-lbl-op">P2</div><div class="tc-sb-v" id="tc-sv2">0</div><div class="tc-sb-bar"><div class="tc-sb-f tc-f2" id="tc-bf2"></div></div><div class="tc-sb-rem" id="tc-rm2">100 left</div></div>
     <div class="tc-sb-vs">VS</div>
-    <div class="tc-sb-b"><div class="tc-sb-l tc-c1">P1</div><div class="tc-sb-v" id="tc-sv1">0</div><div class="tc-sb-bar"><div class="tc-sb-f tc-f1" id="tc-bf1"></div></div><div class="tc-sb-rem" id="tc-rm1">100 left</div></div>
+    <div class="tc-sb-b"><div class="tc-sb-l tc-c1" id="tc-lbl-me">P1</div><div class="tc-sb-v" id="tc-sv1">0</div><div class="tc-sb-bar"><div class="tc-sb-f tc-f1" id="tc-bf1"></div></div><div class="tc-sb-rem" id="tc-rm1">100 left</div></div>
   </div>
 
   <div class="tc-stxt" id="tc-st1">STUNNED!</div>
@@ -224,9 +224,10 @@
 .tc-pl.tc-wake{animation:tcWakeUp .3s ease-out forwards}
 @keyframes tcWakeUp{0%{opacity:.2;filter:grayscale(.8)}50%{opacity:1;filter:brightness(1.3)}100%{opacity:1;filter:none}}
 
-/* Tap zones */
-.tc-tap{position:absolute;z-index:40;width:50%;cursor:pointer;height:50%}
-/* Will be positioned dynamically based on which player I am */
+/* Tap zones - full screen left/right halves */
+.tc-tap{position:absolute;z-index:40;width:50%;cursor:pointer;top:0;height:100%}
+#tc-tp-l{left:0}
+#tc-tp-r{right:0;left:auto}
 
 /* Scoreboard */
 #tc-sb{position:absolute;top:50%;left:5px;transform:translateY(-50%);z-index:60;display:flex;flex-direction:column;align-items:center;gap:2px;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:8px 10px;min-width:58px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
@@ -314,21 +315,33 @@ class TimberChopGame extends BaseGame {
 
     init(state) {
         this.state = state;
-        this.myPlayer = state.my_player_number; // 1 or 2
-        this.isP1 = (this.myPlayer === 1);
+        // Detect P1/P2 from state.players dict {P1: username, P2: username}
+        const gp = state.players || {};
+        this.isP1 = (gp['P1'] === USER);
+        this.myPlayer = this.isP1 ? 1 : 2;
+        this.myRole = this.isP1 ? 'P1' : 'P2';
+        this.opRole = this.isP1 ? 'P2' : 'P1';
         this.myCut = 0;
         this.opCut = 0;
         this.mySide = 'left';
         this.opSide = 'left';
         this.myCdEnd = 0;
 
-        // Generate stars
+        // Setup player names & avatars
+        const myName = gp[this.myRole] || 'Me';
+        const opName = gp[this.opRole] || 'Opponent';
+        const lblMe = document.getElementById('tc-lbl-me');
+        const lblOp = document.getElementById('tc-lbl-op');
+        if (lblMe) lblMe.textContent = myName.substring(0, 8);
+        if (lblOp) lblOp.textContent = opName.substring(0, 8);
+
+        // Swap perspective for P2: MY stuff uses P1 DOM (bottom), OP uses P2 DOM (top)
+        // For P1: myPlayer=1 (bottom), opPlayer=2 (top) — default
+        // For P2: myPlayer=2, but we swap so MY tree/player shows at bottom (P1 DOM), OP at top (P2 DOM)
+        // This means: myDom=1 always (bottom), opDom=2 always (top)
+
         this.generateStars();
-
-        // Setup tap zones for MY half only
         this.setupTapZones();
-
-        // Update round info
         this.updateRoundInfo();
 
         // P1 generates branches and shares
@@ -376,22 +389,15 @@ class TimberChopGame extends BaseGame {
     setupTapZones() {
         const tpL = document.getElementById('tc-tp-l');
         const tpR = document.getElementById('tc-tp-r');
-
-        // Position tap zones on MY half
-        if (this.isP1) {
-            // P1 bottom half
-            tpL.style.bottom = '0'; tpL.style.left = '0';
-            tpR.style.bottom = '0'; tpR.style.right = '0'; tpR.style.left = 'auto';
-        } else {
-            // P2 top half
-            tpL.style.top = '0'; tpL.style.left = '0';
-            tpR.style.top = '0'; tpR.style.right = '0'; tpR.style.left = 'auto';
-        }
-
+        // Full screen left/right — CSS handles positioning
         const tap = (el, fn) => { el.addEventListener('pointerdown', e => { e.preventDefault(); fn(); }); };
         tap(tpL, () => this.doChop('left'));
         tap(tpR, () => this.doChop('right'));
     }
+
+    // myDom=1 (bottom), opDom=2 (top) — always. This handles perspective.
+    getMyDom() { return 1; }
+    getOpDom() { return 2; }
 
     startGame() {
         this.gameOn = true;
@@ -401,8 +407,8 @@ class TimberChopGame extends BaseGame {
         this.opSide = 'left';
         this.myCdEnd = 0;
 
-        this.setSide(this.myPlayer, 'left');
-        this.setSide(this.myPlayer === 1 ? 2 : 1, 'left');
+        this.setSide(this.getMyDom(), 'left');
+        this.setSide(this.getOpDom(), 'left');
 
         const pl1 = document.getElementById('tc-pl1');
         const pl2 = document.getElementById('tc-pl2');
@@ -422,22 +428,32 @@ class TimberChopGame extends BaseGame {
     }
 
     onRemoteInput(player, data) {
+        // Ignore my own echoed inputs
+        if (player === USER) return;
+
         if (data.type === 'branches') {
             this.branches = data.data;
             this.startGame();
         } else if (data.type === 'chop') {
             this.opCut = data.cut;
             this.opSide = data.side;
-            this.setSide(this.isP1 ? 2 : 1, data.side);
+            const opDom = this.getOpDom();
+            this.setSide(opDom, data.side);
 
             if (data.stunned) {
-                this.showStun(this.isP1 ? 2 : 1);
+                this.showStun(opDom);
+                // Auto-remove stun visuals after STUN duration
+                setTimeout(() => {
+                    if (!this.gameOn) return;
+                    const el = document.getElementById('tc-pl2');
+                    if (el) { el.classList.remove('tc-stunned'); el.classList.add('tc-wake'); setTimeout(() => el.classList.remove('tc-wake'), 300); }
+                    document.getElementById('tc-st2')?.classList.remove('tc-on');
+                }, this.STUN);
             } else {
-                this.showChopAnim(this.isP1 ? 2 : 1, data.side);
+                this.showChopAnim(opDom, data.side);
             }
 
-            // Render opponent's tree
-            this.renderTree(this.isP1 ? 2 : 1);
+            this.renderTree(opDom);
             this.updUI();
         }
     }
@@ -448,41 +464,45 @@ class TimberChopGame extends BaseGame {
         if (now < this.myCdEnd) return;
         if (this.myCut >= this.GOAL) return;
 
+        const myDom = this.getMyDom();
         this.mySide = side;
-        this.setSide(this.myPlayer, side);
+        this.setSide(myDom, side);
 
         const branch = this.branches[this.myCut];
 
         if (branch === side) {
             // STUNNED
             this.myCdEnd = now + this.STUN;
-            this.showStun(this.myPlayer);
+            this.showStun(myDom);
             this.sendInput({ type: 'chop', side: side, cut: this.myCut, stunned: true });
 
-            // Auto-move to safe side
-            setTimeout(() => this.setSide(this.myPlayer, branch === 'left' ? 'right' : 'left'), 180);
+            setTimeout(() => this.setSide(myDom, branch === 'left' ? 'right' : 'left'), 180);
 
-            // Unstun
             setTimeout(() => {
                 if (!this.gameOn) return;
-                const el = document.getElementById(this.myPlayer === 1 ? 'tc-pl1' : 'tc-pl2');
+                const el = document.getElementById('tc-pl1');
                 if (el) { el.classList.remove('tc-stunned'); el.classList.add('tc-wake'); setTimeout(() => el.classList.remove('tc-wake'), 300); }
-                document.getElementById(this.myPlayer === 1 ? 'tc-st1' : 'tc-st2')?.classList.remove('tc-on');
+                document.getElementById('tc-st1')?.classList.remove('tc-on');
             }, this.STUN);
             return;
         }
 
         // Safe chop
-        this.showChopAnim(this.myPlayer, side);
+        this.showChopAnim(myDom, side);
         this.myCut++;
         this.sendInput({ type: 'chop', side: side, cut: this.myCut, stunned: false });
         this.updUI();
-        this.renderTree(this.myPlayer);
+        this.renderTree(myDom);
 
         if (this.myCut >= this.GOAL) {
-            // I won - tell server
-            this.sendMove('game_won', { winner: this.myPlayer, p1_cut: this.isP1 ? this.myCut : this.opCut, p2_cut: this.isP1 ? this.opCut : this.myCut });
-            this.endGame(this.myPlayer);
+            // I won — tell server via round_end
+            const winner = this.myRole; // 'P1' or 'P2'
+            this.sendMove('round_end', {
+                winner: winner,
+                p1_score: this.isP1 ? this.myCut : this.opCut,
+                p2_score: this.isP1 ? this.opCut : this.myCut
+            });
+            this.endRound(true);
         }
     }
 
@@ -540,26 +560,27 @@ class TimberChopGame extends BaseGame {
         return el;
     }
 
-    renderTree(pl) {
-        const cut = (pl === this.myPlayer) ? this.myCut : this.opCut;
-        const cont = pl === 1 ? document.getElementById('tc-tree-p1') : document.getElementById('tc-tree-p2');
+    renderTree(domPl) {
+        // domPl=1 means bottom (my tree), domPl=2 means top (op tree)
+        const cut = (domPl === 1) ? this.myCut : this.opCut;
+        const cont = domPl === 1 ? document.getElementById('tc-tree-p1') : document.getElementById('tc-tree-p2');
         if (!cont) return;
         cont.innerHTML = '';
         const remaining = this.GOAL - cut;
 
         if (remaining <= 0) {
             const d = document.createElement('div');
-            d.className = 'tc-done-txt ' + (pl === 1 ? 'tc-d1' : 'tc-d2');
+            d.className = 'tc-done-txt ' + (domPl === 1 ? 'tc-d1' : 'tc-d2');
             d.textContent = 'ALL CUT!';
             cont.appendChild(d);
-            if (pl === 1) { const st = document.createElement('div'); st.className = 'tc-stump'; cont.appendChild(st); }
+            if (domPl === 1) { const st = document.createElement('div'); st.className = 'tc-stump'; cont.appendChild(st); }
             return;
         }
 
         const vis = this.calcVis();
         const count = Math.min(vis, remaining);
 
-        if (pl === 1) {
+        if (domPl === 1) {
             const topIdx = cut + count - 1;
             if (topIdx >= this.GOAL - 1 && remaining <= 3) {
                 const cr = document.createElement('div'); cr.className = 'tc-crown';
@@ -592,17 +613,16 @@ class TimberChopGame extends BaseGame {
     }
 
     updUI() {
-        const p1Cut = this.isP1 ? this.myCut : this.opCut;
-        const p2Cut = this.isP1 ? this.opCut : this.myCut;
+        // sv1/bf1/rm1 = MY score (bottom), sv2/bf2/rm2 = OP score (top)
         const sv1 = document.getElementById('tc-sv1');
         const sv2 = document.getElementById('tc-sv2');
-        if (sv1) sv1.textContent = p1Cut;
-        if (sv2) sv2.textContent = p2Cut;
+        if (sv1) sv1.textContent = this.myCut;
+        if (sv2) sv2.textContent = this.opCut;
         const bf1 = document.getElementById('tc-bf1');
         const bf2 = document.getElementById('tc-bf2');
-        if (bf1) bf1.style.width = (p1Cut / this.GOAL * 100) + '%';
-        if (bf2) bf2.style.width = (p2Cut / this.GOAL * 100) + '%';
-        const r1 = this.GOAL - p1Cut, r2 = this.GOAL - p2Cut;
+        if (bf1) bf1.style.width = (this.myCut / this.GOAL * 100) + '%';
+        if (bf2) bf2.style.width = (this.opCut / this.GOAL * 100) + '%';
+        const r1 = this.GOAL - this.myCut, r2 = this.GOAL - this.opCut;
         const rm1 = document.getElementById('tc-rm1');
         const rm2 = document.getElementById('tc-rm2');
         if (rm1) rm1.textContent = r1 > 0 ? r1 + ' left' : 'DONE!';
@@ -695,24 +715,22 @@ class TimberChopGame extends BaseGame {
         }
     }
 
-    endGame(winner) {
+    endRound(iWon) {
         this.gameOn = false;
-        this.renderTree(winner);
+        this.renderTree(1);
+        this.renderTree(2);
         const wt = document.getElementById('tc-wt');
         if (wt) {
-            const iWon = (winner === this.myPlayer);
             wt.textContent = iWon ? 'YOU WIN!' : 'YOU LOST!';
-            wt.className = 'tc-win-t ' + (winner === 1 ? 'tc-wc1' : 'tc-wc2');
+            wt.className = 'tc-win-t ' + (iWon ? 'tc-wc1' : 'tc-wc2');
         }
-        const p1Cut = this.isP1 ? this.myCut : this.opCut;
-        const p2Cut = this.isP1 ? this.opCut : this.myCut;
         const fw1 = document.getElementById('tc-fw1');
         const fw2 = document.getElementById('tc-fw2');
-        if (fw1) fw1.textContent = p1Cut;
-        if (fw2) fw2.textContent = p2Cut;
+        if (fw1) fw1.textContent = this.myCut;
+        if (fw2) fw2.textContent = this.opCut;
         setTimeout(() => {
             document.getElementById('tc-result-overlay')?.classList.remove('tc-hidden');
-            this.confetti(winner === 1 ? '#e74c5a' : '#3b82f6');
+            this.confetti(iWon ? '#e74c5a' : '#3b82f6');
         }, 300);
     }
 
@@ -728,11 +746,22 @@ class TimberChopGame extends BaseGame {
     update(state) {
         this.state = state;
         this.updateRoundInfo();
+
+        // If server sent round_started, reset for new round
+        if (state.round_started) {
+            if (this.isP1) {
+                this.genBranches();
+                this.sendInput({ type: 'branches', data: this.branches });
+                this.startGame();
+            }
+        }
     }
 
-    onRoundEnd(result) {
-        const winner = result.winner;
-        this.endGame(winner);
+    onRoundEnd(payload) {
+        const roundWinner = payload.round_winner;
+        const myName = this.state.players[this.myRole];
+        const iWon = (roundWinner === myName);
+        this.endRound(iWon);
         const sub = document.getElementById('tc-result-subtext');
         if (sub) sub.textContent = 'Next round starting...';
         setTimeout(() => {
@@ -740,11 +769,13 @@ class TimberChopGame extends BaseGame {
         }, 2500);
     }
 
-    onGameEnd(result) {
-        const winner = result.winner;
-        this.endGame(winner);
+    onGameEnd(payload) {
+        const winner = payload.game_winner;
+        const myName = this.state.players[this.myRole];
+        const iWon = (winner === myName) || (winner === 'draw' && false);
+        this.endRound(iWon);
         const sub = document.getElementById('tc-result-subtext');
-        if (sub) sub.textContent = 'Game Over!';
+        if (sub) sub.textContent = winner === 'draw' ? "It's a Draw!" : 'Game Over!';
     }
 
     destroy() {

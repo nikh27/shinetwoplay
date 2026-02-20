@@ -524,6 +524,9 @@ class DiamondHeistGame extends BaseGame {
     }
 
     onRemoteInput(player, data) {
+        // Ignore my own echoed inputs
+        if (player === USER) return;
+
         if (data.type === 'penalty') {
             this.applyPenalty(data.player);
         } else if (data.type === 'grab') {
