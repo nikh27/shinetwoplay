@@ -738,18 +738,13 @@
                 const bx = a.x + dx, by = a.y + dy;
                 pairs.push({ ax: a.x, ay: a.y, bx, by, i });
 
-                const margin = BODY_R + 4;
-                const offsets = [];
-                if (a.x < margin || bx < margin) offsets.push({ ox: AW, oy: 0 });
-                if (a.x > AW - margin || bx > AW - margin) offsets.push({ ox: -AW, oy: 0 });
-                if (a.y < margin || by < margin) offsets.push({ ox: 0, oy: AH });
-                if (a.y > AH - margin || by > AH - margin) offsets.push({ ox: 0, oy: -AH });
-                if ((a.x < margin || bx < margin) && (a.y < margin || by < margin)) offsets.push({ ox: AW, oy: AH });
-                if ((a.x > AW - margin || bx > AW - margin) && (a.y < margin || by < margin)) offsets.push({ ox: -AW, oy: AH });
-                if ((a.x < margin || bx < margin) && (a.y > AH - margin || by > AH - margin)) offsets.push({ ox: AW, oy: -AH });
-                if ((a.x > AW - margin || bx > AW - margin) && (a.y > AH - margin || by > AH - margin)) offsets.push({ ox: -AW, oy: -AH });
-
-                for (const o of offsets) pairs.push({ ax: a.x + o.ox, ay: a.y + o.oy, bx: bx + o.ox, by: by + o.oy, i });
+                // Only draw ghost copies when the segment actually crosses the boundary
+                // (the unwrapped endpoint falls outside canvas bounds)
+                const gx = bx < 0 ? AW : bx > AW ? -AW : 0;
+                const gy = by < 0 ? AH : by > AH ? -AH : 0;
+                if (gx) pairs.push({ ax: a.x + gx, ay: a.y, bx: bx + gx, by, i });
+                if (gy) pairs.push({ ax: a.x, ay: a.y + gy, bx, by: by + gy, i });
+                if (gx && gy) pairs.push({ ax: a.x + gx, ay: a.y + gy, bx: bx + gx, by: by + gy, i });
             }
 
             // Shadow

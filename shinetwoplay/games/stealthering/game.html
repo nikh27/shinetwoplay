@@ -40,15 +40,19 @@
         <span class="dh-player-score dh-s2" id="dh-p2-score">0</span>
     </div>
 
-    <!-- Player Zones (tap areas) -->
-    <div class="dh-player-zone dh-zone-p1" id="dh-p1-zone">
-        <div class="dh-penalty-overlay" id="dh-p1-penalty"></div>
-    </div>
-    <div class="dh-player-zone dh-zone-p2" id="dh-p2-zone">
-        <div class="dh-penalty-overlay" id="dh-p2-penalty"></div>
+    <!-- Round wins display -->
+    <div class="dh-round-wins" id="dh-round-wins">
+        <span class="dh-rw dh-rw1" id="dh-rw-p1">0</span>
+        <span class="dh-rw-label">ROUNDS</span>
+        <span class="dh-rw dh-rw2" id="dh-rw-p2">0</span>
     </div>
 
-    <!-- Hand P1 (Top) -->
+    <!-- Full-screen tap zone (both players click anywhere) -->
+    <div class="dh-tap-zone" id="dh-tap-zone">
+        <div class="dh-penalty-overlay" id="dh-penalty-overlay"></div>
+    </div>
+
+    <!-- Hand P1 (Top) - fingers pointing down toward center -->
     <div class="dh-hand dh-p1-hand" id="dh-p1-hand">
         <svg viewBox="0 0 120 170" fill="none">
             <defs>
@@ -69,7 +73,7 @@
         </svg>
     </div>
 
-    <!-- Hand P2 (Bottom) -->
+    <!-- Hand P2 (Bottom) - fingers pointing up toward center -->
     <div class="dh-hand dh-p2-hand" id="dh-p2-hand">
         <svg viewBox="0 0 120 170" fill="none">
             <defs>
@@ -200,9 +204,6 @@
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* P2 sees everything rotated 180° */
-.dh-game-container.dh-rotated { transform: rotate(180deg); }
-
 .dh-ambient-light {
     position: absolute; inset: 0;
     background:
@@ -225,7 +226,6 @@
     display: flex; align-items: center; justify-content: space-between;
     padding: 8px 12px; z-index: 150;
 }
-.dh-game-container.dh-rotated .dh-top-bar { transform: rotate(180deg); }
 
 .dh-exit-btn {
     width: 36px; height: 36px; border-radius: 50%; border: none;
@@ -241,21 +241,9 @@
     font-size: 12px; font-weight: 600; backdrop-filter: blur(10px);
 }
 
-/* Player zones */
-.dh-player-zone {
-    position: absolute; left: 0; right: 0; height: 50%; z-index: 10; cursor: pointer;
-}
-.dh-zone-p1 { top: 0; }
-.dh-zone-p2 { bottom: 0; }
-.dh-zone-p1::after {
-    content: ''; position: absolute; inset: 0;
-    background: linear-gradient(to bottom, rgba(100, 180, 255, 0.04) 0%, transparent 50%);
-    pointer-events: none;
-}
-.dh-zone-p2::after {
-    content: ''; position: absolute; inset: 0;
-    background: linear-gradient(to top, rgba(255, 100, 100, 0.04) 0%, transparent 50%);
-    pointer-events: none;
+/* Full-screen tap zone */
+.dh-tap-zone {
+    position: absolute; inset: 0; z-index: 10; cursor: pointer;
 }
 
 .dh-center-line {
@@ -296,38 +284,55 @@
 .dh-s1 { color: #7ac4ff; text-shadow: 0 0 16px rgba(122,196,255,0.5); }
 .dh-s2 { color: #ff7a7a; text-shadow: 0 0 16px rgba(255,122,122,0.5); }
 
+/* Round wins display */
+.dh-round-wins {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px;
+    z-index: 100;
+    background: rgba(0,0,0,0.5);
+    padding: 4px 14px; border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+.dh-rw { font-size: 14px; font-weight: 800; }
+.dh-rw1 { color: #7ac4ff; }
+.dh-rw2 { color: #ff7a7a; }
+.dh-rw-label { color: rgba(255,255,255,0.4); font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+
 /* Hands */
 .dh-hand {
     position: absolute; left: 50%;
     width: 18vw; max-width: 110px; min-width: 72px;
     z-index: 20;
     filter: drop-shadow(0 6px 16px rgba(0,0,0,0.6));
+    pointer-events: none; /* Let taps fall through to the tap zone below */
 }
-.dh-hand svg { width: 100%; height: auto; }
+.dh-hand svg { width: 100%; height: auto; pointer-events: none; }
 
-.dh-p1-hand { top: 6vh; transform: translateX(-50%) rotate(180deg); }
-.dh-p2-hand { bottom: 6vh; transform: translateX(-50%); }
+/* op-hand: top of screen, fingers pointing DOWN (rotated 180deg so fingers face center) */
+.dh-op-hand { top: 6vh; transform: translateX(-50%) rotate(180deg); }
+/* my-hand: bottom of screen, fingers pointing UP (natural orientation, fingers face center) */
+.dh-my-hand { bottom: 6vh; transform: translateX(-50%); }
 
 .dh-hand.dh-grabbing { animation: dhGrabMove 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
-.dh-p1-hand.dh-grabbing { animation: dhGrabMoveP1 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+.dh-op-hand.dh-grabbing { animation: dhGrabMoveOp 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
 
 @keyframes dhGrabMove {
     0% { transform: translateX(-50%) translateY(0); }
     100% { transform: translateX(-50%) translateY(calc(-50vh + 25vh)); }
 }
-@keyframes dhGrabMoveP1 {
+@keyframes dhGrabMoveOp {
     0% { transform: translateX(-50%) rotate(180deg) translateY(0); }
     100% { transform: translateX(-50%) rotate(180deg) translateY(calc(-50vh + 25vh)); }
 }
 
 .dh-hand.dh-retracting { animation: dhRetractMove 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
-.dh-p1-hand.dh-retracting { animation: dhRetractMoveP1 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+.dh-op-hand.dh-retracting { animation: dhRetractMoveOp 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
 
 @keyframes dhRetractMove {
     0% { transform: translateX(-50%) translateY(calc(-50vh + 25vh)); }
     100% { transform: translateX(-50%) translateY(0); }
 }
-@keyframes dhRetractMoveP1 {
+@keyframes dhRetractMoveOp {
     0% { transform: translateX(-50%) rotate(180deg) translateY(calc(-50vh + 25vh)); }
     100% { transform: translateX(-50%) rotate(180deg) translateY(0); }
 }
@@ -376,11 +381,8 @@
 
 .dh-penalty-overlay {
     position: absolute; inset: 0;
-    background: radial-gradient(circle at 50% 80%, rgba(255,40,40,0.3) 0%, transparent 50%);
+    background: radial-gradient(circle at 50% 50%, rgba(255,40,40,0.3) 0%, transparent 50%);
     opacity: 0; pointer-events: none; z-index: 25;
-}
-.dh-zone-p1 .dh-penalty-overlay {
-    background: radial-gradient(circle at 50% 20%, rgba(255,40,40,0.3) 0%, transparent 50%);
 }
 .dh-penalty-overlay.dh-show { animation: dhPenaltyFlash 0.5s ease-out; }
 @keyframes dhPenaltyFlash { 0%, 100% { opacity: 0; } 40% { opacity: 1; } }
@@ -416,10 +418,12 @@ class DiamondHeistGame extends BaseGame {
         super();
         this.gameMode = "real_time";
         this.scores = { p1: 0, p2: 0 };
+        this.roundWins = { p1: 0, p2: 0 };
         this.roundState = 'waiting'; // waiting, grab, scored, penalty
         this.canGrab = true;
         this.waitTimer = null;
-        this.WINNING_SCORE = 5;
+        this.grabTimeoutTimer = null;
+        this.WINNING_SCORE = 3;       // 3 points per round
         this.GRAB_TIMEOUT = 4000;
         this.PENALTY_DURATION = 1800;
         this.NEXT_ROUND_DELAY = 1000;
@@ -432,8 +436,9 @@ class DiamondHeistGame extends BaseGame {
         // Detect P1/P2 from state.players dict {P1: username, P2: username}
         const gp = state.players || {};
         this.isP1 = (gp['P1'] === USER);
-        this.myPlayer = this.isP1 ? 1 : 2;
+        this.myRole = this.isP1 ? 'P1' : 'P2';
         this.scores = { p1: 0, p2: 0 };
+        this.roundWins = { p1: 0, p2: 0 };
 
         // Update player names from players dict
         const p1Name = gp['P1'] || 'Player 1';
@@ -443,13 +448,45 @@ class DiamondHeistGame extends BaseGame {
         const el2 = document.getElementById('dh-p2-name');
         if (el2) el2.textContent = p2Name.substring(0, 8);
 
-        // No rotation — both players see the same view
+        // Update avatars based on gender from window.players
+        if (window.players) {
+            const p1Data = window.players[p1Name];
+            const p2Data = window.players[p2Name];
+            
+            const av1 = document.querySelector('.dh-av1');
+            const av2 = document.querySelector('.dh-av2');
+            
+            if (av1 && p1Data) {
+                av1.innerHTML = p1Data.gender === 'female' 
+                    ? '<img src="/static/games/icons/avatar_female.png" style="width:100%;height:100%">' 
+                    : '<img src="/static/games/icons/avatar_male.png" style="width:100%;height:100%">';
+            }
+            if (av2 && p2Data) {
+                av2.innerHTML = p2Data.gender === 'female' 
+                    ? '<img src="/static/games/icons/avatar_female.png" style="width:100%;height:100%">' 
+                    : '<img src="/static/games/icons/avatar_male.png" style="width:100%;height:100%">';
+            }
+        }
+
+        // Setup hand orientation (myHand = bottom, opHand = top)
+        const hand1 = document.getElementById('dh-p1-hand');
+        const hand2 = document.getElementById('dh-p2-hand');
+        if (hand1 && hand2) {
+            if (this.isP1) {
+                hand1.className = 'dh-hand dh-my-hand';
+                hand2.className = 'dh-hand dh-op-hand';
+            } else {
+                hand2.className = 'dh-hand dh-my-hand';
+                hand1.className = 'dh-hand dh-op-hand';
+            }
+        }
 
         // Update round info
         this.updateRoundInfo();
+        this.updateRoundWins();
 
-        // Setup tap handlers
-        this.setupTapZones();
+        // Setup tap handler — FULL SCREEN, both players click anywhere
+        this.setupTapZone();
 
         // P1 starts the first round after a short delay
         if (this.isP1) {
@@ -457,18 +494,19 @@ class DiamondHeistGame extends BaseGame {
         }
     }
 
-    setupTapZones() {
-        // P1 taps the P1 zone (top half), P2 taps the P2 zone (bottom half)
-        // But since P2's view is rotated, P2's bottom becomes P1's top visually
-        const myZone = this.isP1 ? document.getElementById('dh-p1-zone') : document.getElementById('dh-p2-zone');
+    setupTapZone() {
+        const zone = document.getElementById('dh-tap-zone');
+        if (!zone) return;
 
-        if (myZone) {
-            myZone.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                this.handleMyTap();
-            }, { passive: false });
-            myZone.addEventListener('mousedown', () => this.handleMyTap());
-        }
+        zone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.handleMyTap();
+        }, { passive: false });
+
+        zone.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            this.handleMyTap();
+        });
     }
 
     handleMyTap() {
@@ -476,12 +514,12 @@ class DiamondHeistGame extends BaseGame {
 
         if (this.roundState === 'waiting') {
             // Tapped too early - penalty
-            this.applyPenalty(this.myPlayer);
-            this.sendInput({ type: 'penalty', player: this.myPlayer });
+            this.applyPenalty(this.myRole);
+            this.sendInput({ type: 'penalty', player: this.myRole });
         } else if (this.roundState === 'grab') {
             // Try to grab
-            this.sendInput({ type: 'grab', player: this.myPlayer });
-            this.grabDiamond(this.myPlayer);
+            this.sendInput({ type: 'grab', player: this.myRole });
+            this.grabDiamond(this.myRole);
         }
     }
 
@@ -547,11 +585,11 @@ class DiamondHeistGame extends BaseGame {
         }, this.GRAB_TIMEOUT);
     }
 
-    applyPenalty(player) {
-        const hand = document.getElementById(player === 1 ? 'dh-p1-hand' : 'dh-p2-hand');
-        const penalty = document.getElementById(player === 1 ? 'dh-p1-penalty' : 'dh-p2-penalty');
+    applyPenalty(playerRole) {
+        const hand = document.getElementById(playerRole === 'P1' ? 'dh-p1-hand' : 'dh-p2-hand');
+        const penalty = document.getElementById('dh-penalty-overlay');
 
-        if (player === this.myPlayer) {
+        if (playerRole === this.myRole) {
             this.canGrab = false;
         }
 
@@ -566,19 +604,19 @@ class DiamondHeistGame extends BaseGame {
                 hand.classList.add('dh-retracting');
                 setTimeout(() => {
                     if (hand) hand.classList.remove('dh-retracting');
-                    if (player === this.myPlayer) this.canGrab = true;
+                    if (playerRole === this.myRole) this.canGrab = true;
                 }, this.PENALTY_DURATION);
             }
         }, this.GRAB_DURATION);
     }
 
-    grabDiamond(player) {
+    grabDiamond(playerRole) {
         if (this.roundState !== 'grab') return;
         this.roundState = 'scored';
         clearTimeout(this.waitTimer);
         clearTimeout(this.grabTimeoutTimer);
 
-        const hand = document.getElementById(player === 1 ? 'dh-p1-hand' : 'dh-p2-hand');
+        const hand = document.getElementById(playerRole === 'P1' ? 'dh-p1-hand' : 'dh-p2-hand');
         if (hand) hand.classList.add('dh-grabbing');
 
         setTimeout(() => {
@@ -590,41 +628,46 @@ class DiamondHeistGame extends BaseGame {
                 ring.style.transform = 'scale(0.5)';
             }
             this.hideGlow();
-            this.createParticles(player);
+            this.createParticles(playerRole);
 
-            if (player === 1) this.scores.p1++;
+            if (playerRole === 'P1') this.scores.p1++;
             else this.scores.p2++;
             this.updateScores();
 
             const flash = document.getElementById('dh-round-flash');
-            if (flash) flash.className = 'dh-round-flash ' + (player === 1 ? 'dh-p1-win' : 'dh-p2-win');
+            if (flash) flash.className = 'dh-round-flash ' + (playerRole === 'P1' ? 'dh-p1-win' : 'dh-p2-win');
             if (navigator.vibrate) navigator.vibrate(100);
 
             setTimeout(() => {
                 if (flash) flash.className = 'dh-round-flash';
-                // Send round result
-                if (this.isP1) {
-                    this.sendMove('round_scored', {
-                        scorer: player,
-                        p1_score: this.scores.p1,
-                        p2_score: this.scores.p2
-                    });
-                }
-                // Check win or next round
+
+                // Check if someone reached WINNING_SCORE (5 points) — round over
                 if (this.scores.p1 >= this.WINNING_SCORE || this.scores.p2 >= this.WINNING_SCORE) {
-                    // Game will end via server event
-                } else if (this.isP1) {
-                    setTimeout(() => this.startNewRound(), 500);
+                    // Round is done! Tell server
+                    const winner = this.scores.p1 >= this.WINNING_SCORE ? 'P1' : 'P2';
+                    if (this.isP1) {
+                        this.sendMove('round_end', {
+                            winner: winner,
+                            p1_score: this.scores.p1,
+                            p2_score: this.scores.p2
+                        });
+                    }
+                    // Server will send round_ended/game_ended events — wait for those
+                } else {
+                    // Not done yet, start next grab within same round
+                    if (this.isP1) {
+                        setTimeout(() => this.startNewRound(), 500);
+                    }
                 }
             }, this.NEXT_ROUND_DELAY);
         }, this.GRAB_DURATION);
     }
 
-    createParticles(player) {
+    createParticles(playerRole) {
         const container = document.getElementById('dh-particles');
         if (!container) return;
         container.innerHTML = '';
-        const colors = player === 1 ? ['#7ac4ff', '#b8ecff', '#5098d9'] : ['#ff7a7a', '#ffb8b8', '#d95050'];
+        const colors = playerRole === 'P1' ? ['#7ac4ff', '#b8ecff', '#5098d9'] : ['#ff7a7a', '#ffb8b8', '#d95050'];
         for (let i = 0; i < 12; i++) {
             const p = document.createElement('div');
             p.className = 'dh-particle';
@@ -641,6 +684,13 @@ class DiamondHeistGame extends BaseGame {
         const s2 = document.getElementById('dh-p2-score');
         if (s1) s1.textContent = this.scores.p1;
         if (s2) s2.textContent = this.scores.p2;
+    }
+
+    updateRoundWins() {
+        const rw1 = document.getElementById('dh-rw-p1');
+        const rw2 = document.getElementById('dh-rw-p2');
+        if (rw1) rw1.textContent = this.roundWins.p1;
+        if (rw2) rw2.textContent = this.roundWins.p2;
     }
 
     resetHands() {
@@ -681,23 +731,60 @@ class DiamondHeistGame extends BaseGame {
 
     update(state) {
         this.state = state;
+
+        // Sync per-round scores from server
         if (state.scores) {
-            this.scores.p1 = state.scores.player1 || 0;
-            this.scores.p2 = state.scores.player2 || 0;
+            this.scores.p1 = state.scores['P1'] || 0;
+            this.scores.p2 = state.scores['P2'] || 0;
             this.updateScores();
         }
+
+        // Sync round wins
+        if (state.round_wins) {
+            this.roundWins.p1 = state.round_wins['P1'] || 0;
+            this.roundWins.p2 = state.round_wins['P2'] || 0;
+            this.updateRoundWins();
+        }
+
         this.updateRoundInfo();
+
+        // If server sent a new round (round_started event), reset for new round
+        if (state.round_started) {
+            this.scores.p1 = 0;
+            this.scores.p2 = 0;
+            this.updateScores();
+            this.roundState = 'waiting';
+            this.canGrab = true;
+            this.resetHands();
+            this.showRing();
+            this.showGlass();
+            this.showGlow();
+
+            // P1 starts the new round
+            if (this.isP1) {
+                setTimeout(() => this.startNewRound(), 500);
+            }
+        }
     }
 
-    onRoundEnd(result) {
+    onRoundEnd(payload) {
         const overlay = document.getElementById('dh-result-overlay');
         const icon = document.getElementById('dh-result-icon');
         const text = document.getElementById('dh-result-text');
         const sub = document.getElementById('dh-result-subtext');
         if (!overlay) return;
 
-        const winner = result.winner;
-        const iWon = (winner === this.myPlayer);
+        // Determine if I won this round
+        const roundWinner = payload.round_winner;
+        const myName = this.state.players[this.myRole];
+        const iWon = (roundWinner === myName);
+
+        // Update round wins locally
+        if (payload.scores) {
+            this.roundWins.p1 = payload.game_state?.round_wins?.['P1'] || this.roundWins.p1;
+            this.roundWins.p2 = payload.game_state?.round_wins?.['P2'] || this.roundWins.p2;
+            this.updateRoundWins();
+        }
 
         if (icon) icon.textContent = iWon ? '🏆' : '😢';
         if (text) text.textContent = iWon ? 'You Win This Round!' : 'You Lost This Round';
@@ -707,19 +794,21 @@ class DiamondHeistGame extends BaseGame {
         setTimeout(() => { overlay.style.display = 'none'; }, 2500);
     }
 
-    onGameEnd(result) {
+    onGameEnd(payload) {
         const overlay = document.getElementById('dh-result-overlay');
         const icon = document.getElementById('dh-result-icon');
         const text = document.getElementById('dh-result-text');
         const sub = document.getElementById('dh-result-subtext');
         if (!overlay) return;
 
-        const winner = result.winner;
-        const iWon = (winner === this.myPlayer);
+        const winner = payload.game_winner;
+        const myName = this.state.players[this.myRole];
+        const iWon = (winner === myName);
+        const isDraw = (winner === 'draw');
 
-        if (icon) icon.textContent = iWon ? '🏆' : '😢';
-        if (text) text.textContent = iWon ? 'You Win!' : 'You Lost!';
-        if (sub) sub.textContent = `Final: ${this.scores.p1} - ${this.scores.p2}`;
+        if (icon) icon.textContent = isDraw ? '🤝' : (iWon ? '🏆' : '😢');
+        if (text) text.textContent = isDraw ? 'It\'s a Draw!' : (iWon ? 'You Win!' : 'You Lost!');
+        if (sub) sub.textContent = `Rounds: ${this.roundWins.p1} - ${this.roundWins.p2}`;
 
         overlay.style.display = 'flex';
     }
