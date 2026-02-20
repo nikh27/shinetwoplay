@@ -31,6 +31,24 @@ class Command(BaseCommand):
                 'image_url': '/static/games/beachball.png',
                 'description': 'Push the beach ball into your opponent\'s goal! Throw stones in the pool to hit the ball.',
             },
+            {
+                'game_id': 'carrom',
+                'name': 'Carrom',
+                'image_url': '/static/games/carrom.png',
+                'description': 'Classic carrom board game. Pocket all your coins before your opponent!',
+            },
+            {
+                'game_id': 'stealthering',
+                'name': 'Diamond Heist',
+                'image_url': '/static/games/stealthering.png',
+                'description': 'Grab the diamond when the case opens! First to 5 wins. Don\'t tap too early!',
+            },
+            {
+                'game_id': 'treecutter',
+                'name': 'Timber Chop',
+                'image_url': '/static/games/treecutter.png',
+                'description': 'Race to chop 100 logs! Dodge the branches or get stunned!',
+            },
         ]
 
         created_count = 0

@@ -1,0 +1,743 @@
+<!-- Diamond Heist (Stealthering) - Multiplayer -->
+
+<div class="dh-game-container" id="dh-container">
+    <div class="dh-ambient-light"></div>
+    <div class="dh-spotlight top"></div>
+    <div class="dh-spotlight bottom"></div>
+    <div class="dh-center-line"></div>
+
+    <!-- Top bar: Exit + Voice + Round -->
+    <div class="dh-top-bar">
+        <div style="display:flex; gap:6px; align-items:center;">
+            <button class="dh-exit-btn" onclick="exitGame()">✕</button>
+            <button class="dh-exit-btn dh-voice-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+            <button class="dh-exit-btn dh-voice-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">🔊</button>
+        </div>
+        <div class="dh-round-badge" id="dh-round-info">Round 1/1</div>
+    </div>
+
+    <!-- Player 1 Panel - Left side -->
+    <div class="dh-player-panel dh-p1-panel">
+        <div class="dh-player-avatar dh-av1">
+            <svg viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="14" r="8" fill="#7ac4ff" opacity="0.8"/>
+                <path d="M6,36 Q6,24 20,24 Q34,24 34,36" fill="#7ac4ff" opacity="0.6"/>
+            </svg>
+        </div>
+        <span class="dh-player-name dh-n1" id="dh-p1-name">Player 1</span>
+        <span class="dh-player-score dh-s1" id="dh-p1-score">0</span>
+    </div>
+
+    <!-- Player 2 Panel - Right side -->
+    <div class="dh-player-panel dh-p2-panel">
+        <div class="dh-player-avatar dh-av2">
+            <svg viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="14" r="8" fill="#ff7a7a" opacity="0.8"/>
+                <path d="M6,36 Q6,24 20,24 Q34,24 34,36" fill="#ff7a7a" opacity="0.6"/>
+            </svg>
+        </div>
+        <span class="dh-player-name dh-n2" id="dh-p2-name">Player 2</span>
+        <span class="dh-player-score dh-s2" id="dh-p2-score">0</span>
+    </div>
+
+    <!-- Player Zones (tap areas) -->
+    <div class="dh-player-zone dh-zone-p1" id="dh-p1-zone">
+        <div class="dh-penalty-overlay" id="dh-p1-penalty"></div>
+    </div>
+    <div class="dh-player-zone dh-zone-p2" id="dh-p2-zone">
+        <div class="dh-penalty-overlay" id="dh-p2-penalty"></div>
+    </div>
+
+    <!-- Hand P1 (Top) -->
+    <div class="dh-hand dh-p1-hand" id="dh-p1-hand">
+        <svg viewBox="0 0 120 170" fill="none">
+            <defs>
+                <linearGradient id="dhHG1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#2a2520"/><stop offset="50%" stop-color="#1e1a17"/><stop offset="100%" stop-color="#141210"/>
+                </linearGradient>
+                <linearGradient id="dhHH1" x1="20%" y1="0%" x2="80%" y2="100%">
+                    <stop offset="0%" stop-color="rgba(255,255,255,0.12)"/><stop offset="100%" stop-color="rgba(255,255,255,0.02)"/>
+                </linearGradient>
+                <filter id="dhHS1"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.4"/></filter>
+            </defs>
+            <path d="M42,170 L42,130 Q42,118 42,115 L36,115 Q22,112 18,100 Q14,88 20,72 L22,62 Q26,52 30,50 Q36,46 40,52 L42,60 L42,44 Q42,20 38,12 Q36,4 42,0 Q48,-2 52,4 Q54,10 54,20 L54,42 L56,18 Q56,4 60,-2 Q64,-6 68,-2 Q72,4 72,18 L70,42 L74,24 Q76,10 80,6 Q84,2 88,8 Q92,14 90,28 L86,48 L90,40 Q94,32 98,32 Q102,34 104,40 Q106,48 102,60 L96,76 Q90,96 86,108 Q82,118 78,122 L78,130 L78,170 Z" fill="url(#dhHG1)" filter="url(#dhHS1)"/>
+            <path d="M48,165 L48,128 Q48,120 46,116 L44,60 Q44,30 48,14 Q50,8 54,20 L54,42 L56,18 Q58,8 62,4 Q66,2 68,10 L68,42 L72,24 Q74,14 78,12 Q82,10 84,18 L84,48 L88,40 Q92,36 96,38 Q100,42 98,54 L92,74 Q86,94 82,108 Q78,118 76,122 L76,165 Z" fill="url(#dhHH1)" opacity="0.5"/>
+            <path d="M44,52 Q52,56 58,52" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+            <path d="M58,48 Q66,52 74,48" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+            <path d="M74,54 Q80,58 88,54" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+            <rect x="42" y="125" width="36" height="6" rx="2" fill="rgba(255,255,255,0.06)"/>
+        </svg>
+    </div>
+
+    <!-- Hand P2 (Bottom) -->
+    <div class="dh-hand dh-p2-hand" id="dh-p2-hand">
+        <svg viewBox="0 0 120 170" fill="none">
+            <defs>
+                <linearGradient id="dhHG2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#2a2520"/><stop offset="50%" stop-color="#1e1a17"/><stop offset="100%" stop-color="#141210"/>
+                </linearGradient>
+                <linearGradient id="dhHH2" x1="20%" y1="0%" x2="80%" y2="100%">
+                    <stop offset="0%" stop-color="rgba(255,255,255,0.12)"/><stop offset="100%" stop-color="rgba(255,255,255,0.02)"/>
+                </linearGradient>
+                <filter id="dhHS2"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.4"/></filter>
+            </defs>
+            <path d="M42,170 L42,130 Q42,118 42,115 L36,115 Q22,112 18,100 Q14,88 20,72 L22,62 Q26,52 30,50 Q36,46 40,52 L42,60 L42,44 Q42,20 38,12 Q36,4 42,0 Q48,-2 52,4 Q54,10 54,20 L54,42 L56,18 Q56,4 60,-2 Q64,-6 68,-2 Q72,4 72,18 L70,42 L74,24 Q76,10 80,6 Q84,2 88,8 Q92,14 90,28 L86,48 L90,40 Q94,32 98,32 Q102,34 104,40 Q106,48 102,60 L96,76 Q90,96 86,108 Q82,118 78,122 L78,130 L78,170 Z" fill="url(#dhHG2)" filter="url(#dhHS2)"/>
+            <path d="M48,165 L48,128 Q48,120 46,116 L44,60 Q44,30 48,14 Q50,8 54,20 L54,42 L56,18 Q58,8 62,4 Q66,2 68,10 L68,42 L72,24 Q74,14 78,12 Q82,10 84,18 L84,48 L88,40 Q92,36 96,38 Q100,42 98,54 L92,74 Q86,94 82,108 Q78,118 76,122 L76,165 Z" fill="url(#dhHH2)" opacity="0.5"/>
+            <path d="M44,52 Q52,56 58,52" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+            <path d="M58,48 Q66,52 74,48" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+            <path d="M74,54 Q80,58 88,54" stroke="rgba(255,255,255,0.08)" stroke-width="1" fill="none"/>
+            <rect x="42" y="125" width="36" height="6" rx="2" fill="rgba(255,255,255,0.06)"/>
+        </svg>
+    </div>
+
+    <!-- Diamond Glow -->
+    <div class="dh-diamond-glow" id="dh-diamond-glow"></div>
+
+    <!-- Display Case with Diamond Ring -->
+    <div class="dh-display-case">
+        <svg viewBox="0 0 240 200" id="dh-display-svg">
+            <defs>
+                <radialGradient id="dhGR" cx="50%" cy="45%" r="55%">
+                    <stop offset="0%" style="stop-color:rgba(220,240,255,0.04)"/>
+                    <stop offset="70%" style="stop-color:rgba(200,225,245,0.1)"/>
+                    <stop offset="100%" style="stop-color:rgba(180,210,235,0.18)"/>
+                </radialGradient>
+                <linearGradient id="dhBG" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#505050"/>
+                    <stop offset="30%" style="stop-color:#353535"/>
+                    <stop offset="100%" style="stop-color:#1a1a1a"/>
+                </linearGradient>
+                <radialGradient id="dhVR" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" style="stop-color:#3a1828"/>
+                    <stop offset="60%" style="stop-color:#251018"/>
+                    <stop offset="100%" style="stop-color:#180a10"/>
+                </radialGradient>
+                <linearGradient id="dhDT" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#e8f8ff"/>
+                    <stop offset="40%" style="stop-color:#a0dcf8"/>
+                    <stop offset="100%" style="stop-color:#60b0e0"/>
+                </linearGradient>
+                <linearGradient id="dhDBL" x1="100%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#4898c8"/><stop offset="100%" style="stop-color:#185880"/>
+                </linearGradient>
+                <linearGradient id="dhDBR" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#3888b8"/><stop offset="100%" style="stop-color:#104870"/>
+                </linearGradient>
+                <linearGradient id="dhGG" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#ffe566"/><stop offset="25%" style="stop-color:#ffd700"/>
+                    <stop offset="50%" style="stop-color:#e6b800"/><stop offset="75%" style="stop-color:#cc9900"/>
+                    <stop offset="100%" style="stop-color:#aa7700"/>
+                </linearGradient>
+                <linearGradient id="dhGS" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#aa7700"/><stop offset="35%" style="stop-color:#ffd700"/>
+                    <stop offset="65%" style="stop-color:#ffe566"/><stop offset="100%" style="stop-color:#cc9900"/>
+                </linearGradient>
+                <filter id="dhDGF"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                <filter id="dhBSF"><feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.45"/></filter>
+                <filter id="dhRSF"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.35"/></filter>
+            </defs>
+
+            <ellipse cx="120" cy="105" rx="100" ry="70" fill="url(#dhBG)" filter="url(#dhBSF)"/>
+            <ellipse cx="120" cy="100" rx="98" ry="66" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+            <ellipse cx="120" cy="105" rx="86" ry="58" fill="#222"/>
+            <ellipse cx="120" cy="105" rx="74" ry="48" fill="url(#dhVR)"/>
+            <ellipse cx="120" cy="102" rx="60" ry="38" fill="none" stroke="rgba(80,30,50,0.3)" stroke-width="0.5"/>
+
+            <g id="dh-ring-group">
+                <ellipse cx="120" cy="108" rx="28" ry="16" fill="none" stroke="url(#dhGG)" stroke-width="6" filter="url(#dhRSF)"/>
+                <ellipse cx="120" cy="109" rx="24" ry="13" fill="none" stroke="rgba(170,120,0,0.5)" stroke-width="1.5"/>
+                <ellipse cx="120" cy="107" rx="28" ry="16" fill="none" stroke="url(#dhGS)" stroke-width="1.5" opacity="0.6"/>
+                <ellipse cx="120" cy="112" rx="20" ry="10" fill="none" stroke="rgba(0,0,0,0.2)" stroke-width="2"/>
+                <line x1="106" y1="96" x2="110" y2="82" stroke="url(#dhGG)" stroke-width="3" stroke-linecap="round"/>
+                <line x1="134" y1="96" x2="130" y2="82" stroke="url(#dhGG)" stroke-width="3" stroke-linecap="round"/>
+                <line x1="114" y1="94" x2="116" y2="80" stroke="url(#dhGG)" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="126" y1="94" x2="124" y2="80" stroke="url(#dhGG)" stroke-width="2.5" stroke-linecap="round"/>
+                <g filter="url(#dhDGF)">
+                    <polygon points="120,48 148,78 120,92 92,78" fill="url(#dhDT)"/>
+                    <polygon points="120,52 140,74 120,84 100,74" fill="rgba(255,255,255,0.35)"/>
+                    <polygon points="120,52 100,74 92,78" fill="rgba(100,180,230,0.5)" opacity="0.7"/>
+                    <polygon points="120,52 140,74 148,78" fill="rgba(70,150,210,0.5)" opacity="0.6"/>
+                    <polygon points="92,78 120,92 120,110" fill="url(#dhDBL)"/>
+                    <polygon points="148,78 120,92 120,110" fill="url(#dhDBR)"/>
+                    <polygon points="120,60 130,76 120,86 110,76" fill="rgba(255,255,255,0.2)"/>
+                    <circle cx="106" cy="62" r="3.5" fill="white" opacity="0.9"/>
+                    <circle cx="112" cy="56" r="1.8" fill="white" opacity="0.7"/>
+                    <circle cx="100" cy="70" r="1.2" fill="white" opacity="0.5"/>
+                    <circle cx="136" cy="68" r="1" fill="white" opacity="0.4"/>
+                </g>
+            </g>
+
+            <g class="dh-glass-group" id="dh-glass-group">
+                <ellipse cx="120" cy="100" rx="80" ry="56" fill="url(#dhGR)"/>
+                <ellipse cx="120" cy="100" rx="80" ry="56" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+                <ellipse cx="96" cy="78" rx="32" ry="22" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="6" stroke-linecap="round" transform="rotate(-12 96 78)"/>
+                <ellipse cx="100" cy="82" rx="22" ry="14" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3" transform="rotate(-12 100 82)"/>
+                <path d="M155,88 Q165,100 155,118" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3.5" stroke-linecap="round"/>
+            </g>
+        </svg>
+    </div>
+
+    <div class="dh-round-flash" id="dh-round-flash"></div>
+    <div class="dh-particle-container" id="dh-particles"></div>
+
+    <!-- Result overlay -->
+    <div class="dh-result-overlay" id="dh-result-overlay" style="display:none;">
+        <div class="dh-result-content">
+            <div id="dh-result-icon" style="font-size:48px;">🏆</div>
+            <h2 id="dh-result-text">You Win!</h2>
+            <p id="dh-result-subtext">Next round starting...</p>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ===== Diamond Heist - All scoped to .dh- ===== */
+.dh-game-container {
+    position: relative;
+    width: 100%; height: 100%;
+    background: radial-gradient(ellipse 120% 80% at 50% 50%, #2d221a 0%, #1a140f 40%, #0d0a07 70%, #050403 100%);
+    overflow: hidden;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* P2 sees everything rotated 180° */
+.dh-game-container.dh-rotated { transform: rotate(180deg); }
+
+.dh-ambient-light {
+    position: absolute; inset: 0;
+    background:
+        radial-gradient(ellipse 80% 50% at 50% 50%, rgba(255, 220, 180, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 50% 50%, rgba(255, 200, 150, 0.05) 0%, transparent 40%);
+    pointer-events: none; z-index: 2;
+}
+
+.dh-spotlight {
+    position: absolute; left: 50%; width: 50%;
+    background: linear-gradient(180deg, rgba(255,245,220,0.12) 0%, rgba(255,235,200,0.06) 30%, rgba(255,225,180,0.02) 60%, transparent 100%);
+    pointer-events: none; z-index: 3;
+}
+.dh-spotlight.top { top: 0; height: 50%; transform: translateX(-50%); clip-path: polygon(35% 0%, 65% 0%, 80% 100%, 20% 100%); }
+.dh-spotlight.bottom { bottom: 0; height: 50%; transform: translateX(-50%) rotate(180deg); clip-path: polygon(35% 0%, 65% 0%, 80% 100%, 20% 100%); }
+
+/* Top bar */
+.dh-top-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; z-index: 150;
+}
+.dh-game-container.dh-rotated .dh-top-bar { transform: rotate(180deg); }
+
+.dh-exit-btn {
+    width: 36px; height: 36px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.1); color: #fff; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s;
+}
+.dh-exit-btn:active { background: rgba(255,255,255,0.2); }
+
+.dh-round-badge {
+    background: rgba(255,255,255,0.2); color: white;
+    padding: 4px 14px; border-radius: 20px;
+    font-size: 12px; font-weight: 600; backdrop-filter: blur(10px);
+}
+
+/* Player zones */
+.dh-player-zone {
+    position: absolute; left: 0; right: 0; height: 50%; z-index: 10; cursor: pointer;
+}
+.dh-zone-p1 { top: 0; }
+.dh-zone-p2 { bottom: 0; }
+.dh-zone-p1::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(100, 180, 255, 0.04) 0%, transparent 50%);
+    pointer-events: none;
+}
+.dh-zone-p2::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(255, 100, 100, 0.04) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.dh-center-line {
+    position: absolute; top: 50%; left: 5%; right: 5%; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 20%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.08) 80%, transparent 100%);
+    transform: translateY(-50%); z-index: 5;
+}
+
+/* Player panels */
+.dh-player-panel {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    z-index: 100; padding: 10px 8px;
+    background: linear-gradient(160deg, rgba(20,20,25,0.85), rgba(10,10,14,0.9));
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+    backdrop-filter: blur(8px);
+}
+.dh-p1-panel { left: 8px; }
+.dh-p2-panel { right: 8px; }
+
+.dh-player-avatar {
+    width: 36px; height: 36px; border-radius: 50%; overflow: hidden;
+    border: 2px solid; display: flex; align-items: center; justify-content: center;
+}
+.dh-av1 { border-color: #7ac4ff; background: rgba(122,196,255,0.1); }
+.dh-av2 { border-color: #ff7a7a; background: rgba(255,122,122,0.1); }
+.dh-player-avatar svg { width: 22px; height: 22px; }
+
+.dh-player-name {
+    font-size: 0.5rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; opacity: 0.6; white-space: nowrap;
+}
+.dh-n1 { color: #7ac4ff; }
+.dh-n2 { color: #ff7a7a; }
+
+.dh-player-score { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+.dh-s1 { color: #7ac4ff; text-shadow: 0 0 16px rgba(122,196,255,0.5); }
+.dh-s2 { color: #ff7a7a; text-shadow: 0 0 16px rgba(255,122,122,0.5); }
+
+/* Hands */
+.dh-hand {
+    position: absolute; left: 50%;
+    width: 18vw; max-width: 110px; min-width: 72px;
+    z-index: 20;
+    filter: drop-shadow(0 6px 16px rgba(0,0,0,0.6));
+}
+.dh-hand svg { width: 100%; height: auto; }
+
+.dh-p1-hand { top: 6vh; transform: translateX(-50%) rotate(180deg); }
+.dh-p2-hand { bottom: 6vh; transform: translateX(-50%); }
+
+.dh-hand.dh-grabbing { animation: dhGrabMove 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+.dh-p1-hand.dh-grabbing { animation: dhGrabMoveP1 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+
+@keyframes dhGrabMove {
+    0% { transform: translateX(-50%) translateY(0); }
+    100% { transform: translateX(-50%) translateY(calc(-50vh + 25vh)); }
+}
+@keyframes dhGrabMoveP1 {
+    0% { transform: translateX(-50%) rotate(180deg) translateY(0); }
+    100% { transform: translateX(-50%) rotate(180deg) translateY(calc(-50vh + 25vh)); }
+}
+
+.dh-hand.dh-retracting { animation: dhRetractMove 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+.dh-p1-hand.dh-retracting { animation: dhRetractMoveP1 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+
+@keyframes dhRetractMove {
+    0% { transform: translateX(-50%) translateY(calc(-50vh + 25vh)); }
+    100% { transform: translateX(-50%) translateY(0); }
+}
+@keyframes dhRetractMoveP1 {
+    0% { transform: translateX(-50%) rotate(180deg) translateY(calc(-50vh + 25vh)); }
+    100% { transform: translateX(-50%) rotate(180deg) translateY(0); }
+}
+
+/* Display case */
+.dh-display-case {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 15;
+    width: 40vw; max-width: 200px; min-width: 140px;
+}
+.dh-display-case svg { width: 100%; height: auto; filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5)); }
+
+.dh-glass-group { transition: opacity 0.1s ease; }
+.dh-glass-group.dh-hidden { opacity: 0; }
+
+.dh-diamond-glow {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24vw; max-width: 120px; aspect-ratio: 1;
+    background: radial-gradient(circle, rgba(120,200,255,0.3) 0%, rgba(100,180,255,0.12) 30%, rgba(80,160,255,0.04) 50%, transparent 70%);
+    border-radius: 50%;
+    animation: dhGlowPulse 2.5s ease-in-out infinite;
+    pointer-events: none; z-index: 14;
+}
+@keyframes dhGlowPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+}
+.dh-diamond-glow.dh-hidden { display: none; }
+
+/* Effects */
+.dh-round-flash { position: absolute; inset: 0; z-index: 50; pointer-events: none; opacity: 0; }
+.dh-round-flash.dh-p1-win {
+    background: radial-gradient(circle at 50% 50%, rgba(122,196,255,0.4) 0%, transparent 55%);
+    animation: dhFlashBurst 0.6s ease-out;
+}
+.dh-round-flash.dh-p2-win {
+    background: radial-gradient(circle at 50% 50%, rgba(255,122,122,0.4) 0%, transparent 55%);
+    animation: dhFlashBurst 0.6s ease-out;
+}
+@keyframes dhFlashBurst {
+    0% { opacity: 1; transform: scale(0.6); }
+    100% { opacity: 0; transform: scale(2); }
+}
+
+.dh-penalty-overlay {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 80%, rgba(255,40,40,0.3) 0%, transparent 50%);
+    opacity: 0; pointer-events: none; z-index: 25;
+}
+.dh-zone-p1 .dh-penalty-overlay {
+    background: radial-gradient(circle at 50% 20%, rgba(255,40,40,0.3) 0%, transparent 50%);
+}
+.dh-penalty-overlay.dh-show { animation: dhPenaltyFlash 0.5s ease-out; }
+@keyframes dhPenaltyFlash { 0%, 100% { opacity: 0; } 40% { opacity: 1; } }
+
+.dh-particle-container {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    pointer-events: none; z-index: 30;
+}
+.dh-particle { position: absolute; width: 8px; height: 8px; border-radius: 50%; opacity: 0; }
+.dh-particle.dh-animate { animation: dhParticleExplode 0.7s ease-out forwards; }
+@keyframes dhParticleExplode {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
+/* Result overlay */
+.dh-result-overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85); display: flex;
+    align-items: center; justify-content: center;
+    z-index: 200;
+}
+.dh-result-content { text-align: center; color: white; }
+.dh-result-content h2 { font-size: 28px; margin: 10px 0; }
+.dh-result-content p { color: #aaa; font-size: 14px; }
+</style>
+
+<script>
+// ===== Diamond Heist - Multiplayer Game Class =====
+
+class DiamondHeistGame extends BaseGame {
+    constructor() {
+        super();
+        this.gameMode = "real_time";
+        this.scores = { p1: 0, p2: 0 };
+        this.roundState = 'waiting'; // waiting, grab, scored, penalty
+        this.canGrab = true;
+        this.waitTimer = null;
+        this.WINNING_SCORE = 5;
+        this.GRAB_TIMEOUT = 4000;
+        this.PENALTY_DURATION = 1800;
+        this.NEXT_ROUND_DELAY = 1000;
+        this.GRAB_DURATION = 180;
+        this.RETRACT_DURATION = 1800;
+    }
+
+    init(state) {
+        this.state = state;
+        // Detect P1/P2 from state.players dict {P1: username, P2: username}
+        const gp = state.players || {};
+        this.isP1 = (gp['P1'] === USER);
+        this.myPlayer = this.isP1 ? 1 : 2;
+        this.scores = { p1: 0, p2: 0 };
+
+        // Update player names from players dict
+        const p1Name = gp['P1'] || 'Player 1';
+        const p2Name = gp['P2'] || 'Player 2';
+        const el1 = document.getElementById('dh-p1-name');
+        if (el1) el1.textContent = p1Name.substring(0, 8);
+        const el2 = document.getElementById('dh-p2-name');
+        if (el2) el2.textContent = p2Name.substring(0, 8);
+
+        // No rotation — both players see the same view
+
+        // Update round info
+        this.updateRoundInfo();
+
+        // Setup tap handlers
+        this.setupTapZones();
+
+        // P1 starts the first round after a short delay
+        if (this.isP1) {
+            setTimeout(() => this.startNewRound(), 500);
+        }
+    }
+
+    setupTapZones() {
+        // P1 taps the P1 zone (top half), P2 taps the P2 zone (bottom half)
+        // But since P2's view is rotated, P2's bottom becomes P1's top visually
+        const myZone = this.isP1 ? document.getElementById('dh-p1-zone') : document.getElementById('dh-p2-zone');
+
+        if (myZone) {
+            myZone.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.handleMyTap();
+            }, { passive: false });
+            myZone.addEventListener('mousedown', () => this.handleMyTap());
+        }
+    }
+
+    handleMyTap() {
+        if (!this.canGrab) return;
+
+        if (this.roundState === 'waiting') {
+            // Tapped too early - penalty
+            this.applyPenalty(this.myPlayer);
+            this.sendInput({ type: 'penalty', player: this.myPlayer });
+        } else if (this.roundState === 'grab') {
+            // Try to grab
+            this.sendInput({ type: 'grab', player: this.myPlayer });
+            this.grabDiamond(this.myPlayer);
+        }
+    }
+
+    onRemoteInput(player, data) {
+        if (data.type === 'penalty') {
+            this.applyPenalty(data.player);
+        } else if (data.type === 'grab') {
+            // Remote player grabbed first
+            if (this.roundState === 'grab') {
+                this.grabDiamond(data.player);
+            }
+        } else if (data.type === 'open_case') {
+            // P1 says case is open
+            this.openCase();
+        } else if (data.type === 'new_round') {
+            this.roundState = 'waiting';
+            this.canGrab = true;
+            this.resetHands();
+            this.showRing();
+            this.showGlass();
+            this.showGlow();
+        }
+    }
+
+    startNewRound() {
+        this.roundState = 'waiting';
+        this.canGrab = true;
+        this.resetHands();
+        this.showRing();
+        this.showGlass();
+        this.showGlow();
+
+        // Broadcast to P2
+        this.sendInput({ type: 'new_round' });
+
+        // Random wait then open
+        const waitTime = this.getRandomWaitTime();
+        this.waitTimer = setTimeout(() => {
+            this.openCase();
+            this.sendInput({ type: 'open_case' });
+        }, waitTime);
+    }
+
+    getRandomWaitTime() {
+        const roll = Math.random() * 100;
+        if (roll < 5) return 1000 + Math.random() * 2000;
+        if (roll < 30) return 8000 + Math.random() * 7000;
+        return 3000 + Math.random() * 5000;
+    }
+
+    openCase() {
+        this.roundState = 'grab';
+        const glass = document.getElementById('dh-glass-group');
+        if (glass) glass.classList.add('dh-hidden');
+        if (navigator.vibrate) navigator.vibrate(50);
+
+        // Auto-reset if nobody grabs in time
+        clearTimeout(this.grabTimeoutTimer);
+        this.grabTimeoutTimer = setTimeout(() => {
+            if (this.roundState === 'grab' && this.isP1) {
+                this.startNewRound();
+            }
+        }, this.GRAB_TIMEOUT);
+    }
+
+    applyPenalty(player) {
+        const hand = document.getElementById(player === 1 ? 'dh-p1-hand' : 'dh-p2-hand');
+        const penalty = document.getElementById(player === 1 ? 'dh-p1-penalty' : 'dh-p2-penalty');
+
+        if (player === this.myPlayer) {
+            this.canGrab = false;
+        }
+
+        if (penalty) { penalty.classList.add('dh-show'); }
+        if (hand) { hand.classList.add('dh-grabbing'); }
+        if (navigator.vibrate) navigator.vibrate([30, 30, 30]);
+
+        setTimeout(() => { if (penalty) penalty.classList.remove('dh-show'); }, 500);
+        setTimeout(() => {
+            if (hand) {
+                hand.classList.remove('dh-grabbing');
+                hand.classList.add('dh-retracting');
+                setTimeout(() => {
+                    if (hand) hand.classList.remove('dh-retracting');
+                    if (player === this.myPlayer) this.canGrab = true;
+                }, this.PENALTY_DURATION);
+            }
+        }, this.GRAB_DURATION);
+    }
+
+    grabDiamond(player) {
+        if (this.roundState !== 'grab') return;
+        this.roundState = 'scored';
+        clearTimeout(this.waitTimer);
+        clearTimeout(this.grabTimeoutTimer);
+
+        const hand = document.getElementById(player === 1 ? 'dh-p1-hand' : 'dh-p2-hand');
+        if (hand) hand.classList.add('dh-grabbing');
+
+        setTimeout(() => {
+            // Hide ring + glow
+            const ring = document.getElementById('dh-ring-group');
+            if (ring) {
+                ring.style.transition = 'all 0.15s ease-out';
+                ring.style.opacity = '0';
+                ring.style.transform = 'scale(0.5)';
+            }
+            this.hideGlow();
+            this.createParticles(player);
+
+            if (player === 1) this.scores.p1++;
+            else this.scores.p2++;
+            this.updateScores();
+
+            const flash = document.getElementById('dh-round-flash');
+            if (flash) flash.className = 'dh-round-flash ' + (player === 1 ? 'dh-p1-win' : 'dh-p2-win');
+            if (navigator.vibrate) navigator.vibrate(100);
+
+            setTimeout(() => {
+                if (flash) flash.className = 'dh-round-flash';
+                // Send round result
+                if (this.isP1) {
+                    this.sendMove('round_scored', {
+                        scorer: player,
+                        p1_score: this.scores.p1,
+                        p2_score: this.scores.p2
+                    });
+                }
+                // Check win or next round
+                if (this.scores.p1 >= this.WINNING_SCORE || this.scores.p2 >= this.WINNING_SCORE) {
+                    // Game will end via server event
+                } else if (this.isP1) {
+                    setTimeout(() => this.startNewRound(), 500);
+                }
+            }, this.NEXT_ROUND_DELAY);
+        }, this.GRAB_DURATION);
+    }
+
+    createParticles(player) {
+        const container = document.getElementById('dh-particles');
+        if (!container) return;
+        container.innerHTML = '';
+        const colors = player === 1 ? ['#7ac4ff', '#b8ecff', '#5098d9'] : ['#ff7a7a', '#ffb8b8', '#d95050'];
+        for (let i = 0; i < 12; i++) {
+            const p = document.createElement('div');
+            p.className = 'dh-particle';
+            p.style.background = colors[i % 3];
+            p.style.setProperty('--tx', (Math.random() - 0.5) * 150 + 'px');
+            p.style.setProperty('--ty', (Math.random() - 0.5) * 150 + 'px');
+            container.appendChild(p);
+            setTimeout(() => p.classList.add('dh-animate'), 10);
+        }
+    }
+
+    updateScores() {
+        const s1 = document.getElementById('dh-p1-score');
+        const s2 = document.getElementById('dh-p2-score');
+        if (s1) s1.textContent = this.scores.p1;
+        if (s2) s2.textContent = this.scores.p2;
+    }
+
+    resetHands() {
+        const h1 = document.getElementById('dh-p1-hand');
+        const h2 = document.getElementById('dh-p2-hand');
+        if (h1) h1.classList.remove('dh-grabbing', 'dh-retracting');
+        if (h2) h2.classList.remove('dh-grabbing', 'dh-retracting');
+    }
+
+    showRing() {
+        const ring = document.getElementById('dh-ring-group');
+        if (ring) { ring.style.opacity = '1'; ring.style.transform = ''; }
+    }
+
+    showGlass() {
+        const glass = document.getElementById('dh-glass-group');
+        if (glass) glass.classList.remove('dh-hidden');
+    }
+
+    showGlow() {
+        const glow = document.getElementById('dh-diamond-glow');
+        if (glow) glow.classList.remove('dh-hidden');
+    }
+
+    hideGlow() {
+        const glow = document.getElementById('dh-diamond-glow');
+        if (glow) glow.classList.add('dh-hidden');
+    }
+
+    updateRoundInfo() {
+        const el = document.getElementById('dh-round-info');
+        if (el && this.state) {
+            const cr = this.state.current_round || 1;
+            const tr = this.state.total_rounds || 1;
+            el.textContent = `Round ${cr}/${tr}`;
+        }
+    }
+
+    update(state) {
+        this.state = state;
+        if (state.scores) {
+            this.scores.p1 = state.scores.player1 || 0;
+            this.scores.p2 = state.scores.player2 || 0;
+            this.updateScores();
+        }
+        this.updateRoundInfo();
+    }
+
+    onRoundEnd(result) {
+        const overlay = document.getElementById('dh-result-overlay');
+        const icon = document.getElementById('dh-result-icon');
+        const text = document.getElementById('dh-result-text');
+        const sub = document.getElementById('dh-result-subtext');
+        if (!overlay) return;
+
+        const winner = result.winner;
+        const iWon = (winner === this.myPlayer);
+
+        if (icon) icon.textContent = iWon ? '🏆' : '😢';
+        if (text) text.textContent = iWon ? 'You Win This Round!' : 'You Lost This Round';
+        if (sub) sub.textContent = 'Next round starting...';
+
+        overlay.style.display = 'flex';
+        setTimeout(() => { overlay.style.display = 'none'; }, 2500);
+    }
+
+    onGameEnd(result) {
+        const overlay = document.getElementById('dh-result-overlay');
+        const icon = document.getElementById('dh-result-icon');
+        const text = document.getElementById('dh-result-text');
+        const sub = document.getElementById('dh-result-subtext');
+        if (!overlay) return;
+
+        const winner = result.winner;
+        const iWon = (winner === this.myPlayer);
+
+        if (icon) icon.textContent = iWon ? '🏆' : '😢';
+        if (text) text.textContent = iWon ? 'You Win!' : 'You Lost!';
+        if (sub) sub.textContent = `Final: ${this.scores.p1} - ${this.scores.p2}`;
+
+        overlay.style.display = 'flex';
+    }
+
+    destroy() {
+        super.destroy();
+        clearTimeout(this.waitTimer);
+        clearTimeout(this.grabTimeoutTimer);
+    }
+}
+
+// Register
+window.GameClasses = window.GameClasses || {};
+window.GameClasses['stealthering'] = DiamondHeistGame;
+
+window.exitGame = window.exitGame || function() {
+    if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ event: 'game_exit' }));
+    }
+};
+</script>

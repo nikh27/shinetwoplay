@@ -1,0 +1,765 @@
+<!-- Timber Chop (Tree Cutter) - Multiplayer -->
+
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Bungee+Shade&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+
+<div class="tc-game" id="tc-game">
+  <div class="tc-bg-top"></div><div class="tc-bg-bot"></div>
+  <div class="tc-stars" id="tc-stars"></div>
+  <div class="tc-gnd tc-gnd-t"></div><div class="tc-gnd tc-gnd-b"></div>
+  <div class="tc-mid-line"></div>
+
+  <!-- Top bar: Exit + Voice + Round -->
+  <div class="tc-top-bar">
+      <div style="display:flex; gap:6px; align-items:center;">
+          <button class="tc-exit-btn" onclick="exitGame()">✕</button>
+          <button class="tc-exit-btn tc-voice-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+          <button class="tc-exit-btn tc-voice-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">🔊</button>
+      </div>
+      <div class="tc-round-badge" id="tc-round-info">Round 1/1</div>
+  </div>
+
+  <!-- Tap zones: my half only -->
+  <div id="tc-tp-l" class="tc-tap"></div>
+  <div id="tc-tp-r" class="tc-tap"></div>
+
+  <!-- Scoreboard -->
+  <div id="tc-sb">
+    <div class="tc-sb-b"><div class="tc-sb-l tc-c2">P2</div><div class="tc-sb-v" id="tc-sv2">0</div><div class="tc-sb-bar"><div class="tc-sb-f tc-f2" id="tc-bf2"></div></div><div class="tc-sb-rem" id="tc-rm2">100 left</div></div>
+    <div class="tc-sb-vs">VS</div>
+    <div class="tc-sb-b"><div class="tc-sb-l tc-c1">P1</div><div class="tc-sb-v" id="tc-sv1">0</div><div class="tc-sb-bar"><div class="tc-sb-f tc-f1" id="tc-bf1"></div></div><div class="tc-sb-rem" id="tc-rm1">100 left</div></div>
+  </div>
+
+  <div class="tc-stxt" id="tc-st1">STUNNED!</div>
+  <div class="tc-stxt" id="tc-st2">STUNNED!</div>
+
+  <!-- Trees -->
+  <div class="tc-tree-clip tc-tc2"><div id="tc-tree-p2"></div></div>
+  <div class="tc-tree-clip tc-tc1"><div id="tc-tree-p1"></div></div>
+
+  <!-- Player 1 (bottom) -->
+  <div class="tc-pl tc-p1 tc-sl" id="tc-pl1"><div class="tc-pi">
+    <div class="tc-ch-head">
+      <div class="tc-ch-hat"></div><div class="tc-ch-brim"></div>
+      <div class="tc-ch-face"><div class="tc-ch-eye tc-el"></div><div class="tc-ch-eye tc-er"></div><div class="tc-ch-smile"></div></div>
+    </div>
+    <div class="tc-ch-body"></div><div class="tc-ch-belt"></div><div class="tc-ch-buckle"></div>
+    <div class="tc-ch-arm tc-al"><div class="tc-ch-hand"></div></div>
+    <div class="tc-ch-arm tc-ar"><div class="tc-ch-hand"></div></div>
+    <div class="tc-ch-axe"><div class="tc-axe-shaft"></div><div class="tc-axe-head"><div class="tc-axe-metal"></div><div class="tc-axe-edge"></div></div></div>
+    <div class="tc-ch-legs"><div class="tc-ch-leg"><div class="tc-ch-boot"></div></div><div class="tc-ch-leg"><div class="tc-ch-boot"></div></div></div>
+  </div></div>
+
+  <!-- Player 2 (top) -->
+  <div class="tc-pl tc-p2 tc-sl" id="tc-pl2"><div class="tc-pi">
+    <div class="tc-ch-head">
+      <div class="tc-ch-hat"></div><div class="tc-ch-brim"></div>
+      <div class="tc-ch-face"><div class="tc-ch-eye tc-el"></div><div class="tc-ch-eye tc-er"></div><div class="tc-ch-smile"></div></div>
+    </div>
+    <div class="tc-ch-body"></div><div class="tc-ch-belt"></div><div class="tc-ch-buckle"></div>
+    <div class="tc-ch-arm tc-al"><div class="tc-ch-hand"></div></div>
+    <div class="tc-ch-arm tc-ar"><div class="tc-ch-hand"></div></div>
+    <div class="tc-ch-axe"><div class="tc-axe-shaft"></div><div class="tc-axe-head"><div class="tc-axe-metal"></div><div class="tc-axe-edge"></div></div></div>
+    <div class="tc-ch-legs"><div class="tc-ch-leg"><div class="tc-ch-boot"></div></div><div class="tc-ch-leg"><div class="tc-ch-boot"></div></div></div>
+  </div></div>
+
+  <div id="tc-fx"></div>
+
+  <!-- Result overlay -->
+  <div id="tc-result-overlay" class="tc-ov tc-hidden">
+      <div class="tc-ov-box">
+          <div class="tc-trophy">🏆</div>
+          <h1 class="tc-win-t" id="tc-wt">P1 WINS!</h1>
+          <div class="tc-fin-sc">
+              <div class="tc-sb-b"><div class="tc-sb-l tc-c1">P1</div><div class="tc-sb-v" id="tc-fw1">0</div></div>
+              <div class="tc-sb-vs">—</div>
+              <div class="tc-sb-b"><div class="tc-sb-l tc-c2">P2</div><div class="tc-sb-v" id="tc-fw2">0</div></div>
+          </div>
+          <p id="tc-result-subtext" style="color:rgba(255,255,255,0.6);font-size:14px;margin-top:10px;">Next round starting...</p>
+      </div>
+  </div>
+</div>
+
+<style>
+/* ===== Timber Chop - All scoped to .tc- ===== */
+.tc-game{position:relative;width:100%;max-width:480px;height:100%;margin:0 auto;overflow:hidden;font-family:'Fredoka',sans-serif;background:#0a0a14}
+
+.tc-bg-top{position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,#0b0e1a 0%,#121830 30%,#162050 70%,#1a3060 100%);z-index:0}
+.tc-bg-bot{position:absolute;bottom:0;left:0;right:0;height:50%;background:linear-gradient(0deg,#0b0e1a 0%,#121830 30%,#162050 70%,#1a3060 100%);z-index:0}
+
+#tc-stars{position:absolute;inset:0;z-index:1}
+.tc-star{position:absolute;background:#fff;border-radius:50%}
+.tc-star-b1{animation:tcBlink1 1.8s ease-in-out infinite}
+.tc-star-b2{animation:tcBlink2 2.5s ease-in-out infinite .7s}
+.tc-star-b3{animation:tcBlink3 3s ease-in-out infinite 1.2s}
+@keyframes tcBlink1{0%,100%{opacity:.1;transform:scale(.5)}50%{opacity:1;transform:scale(1.3)}}
+@keyframes tcBlink2{0%,100%{opacity:.15;transform:scale(.6)}50%{opacity:.9;transform:scale(1.2)}}
+@keyframes tcBlink3{0%,100%{opacity:.2}50%{opacity:.7}}
+
+.tc-gnd{position:absolute;left:0;right:0;z-index:5}
+.tc-gnd-b{bottom:0;height:40px;background:linear-gradient(180deg,#3a7d34 0%,#2d6b28 30%,#1e4d1a 100%)}
+.tc-gnd-b::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#4caf50}
+.tc-gnd-t{top:0;height:40px;background:linear-gradient(0deg,#3a7d34 0%,#2d6b28 30%,#1e4d1a 100%)}
+.tc-gnd-t::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:#4caf50}
+
+.tc-mid-line{position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,.03);z-index:6}
+
+/* Top bar */
+.tc-top-bar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;z-index:200}
+.tc-exit-btn{width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:white;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(10px);transition:all 0.2s}
+.tc-exit-btn:active{background:rgba(255,255,255,0.3)}
+.tc-round-badge{background:rgba(255,255,255,0.15);color:white;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;backdrop-filter:blur(10px)}
+
+/* Trees */
+.tc-tree-clip{position:absolute;left:0;right:0;z-index:10;clip-path:inset(0px -120px 0px -120px)}
+.tc-tc1{bottom:0;height:50%}
+.tc-tc2{top:0;height:50%}
+
+#tc-tree-p1,#tc-tree-p2{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;overflow:visible}
+#tc-tree-p1{bottom:40px}
+#tc-tree-p2{top:40px}
+
+.tc-blk{position:relative;width:48px;height:56px;flex-shrink:0;overflow:visible}
+.tc-blk-wood{width:100%;height:100%;background:linear-gradient(90deg,#4a2c16 0%,#6d4525 10%,#8a6030 30%,#9e7040 50%,#8a6030 70%,#6d4525 90%,#4a2c16 100%);border-left:2px solid #3a1e0a;border-right:2px solid #3a1e0a;position:relative}
+.tc-blk-wood::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;border-bottom:1px solid rgba(0,0,0,.08)}
+
+.tc-br{position:absolute;top:14px;width:44px;height:14px;z-index:15;overflow:visible}
+.tc-br.tc-bl{right:100%;margin-right:-2px}
+.tc-br.tc-brt{left:100%;margin-left:-2px}
+.tc-br-w{width:100%;height:100%;border-radius:6px;background:linear-gradient(180deg,#9e7040,#7a5030 50%,#5a3520);border:1.5px solid #3a1e0a}
+.tc-br.tc-bl .tc-br-w{border-radius:6px 0 0 6px;border-right:none}
+.tc-br.tc-brt .tc-br-w{border-radius:0 6px 6px 0;border-left:none}
+
+.tc-br-lf{position:absolute;top:-14px;width:40px;height:24px;overflow:visible}
+.tc-br-lf-main{width:100%;height:100%;background:radial-gradient(ellipse at 50% 55%,#5cb85c 10%,#4caf50 40%,#388e3c 70%,#2e7d32 100%);border-radius:50%;border:1.5px solid #1b5e20}
+.tc-br-lf-hi{position:absolute;top:3px;width:22px;height:12px;background:radial-gradient(ellipse,#81c784,#66bb6a);border-radius:50%;opacity:.7}
+.tc-br.tc-bl .tc-br-lf{right:-4px}
+.tc-br.tc-bl .tc-br-lf-hi{right:6px}
+.tc-br.tc-brt .tc-br-lf{left:-4px}
+.tc-br.tc-brt .tc-br-lf-hi{left:6px}
+
+.tc-blk.tc-p2b .tc-br-lf{top:auto;bottom:-14px}
+
+.tc-crown{width:72px;height:42px;position:relative;margin-bottom:-2px;z-index:16;overflow:visible}
+.tc-crown-base{width:100%;height:100%;background:radial-gradient(ellipse at 50% 60%,#5cb85c 0%,#43a047 40%,#2e7d32 70%,#1b5e20 100%);border-radius:50% 50% 10% 10%;border:2px solid #1b5e20;border-bottom:none}
+.tc-crown-tip{position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:44px;height:28px;background:radial-gradient(ellipse,#66bb6a 20%,#4caf50 55%,#388e3c 100%);border-radius:50%;border:1.5px solid #2e7d32}
+.tc-crown.tc-p2-crown{margin-bottom:0;margin-top:-2px;transform:scaleY(-1)}
+
+.tc-stump{width:58px;height:12px;background:linear-gradient(180deg,#5a3520,#3a1e0a);border-radius:0 0 5px 5px;margin-top:-1px;z-index:16}
+
+.tc-blk.tc-act1{box-shadow:inset 0 0 0 2px rgba(231,76,90,.3);border-radius:2px}
+.tc-blk.tc-act2{box-shadow:inset 0 0 0 2px rgba(59,130,246,.3);border-radius:2px}
+
+.tc-done-txt{font-family:'Bungee',cursive;font-size:11px;letter-spacing:2px;padding:4px 0}
+.tc-done-txt.tc-d1{color:#e74c5a}
+.tc-done-txt.tc-d2{color:#3b82f6}
+
+.tc-blk.tc-fly-l{animation:tcFlyL .22s ease-in forwards;z-index:20}
+.tc-blk.tc-fly-r{animation:tcFlyR .22s ease-in forwards;z-index:20}
+@keyframes tcFlyL{to{transform:translate(-110px,20px) rotate(-25deg);opacity:0}}
+@keyframes tcFlyR{to{transform:translate(110px,20px) rotate(25deg);opacity:0}}
+
+/* Players */
+.tc-pl{position:absolute;z-index:20;width:48px;height:62px;transition:left .06s ease-out}
+.tc-pi{position:relative;width:100%;height:100%}
+
+.tc-pl.tc-p1{bottom:40px}
+.tc-pl.tc-p1.tc-sl{left:calc(50% - 72px)}
+.tc-pl.tc-p1.tc-sr{left:calc(50% + 24px)}
+.tc-pl.tc-p1.tc-sr .tc-pi{transform:scaleX(-1)}
+
+.tc-pl.tc-p2{top:40px}
+.tc-pl.tc-p2.tc-sl{left:calc(50% - 72px)}
+.tc-pl.tc-p2.tc-sr{left:calc(50% + 24px)}
+.tc-pl.tc-p2 .tc-pi{transform:scaleY(-1)}
+.tc-pl.tc-p2.tc-sr .tc-pi{transform:scaleX(-1) scaleY(-1)}
+
+/* Character Parts */
+.tc-ch-head{position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:28px;z-index:3}
+.tc-ch-hat{position:absolute;top:0;left:50%;transform:translateX(-50%);width:28px;height:12px;border-radius:6px 6px 2px 2px;z-index:2}
+.tc-ch-brim{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:32px;height:5px;border-radius:3px;z-index:2}
+.tc-p1 .tc-ch-hat,.tc-p1 .tc-ch-brim{background:#e74c5a;border:1px solid #c0392b}
+.tc-p2 .tc-ch-hat,.tc-p2 .tc-ch-brim{background:#3b82f6;border:1px solid #1d4ed8}
+.tc-ch-face{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:22px;height:18px;background:radial-gradient(ellipse at 45% 40%,#ffe0b2,#ffc88a);border-radius:50% 50% 40% 40%;border:1.5px solid #d4a06a;z-index:1}
+.tc-ch-eye{position:absolute;width:3.5px;height:4px;background:#1a1210;border-radius:50%;top:5px}
+.tc-ch-eye::after{content:'';position:absolute;top:.5px;left:.5px;width:1.5px;height:1.5px;background:rgba(255,255,255,.6);border-radius:50%}
+.tc-ch-eye.tc-el{left:4px}.tc-ch-eye.tc-er{right:4px}
+.tc-ch-smile{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:6px;height:3px;border-radius:0 0 3px 3px;background:#c07050}
+
+.tc-ch-body{position:absolute;top:28px;left:50%;transform:translateX(-50%);width:24px;height:16px;border-radius:3px 3px 1px 1px;z-index:1}
+.tc-p1 .tc-ch-body{background:linear-gradient(180deg,#e74c5a,#d43c48);border:1px solid #b8303e;border-bottom:none}
+.tc-p2 .tc-ch-body{background:linear-gradient(180deg,#3b82f6,#2b6ce6);border:1px solid #1d4ed8;border-bottom:none}
+.tc-ch-belt{position:absolute;top:42px;left:50%;transform:translateX(-50%);width:26px;height:4px;background:#5d4037;border-radius:1px;z-index:2}
+.tc-ch-buckle{position:absolute;top:41px;left:50%;transform:translateX(-50%);width:5px;height:6px;background:#ffd54f;border-radius:1px;z-index:3}
+
+.tc-ch-arm{position:absolute;top:29px;width:9px;height:16px;border-radius:4px;z-index:0}
+.tc-p1 .tc-ch-arm{background:#d43c48;border:1px solid #b8303e}
+.tc-p2 .tc-ch-arm{background:#2b6ce6;border:1px solid #1d4ed8}
+.tc-ch-arm.tc-al{left:2px}.tc-ch-arm.tc-ar{right:2px}
+.tc-ch-hand{position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:7px;height:7px;background:#ffc88a;border-radius:50%;border:1px solid #d4a06a}
+
+.tc-ch-axe{position:absolute;top:22px;right:-6px;z-index:25;transform-origin:70% 90%}
+.tc-axe-shaft{width:3px;height:26px;background:linear-gradient(90deg,#a07848,#c09868,#a07848);border-radius:1.5px;border:1px solid #806030}
+.tc-axe-head{position:absolute;top:-2px;left:-6px;width:16px;height:11px}
+.tc-axe-metal{width:100%;height:100%;background:linear-gradient(180deg,#e0e4e8 0%,#c0c8d0 30%,#a0aab4 60%,#8090a0 100%);clip-path:polygon(10% 50%,35% 0%,100% 0%,100% 100%,35% 100%);border:1px solid #708090}
+.tc-axe-edge{position:absolute;right:0;top:1px;bottom:1px;width:2px;background:rgba(255,255,255,.4)}
+
+.tc-ch-legs{position:absolute;top:44px;left:50%;transform:translateX(-50%);display:flex;gap:2px;z-index:0}
+.tc-ch-leg{width:10px;height:18px;background:#1a2e4a;border-radius:0 0 3px 3px;border:1px solid #0e1a30;border-top:none;position:relative}
+.tc-ch-boot{position:absolute;bottom:0;left:-1px;width:12px;height:6px;background:#3e2720;border-radius:0 0 3px 3px;border:1px solid #2a1a14;border-top:none}
+
+/* Animations */
+.tc-pl.tc-chop .tc-ch-axe{animation:tcSwing .2s cubic-bezier(.2,.8,.3,1)}
+@keyframes tcSwing{0%{transform:rotate(10deg)}30%{transform:rotate(20deg)}55%{transform:rotate(-75deg)}100%{transform:rotate(0)}}
+.tc-pl.tc-chop .tc-ch-body{animation:tcChopLunge .2s ease-out}
+@keyframes tcChopLunge{0%,100%{transform:translateX(-50%)}45%{transform:translateX(-50%) translateX(3px) rotate(5deg)}}
+.tc-pl.tc-chop .tc-ch-arm.tc-ar{animation:tcArmReach .2s ease-out}
+@keyframes tcArmReach{0%,100%{transform:rotate(-8deg)}45%{transform:rotate(-22deg) translateX(2px)}}
+.tc-pl.tc-chop{animation:tcChopBounce .2s ease-out}
+@keyframes tcChopBounce{0%,100%{transform:translateY(0)}45%{transform:translateY(-3px)}}
+
+.tc-pl.tc-hit{animation:tcHitShake .4s ease}
+@keyframes tcHitShake{0%,100%{transform:translateX(0)}10%{transform:translateX(-7px) rotate(-2deg)}20%{transform:translateX(7px) rotate(2deg)}30%{transform:translateX(-5px)}40%{transform:translateX(5px)}50%{transform:translateX(-3px)}60%{transform:translateX(3px)}}
+
+.tc-pl.tc-stunned{opacity:.2;filter:grayscale(.8) brightness(.5);transition:opacity .15s,filter .15s}
+.tc-pl.tc-wake{animation:tcWakeUp .3s ease-out forwards}
+@keyframes tcWakeUp{0%{opacity:.2;filter:grayscale(.8)}50%{opacity:1;filter:brightness(1.3)}100%{opacity:1;filter:none}}
+
+/* Tap zones */
+.tc-tap{position:absolute;z-index:40;width:50%;cursor:pointer;height:50%}
+/* Will be positioned dynamically based on which player I am */
+
+/* Scoreboard */
+#tc-sb{position:absolute;top:50%;left:5px;transform:translateY(-50%);z-index:60;display:flex;flex-direction:column;align-items:center;gap:2px;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:8px 10px;min-width:58px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.tc-sb-b{text-align:center}
+.tc-sb-l{font-size:8px;font-weight:700;letter-spacing:2px}
+.tc-sb-l.tc-c1{color:#ff6b6b}.tc-sb-l.tc-c2{color:#60a5fa}
+.tc-sb-v{font-family:'Bungee',cursive;font-size:20px;color:#fff;line-height:1.1;text-shadow:0 2px 3px rgba(0,0,0,.3)}
+.tc-sb-v.tc-bump{animation:tcSBump .15s ease-out}
+@keyframes tcSBump{50%{transform:scale(1.3)}}
+.tc-sb-bar{width:38px;height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:1px;overflow:hidden}
+.tc-sb-f{height:100%;border-radius:2px;transition:width .2s;width:0}
+.tc-sb-f.tc-f1{background:linear-gradient(90deg,#e74c5a,#ff6b6b)}.tc-sb-f.tc-f2{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+.tc-sb-vs{font-family:'Bungee',cursive;font-size:7px;color:rgba(255,255,255,.12);letter-spacing:2px;margin:1px 0}
+.tc-sb-rem{font-size:7px;color:rgba(255,255,255,.25);margin-top:1px}
+
+.tc-stxt{position:absolute;left:50%;transform:translateX(-50%);z-index:65;font-family:'Bungee',cursive;font-size:13px;color:#ff5252;text-shadow:0 0 8px rgba(255,0,0,.4),0 2px 4px rgba(0,0,0,.5);pointer-events:none;opacity:0;transition:opacity .12s;letter-spacing:2px}
+.tc-stxt.tc-on{opacity:1;animation:tcStPulse .4s ease-in-out infinite}
+@keyframes tcStPulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.06)}}
+#tc-st1{bottom:108px}
+#tc-st2{top:108px}
+
+/* FX */
+#tc-fx{position:absolute;inset:0;z-index:30;pointer-events:none;overflow:hidden}
+.tc-chip{position:absolute;animation:tcChipFly .4s ease-out forwards}
+@keyframes tcChipFly{0%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--dr)) scale(0)}}
+.tc-pop{position:absolute;font-family:'Bungee',cursive;font-size:17px;pointer-events:none;z-index:35;text-shadow:0 2px 5px rgba(0,0,0,.4);animation:tcPopUp .5s ease-out forwards}
+.tc-pop.tc-cc1{color:#ff6b6b}.tc-pop.tc-cc2{color:#60a5fa}
+@keyframes tcPopUp{0%{opacity:1;transform:scale(.4)}20%{transform:scale(1.1)}100%{opacity:0;transform:translateY(-30px) scale(.6)}}
+.tc-xm{position:absolute;font-family:'Bungee',cursive;font-size:26px;color:#ff1744;pointer-events:none;z-index:35;text-shadow:0 0 10px rgba(255,0,0,.5);animation:tcXPop .5s ease-out forwards}
+@keyframes tcXPop{0%{opacity:1;transform:scale(.2)}15%{transform:scale(1.2)}100%{opacity:0;transform:translateY(-25px) scale(.5)}}
+.tc-cut-slash{position:absolute;height:3px;background:linear-gradient(90deg,transparent,rgba(255,255,200,.7),rgba(255,255,255,.9),rgba(255,255,200,.7),transparent);pointer-events:none;z-index:36;animation:tcSlashFlash .18s ease-out forwards}
+@keyframes tcSlashFlash{0%{opacity:1;transform:scaleX(.2)}40%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1.3)}}
+.tc-dust{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(160,130,90,.4),transparent);pointer-events:none;animation:tcDustPuff .35s ease-out forwards}
+@keyframes tcDustPuff{0%{opacity:.7;transform:scale(.3)}100%{opacity:0;transform:scale(2)}}
+.tc-fall-piece{position:absolute;pointer-events:none;z-index:32;animation:tcFallDown var(--fall-dur) ease-in forwards}
+@keyframes tcFallDown{0%{opacity:1;transform:translate(0,0) rotate(0)}60%{opacity:.8}100%{opacity:0;transform:translate(var(--fx),var(--fy)) rotate(var(--fr))}}
+
+/* Overlays */
+.tc-ov{position:absolute;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(5,5,12,.88);backdrop-filter:blur(10px);animation:tcFadeIn .25s ease}
+.tc-ov.tc-hidden{display:none}
+@keyframes tcFadeIn{from{opacity:0}to{opacity:1}}
+.tc-ov-box{text-align:center;color:#fff;display:flex;flex-direction:column;align-items:center;gap:14px;padding:0 24px}
+
+.tc-win-t{font-family:'Bungee Shade',cursive;font-size:28px;text-shadow:0 4px 0 rgba(0,0,0,.3);animation:tcTitlePop .5s ease-out}
+.tc-win-t.tc-wc1{color:#e74c5a}.tc-win-t.tc-wc2{color:#3b82f6}
+@keyframes tcTitlePop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+.tc-trophy{font-size:48px;animation:tcTBounce .7s ease-out}
+@keyframes tcTBounce{0%{transform:scale(0) rotate(-12deg)}45%{transform:scale(1.2) rotate(4deg)}65%{transform:scale(.92)}100%{transform:scale(1)}}
+.tc-fin-sc{display:flex;gap:20px;align-items:center}
+.tc-fin-sc .tc-sb-v{font-size:26px}
+.tc-confetti{position:absolute;z-index:110;opacity:.9;animation:tcCFall var(--dur) ease-in forwards}
+@keyframes tcCFall{0%{transform:translateY(var(--y0)) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(var(--rot));opacity:0}}
+
+@media(max-height:600px){.tc-blk{height:44px;width:40px}.tc-gnd-b,.tc-gnd-t{height:32px}.tc-pl.tc-p1{bottom:32px}.tc-pl.tc-p2{top:32px}#tc-tree-p1{bottom:32px}#tc-tree-p2{top:32px}.tc-pl{width:40px;height:54px}}
+</style>
+
+<script>
+// ===== Timber Chop - Multiplayer Game Class =====
+
+class TimberChopGame extends BaseGame {
+    constructor() {
+        super();
+        this.gameMode = "real_time";
+        this.GOAL = 100;
+        this.STUN = 2000;
+        this.BR_CH = 0.55;
+        this.MAX_NB = 2;
+        this.branches = [];
+        this.myPlayer = 1;
+        this.myCut = 0;
+        this.opCut = 0;
+        this.mySide = 'left';
+        this.opSide = 'left';
+        this.myCdEnd = 0;
+        this.gameOn = false;
+    }
+
+    calcVis() {
+        const h = window.innerHeight || document.documentElement.clientHeight;
+        const blkH = h <= 600 ? 44 : 56;
+        const gndH = h <= 600 ? 32 : 40;
+        const avail = Math.floor(h / 2) - gndH - 14;
+        return Math.max(2, Math.ceil(avail / blkH) + 1);
+    }
+
+    init(state) {
+        this.state = state;
+        this.myPlayer = state.my_player_number; // 1 or 2
+        this.isP1 = (this.myPlayer === 1);
+        this.myCut = 0;
+        this.opCut = 0;
+        this.mySide = 'left';
+        this.opSide = 'left';
+        this.myCdEnd = 0;
+
+        // Generate stars
+        this.generateStars();
+
+        // Setup tap zones for MY half only
+        this.setupTapZones();
+
+        // Update round info
+        this.updateRoundInfo();
+
+        // P1 generates branches and shares
+        if (this.isP1) {
+            this.genBranches();
+            this.sendInput({ type: 'branches', data: this.branches });
+            this.startGame();
+        }
+    }
+
+    generateStars() {
+        const c = document.getElementById('tc-stars');
+        if (!c) return;
+        c.innerHTML = '';
+        const cls = ['tc-star-b1','tc-star-b2','tc-star-b3','','','',''];
+        for(let i=0;i<55;i++){
+            const s=document.createElement('div');
+            s.className='tc-star '+cls[Math.floor(Math.random()*cls.length)];
+            const sz=.7+Math.random()*2;
+            s.style.width=s.style.height=sz+'px';
+            s.style.left=Math.random()*100+'%';
+            s.style.top=Math.random()*100+'%';
+            s.style.opacity=.1+Math.random()*.5;
+            c.appendChild(s);
+        }
+    }
+
+    genBranches() {
+        this.branches = [];
+        let streak = 0;
+        for(let i=0;i<this.GOAL;i++){
+            if(streak>=this.MAX_NB){
+                streak=0;
+                this.branches.push(Math.random()<.5?'left':'right');
+            } else if(Math.random()<this.BR_CH){
+                streak=0;
+                this.branches.push(Math.random()<.5?'left':'right');
+            } else {
+                streak++;
+                this.branches.push(null);
+            }
+        }
+    }
+
+    setupTapZones() {
+        const tpL = document.getElementById('tc-tp-l');
+        const tpR = document.getElementById('tc-tp-r');
+
+        // Position tap zones on MY half
+        if (this.isP1) {
+            // P1 bottom half
+            tpL.style.bottom = '0'; tpL.style.left = '0';
+            tpR.style.bottom = '0'; tpR.style.right = '0'; tpR.style.left = 'auto';
+        } else {
+            // P2 top half
+            tpL.style.top = '0'; tpL.style.left = '0';
+            tpR.style.top = '0'; tpR.style.right = '0'; tpR.style.left = 'auto';
+        }
+
+        const tap = (el, fn) => { el.addEventListener('pointerdown', e => { e.preventDefault(); fn(); }); };
+        tap(tpL, () => this.doChop('left'));
+        tap(tpR, () => this.doChop('right'));
+    }
+
+    startGame() {
+        this.gameOn = true;
+        this.myCut = 0;
+        this.opCut = 0;
+        this.mySide = 'left';
+        this.opSide = 'left';
+        this.myCdEnd = 0;
+
+        this.setSide(this.myPlayer, 'left');
+        this.setSide(this.myPlayer === 1 ? 2 : 1, 'left');
+
+        const pl1 = document.getElementById('tc-pl1');
+        const pl2 = document.getElementById('tc-pl2');
+        if(pl1) pl1.classList.remove('tc-stunned','tc-hit','tc-chop','tc-wake');
+        if(pl2) pl2.classList.remove('tc-stunned','tc-hit','tc-chop','tc-wake');
+        document.getElementById('tc-st1')?.classList.remove('tc-on');
+        document.getElementById('tc-st2')?.classList.remove('tc-on');
+
+        const fx = document.getElementById('tc-fx');
+        if(fx) fx.innerHTML = '';
+
+        this.updUI();
+        this.renderTree(1);
+        this.renderTree(2);
+
+        document.getElementById('tc-result-overlay')?.classList.add('tc-hidden');
+    }
+
+    onRemoteInput(player, data) {
+        if (data.type === 'branches') {
+            this.branches = data.data;
+            this.startGame();
+        } else if (data.type === 'chop') {
+            this.opCut = data.cut;
+            this.opSide = data.side;
+            this.setSide(this.isP1 ? 2 : 1, data.side);
+
+            if (data.stunned) {
+                this.showStun(this.isP1 ? 2 : 1);
+            } else {
+                this.showChopAnim(this.isP1 ? 2 : 1, data.side);
+            }
+
+            // Render opponent's tree
+            this.renderTree(this.isP1 ? 2 : 1);
+            this.updUI();
+        }
+    }
+
+    doChop(side) {
+        if (!this.gameOn) return;
+        const now = Date.now();
+        if (now < this.myCdEnd) return;
+        if (this.myCut >= this.GOAL) return;
+
+        this.mySide = side;
+        this.setSide(this.myPlayer, side);
+
+        const branch = this.branches[this.myCut];
+
+        if (branch === side) {
+            // STUNNED
+            this.myCdEnd = now + this.STUN;
+            this.showStun(this.myPlayer);
+            this.sendInput({ type: 'chop', side: side, cut: this.myCut, stunned: true });
+
+            // Auto-move to safe side
+            setTimeout(() => this.setSide(this.myPlayer, branch === 'left' ? 'right' : 'left'), 180);
+
+            // Unstun
+            setTimeout(() => {
+                if (!this.gameOn) return;
+                const el = document.getElementById(this.myPlayer === 1 ? 'tc-pl1' : 'tc-pl2');
+                if (el) { el.classList.remove('tc-stunned'); el.classList.add('tc-wake'); setTimeout(() => el.classList.remove('tc-wake'), 300); }
+                document.getElementById(this.myPlayer === 1 ? 'tc-st1' : 'tc-st2')?.classList.remove('tc-on');
+            }, this.STUN);
+            return;
+        }
+
+        // Safe chop
+        this.showChopAnim(this.myPlayer, side);
+        this.myCut++;
+        this.sendInput({ type: 'chop', side: side, cut: this.myCut, stunned: false });
+        this.updUI();
+        this.renderTree(this.myPlayer);
+
+        if (this.myCut >= this.GOAL) {
+            // I won - tell server
+            this.sendMove('game_won', { winner: this.myPlayer, p1_cut: this.isP1 ? this.myCut : this.opCut, p2_cut: this.isP1 ? this.opCut : this.myCut });
+            this.endGame(this.myPlayer);
+        }
+    }
+
+    showStun(pl) {
+        const el = document.getElementById(pl === 1 ? 'tc-pl1' : 'tc-pl2');
+        if (el) {
+            el.classList.remove('tc-hit'); void el.offsetWidth;
+            el.classList.add('tc-hit','tc-stunned');
+            setTimeout(() => el.classList.remove('tc-hit'), 320);
+        }
+        document.getElementById(pl === 1 ? 'tc-st1' : 'tc-st2')?.classList.add('tc-on');
+
+        const pos = this.getActPos(pl);
+        this.showX(pos.x, pos.y - 14);
+        this.chips(pos.x, pos.y, '#ff1744', '#ff8a80');
+    }
+
+    showChopAnim(pl, side) {
+        const el = document.getElementById(pl === 1 ? 'tc-pl1' : 'tc-pl2');
+        if (el) { el.classList.remove('tc-chop'); void el.offsetWidth; el.classList.add('tc-chop'); setTimeout(() => el.classList.remove('tc-chop'), 220); }
+
+        const pos = this.getActPos(pl);
+        this.chips(pos.x, pos.y, '#9e7040', '#6d4525');
+        this.showPop(pos.x - 6, pos.y - 22, pl);
+
+        // Cut slash
+        const sl = document.createElement('div'); sl.className = 'tc-cut-slash';
+        sl.style.cssText = `left:${pos.x-35}px;top:${pos.y-1}px;width:70px`;
+        const fx = document.getElementById('tc-fx');
+        if (fx) { fx.appendChild(sl); setTimeout(() => sl.remove(), 200); }
+
+        // Dust
+        const du = document.createElement('div'); du.className = 'tc-dust';
+        du.style.cssText = `left:${pos.x-12}px;top:${pos.y-12}px;width:24px;height:24px`;
+        if (fx) { fx.appendChild(du); setTimeout(() => du.remove(), 400); }
+
+        this.spawnFallingPieces(pos.x, pos.y, pl);
+        this.bump(pl);
+    }
+
+    mkBlk(br, actCls) {
+        const el = document.createElement('div');
+        el.className = 'tc-blk' + (actCls ? ' ' + actCls : '');
+        const w = document.createElement('div'); w.className = 'tc-blk-wood';
+        el.appendChild(w);
+        if (br) {
+            const b = document.createElement('div');
+            b.className = 'tc-br ' + (br === 'left' ? 'tc-bl' : 'tc-brt');
+            const bw = document.createElement('div'); bw.className = 'tc-br-w'; b.appendChild(bw);
+            const lf = document.createElement('div'); lf.className = 'tc-br-lf';
+            lf.innerHTML = '<div class="tc-br-lf-main"></div><div class="tc-br-lf-hi"></div>';
+            b.appendChild(lf);
+            el.appendChild(b);
+        }
+        return el;
+    }
+
+    renderTree(pl) {
+        const cut = (pl === this.myPlayer) ? this.myCut : this.opCut;
+        const cont = pl === 1 ? document.getElementById('tc-tree-p1') : document.getElementById('tc-tree-p2');
+        if (!cont) return;
+        cont.innerHTML = '';
+        const remaining = this.GOAL - cut;
+
+        if (remaining <= 0) {
+            const d = document.createElement('div');
+            d.className = 'tc-done-txt ' + (pl === 1 ? 'tc-d1' : 'tc-d2');
+            d.textContent = 'ALL CUT!';
+            cont.appendChild(d);
+            if (pl === 1) { const st = document.createElement('div'); st.className = 'tc-stump'; cont.appendChild(st); }
+            return;
+        }
+
+        const vis = this.calcVis();
+        const count = Math.min(vis, remaining);
+
+        if (pl === 1) {
+            const topIdx = cut + count - 1;
+            if (topIdx >= this.GOAL - 1 && remaining <= 3) {
+                const cr = document.createElement('div'); cr.className = 'tc-crown';
+                cr.innerHTML = '<div class="tc-crown-tip"></div><div class="tc-crown-base"></div>';
+                cont.appendChild(cr);
+            }
+            for (let i = count - 1; i >= 0; i--) {
+                const idx = cut + i;
+                if (idx >= this.GOAL) continue;
+                const isAct = (i === 0);
+                cont.appendChild(this.mkBlk(this.branches[idx], isAct ? 'tc-act1' : ''));
+            }
+            const st = document.createElement('div'); st.className = 'tc-stump'; cont.appendChild(st);
+        } else {
+            for (let i = 0; i < count; i++) {
+                const idx = cut + i;
+                if (idx >= this.GOAL) continue;
+                const isAct = (i === 0);
+                const blk = this.mkBlk(this.branches[idx], isAct ? 'tc-act2' : '');
+                blk.classList.add('tc-p2b');
+                cont.appendChild(blk);
+            }
+            const botIdx = cut + count - 1;
+            if (botIdx >= this.GOAL - 1 && remaining <= 3) {
+                const cr = document.createElement('div'); cr.className = 'tc-crown tc-p2-crown';
+                cr.innerHTML = '<div class="tc-crown-tip"></div><div class="tc-crown-base"></div>';
+                cont.appendChild(cr);
+            }
+        }
+    }
+
+    updUI() {
+        const p1Cut = this.isP1 ? this.myCut : this.opCut;
+        const p2Cut = this.isP1 ? this.opCut : this.myCut;
+        const sv1 = document.getElementById('tc-sv1');
+        const sv2 = document.getElementById('tc-sv2');
+        if (sv1) sv1.textContent = p1Cut;
+        if (sv2) sv2.textContent = p2Cut;
+        const bf1 = document.getElementById('tc-bf1');
+        const bf2 = document.getElementById('tc-bf2');
+        if (bf1) bf1.style.width = (p1Cut / this.GOAL * 100) + '%';
+        if (bf2) bf2.style.width = (p2Cut / this.GOAL * 100) + '%';
+        const r1 = this.GOAL - p1Cut, r2 = this.GOAL - p2Cut;
+        const rm1 = document.getElementById('tc-rm1');
+        const rm2 = document.getElementById('tc-rm2');
+        if (rm1) rm1.textContent = r1 > 0 ? r1 + ' left' : 'DONE!';
+        if (rm2) rm2.textContent = r2 > 0 ? r2 + ' left' : 'DONE!';
+    }
+
+    setSide(pl, side) {
+        const el = document.getElementById(pl === 1 ? 'tc-pl1' : 'tc-pl2');
+        if (!el) return;
+        el.classList.remove('tc-sl', 'tc-sr');
+        el.classList.add(side === 'left' ? 'tc-sl' : 'tc-sr');
+    }
+
+    bump(pl) {
+        const e = pl === 1 ? document.getElementById('tc-sv1') : document.getElementById('tc-sv2');
+        if (e) { e.classList.remove('tc-bump'); void e.offsetWidth; e.classList.add('tc-bump'); setTimeout(() => e.classList.remove('tc-bump'), 180); }
+    }
+
+    getActPos(pl) {
+        const cont = pl === 1 ? document.getElementById('tc-tree-p1') : document.getElementById('tc-tree-p2');
+        const el = cont?.querySelector(pl === 1 ? '.tc-act1' : '.tc-act2');
+        const game = document.getElementById('tc-game');
+        const gr = game?.getBoundingClientRect();
+        if (el && gr) { const r = el.getBoundingClientRect(); return { x: r.left - gr.left + r.width / 2, y: r.top - gr.top + r.height / 2 }; }
+        return { x: gr ? gr.width / 2 : 200, y: pl === 1 ? (gr ? gr.height * 0.7 : 500) : (gr ? gr.height * 0.3 : 200) };
+    }
+
+    chips(x, y, c1, c2) {
+        const fx = document.getElementById('tc-fx');
+        if (!fx) return;
+        for (let i = 0; i < 8; i++) {
+            const p = document.createElement('div'); p.className = 'tc-chip';
+            const sz = 2 + Math.random() * 5;
+            p.style.cssText = `width:${sz}px;height:${sz*(.6+Math.random()*.8)}px;background:${Math.random()<.5?c1:c2};left:${x}px;top:${y}px;border-radius:${Math.random()<.3?'50%':'2px'}`;
+            p.style.setProperty('--dx', (Math.random()-.5)*100+'px');
+            p.style.setProperty('--dy', (Math.random()-.5)*80+'px');
+            p.style.setProperty('--dr', (Math.random()-.5)*600+'deg');
+            fx.appendChild(p); setTimeout(() => p.remove(), 450);
+        }
+    }
+
+    showPop(x, y, pl) {
+        const fx = document.getElementById('tc-fx');
+        if (!fx) return;
+        const e = document.createElement('div'); e.className = 'tc-pop ' + (pl === 1 ? 'tc-cc1' : 'tc-cc2');
+        e.textContent = '+1'; e.style.left = x + 'px'; e.style.top = y + 'px';
+        fx.appendChild(e); setTimeout(() => e.remove(), 550);
+    }
+
+    showX(x, y) {
+        const fx = document.getElementById('tc-fx');
+        if (!fx) return;
+        const e = document.createElement('div'); e.className = 'tc-xm';
+        e.textContent = '✕'; e.style.left = x + 'px'; e.style.top = y + 'px';
+        fx.appendChild(e); setTimeout(() => e.remove(), 550);
+    }
+
+    spawnFallingPieces(x, y, pl) {
+        const fx = document.getElementById('tc-fx');
+        if (!fx) return;
+        const colors = ['#9e7040','#6d4525','#c09868','#806030','#5a3520'];
+        const dir = pl === 1 ? 1 : -1;
+        for (let i = 0; i < 6; i++) {
+            const p = document.createElement('div'); p.className = 'tc-fall-piece';
+            const w = 3 + Math.random() * 8, h = 3 + Math.random() * 6;
+            p.style.cssText = `left:${x-4+(Math.random()-.5)*30}px;top:${y-4+(Math.random()-.5)*10}px;width:${w}px;height:${h}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()<.3?'50%':'2px'}`;
+            p.style.setProperty('--fx', (Math.random()-.5)*40+'px');
+            p.style.setProperty('--fy', (40+Math.random()*60)*dir+'px');
+            p.style.setProperty('--fr', (Math.random()-.5)*360+'deg');
+            p.style.setProperty('--fall-dur', (.3+Math.random()*.3)+'s');
+            fx.appendChild(p); setTimeout(() => p.remove(), 700);
+        }
+    }
+
+    confetti(clr) {
+        const game = document.getElementById('tc-game');
+        if (!game) return;
+        const cs = [clr,'#ffd700','#ff6f00','#4caf50','#e040fb','#00bcd4','#fff'];
+        for(let i=0;i<50;i++){
+            const c=document.createElement('div');c.className='tc-confetti';
+            c.style.left=Math.random()*100+'%';
+            c.style.width=(4+Math.random()*5)+'px';c.style.height=(5+Math.random()*6)+'px';
+            c.style.background=cs[Math.floor(Math.random()*cs.length)];
+            c.style.borderRadius=Math.random()<.4?'50%':'2px';
+            c.style.setProperty('--y0',(-15-Math.random()*50)+'px');
+            c.style.setProperty('--rot',(Math.random()*500-250)+'deg');
+            c.style.setProperty('--dur',(1.3+Math.random()*1.4)+'s');
+            c.style.animationDelay=Math.random()*.5+'s';
+            game.appendChild(c);setTimeout(()=>c.remove(),3200);
+        }
+    }
+
+    endGame(winner) {
+        this.gameOn = false;
+        this.renderTree(winner);
+        const wt = document.getElementById('tc-wt');
+        if (wt) {
+            const iWon = (winner === this.myPlayer);
+            wt.textContent = iWon ? 'YOU WIN!' : 'YOU LOST!';
+            wt.className = 'tc-win-t ' + (winner === 1 ? 'tc-wc1' : 'tc-wc2');
+        }
+        const p1Cut = this.isP1 ? this.myCut : this.opCut;
+        const p2Cut = this.isP1 ? this.opCut : this.myCut;
+        const fw1 = document.getElementById('tc-fw1');
+        const fw2 = document.getElementById('tc-fw2');
+        if (fw1) fw1.textContent = p1Cut;
+        if (fw2) fw2.textContent = p2Cut;
+        setTimeout(() => {
+            document.getElementById('tc-result-overlay')?.classList.remove('tc-hidden');
+            this.confetti(winner === 1 ? '#e74c5a' : '#3b82f6');
+        }, 300);
+    }
+
+    updateRoundInfo() {
+        const el = document.getElementById('tc-round-info');
+        if (el && this.state) {
+            const cr = this.state.current_round || 1;
+            const tr = this.state.total_rounds || 1;
+            el.textContent = `Round ${cr}/${tr}`;
+        }
+    }
+
+    update(state) {
+        this.state = state;
+        this.updateRoundInfo();
+    }
+
+    onRoundEnd(result) {
+        const winner = result.winner;
+        this.endGame(winner);
+        const sub = document.getElementById('tc-result-subtext');
+        if (sub) sub.textContent = 'Next round starting...';
+        setTimeout(() => {
+            document.getElementById('tc-result-overlay')?.classList.add('tc-hidden');
+        }, 2500);
+    }
+
+    onGameEnd(result) {
+        const winner = result.winner;
+        this.endGame(winner);
+        const sub = document.getElementById('tc-result-subtext');
+        if (sub) sub.textContent = 'Game Over!';
+    }
+
+    destroy() {
+        super.destroy();
+        this.gameOn = false;
+    }
+}
+
+// Register
+window.GameClasses = window.GameClasses || {};
+window.GameClasses['treecutter'] = TimberChopGame;
+
+window.exitGame = window.exitGame || function() {
+    if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ event: 'game_exit' }));
+    }
+};
+</script>
