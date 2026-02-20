@@ -297,11 +297,11 @@
 (function() {
     // ==================== CONFIG ====================
     const CONFIG = {
-        boardSize: 500, boardPadding: 40, pocketRadius: 24, strikerLineOffset: 70,
+        boardSize: 500, boardPadding: 40, pocketRadius: 25, strikerLineOffset: 70,
         coinFriction: 0.980, strikerFriction: 0.975, minVelocity: 0.15,
         restitution: 0.80, physicsSteps: 3, pocketGravity: 0.01,
         maxDragPower: 9, dragScale: 0.08,
-        coinRadius: 12, strikerRadius: 17, queenRadius: 12,
+        coinRadius: 12, strikerRadius: 16, queenRadius: 12,
         blackCoinValue: 10, whiteCoinValue: 20, queenValue: 50
     };
 
@@ -521,11 +521,16 @@
         _getScore(player) {
             const stack = player === 1 ? this.gameState.p1Pocketed : this.gameState.p2Pocketed;
             let score = 0;
-            stack.forEach(p => {
-                if (p.type === 'black') score += CONFIG.blackCoinValue;
-                else if (p.type === 'white') score += CONFIG.whiteCoinValue;
-                else if (p.type === 'queen') score += CONFIG.queenValue;
-            });
+            if (this.gameState.mode === 'short') {
+                // Short mode: all coins = 10pt each
+                score = stack.length * 10;
+            } else {
+                stack.forEach(p => {
+                    if (p.type === 'black') score += CONFIG.blackCoinValue;
+                    else if (p.type === 'white') score += CONFIG.whiteCoinValue;
+                    else if (p.type === 'queen') score += CONFIG.queenValue;
+                });
+            }
             return score;
         }
 
@@ -533,21 +538,31 @@
             document.getElementById('cr-s1').textContent = this._getScore(1);
             document.getElementById('cr-s2').textContent = this._getScore(2);
 
-            // Count coins per player from their pocketed stacks
             const count = (stack, type) => stack.filter(p => p.type === type).length;
             const p1 = this.gameState.p1Pocketed, p2 = this.gameState.p2Pocketed;
             const el = (id) => document.getElementById(id);
-            if (el('cr-c1b')) el('cr-c1b').textContent = count(p1, 'black');
-            if (el('cr-c1w')) el('cr-c1w').textContent = count(p1, 'white');
-            if (el('cr-c1q')) el('cr-c1q').textContent = count(p1, 'queen');
-            if (el('cr-c2b')) el('cr-c2b').textContent = count(p2, 'black');
-            if (el('cr-c2w')) el('cr-c2w').textContent = count(p2, 'white');
-            if (el('cr-c2q')) el('cr-c2q').textContent = count(p2, 'queen');
 
-            // Queen hold badge
+            if (this.gameState.mode === 'short') {
+                // Short mode: just show coin count, hide queen row
+                if (el('cr-c1b')) el('cr-c1b').textContent = count(p1, 'black') + count(p1, 'white');
+                if (el('cr-c1w')) el('cr-c1w').parentElement && (el('cr-c1w').parentElement.style.display = 'none');
+                if (el('cr-c1q')) el('cr-c1q').parentElement && (el('cr-c1q').parentElement.style.display = 'none');
+                if (el('cr-c2b')) el('cr-c2b').textContent = count(p2, 'black') + count(p2, 'white');
+                if (el('cr-c2w')) el('cr-c2w').parentElement && (el('cr-c2w').parentElement.style.display = 'none');
+                if (el('cr-c2q')) el('cr-c2q').parentElement && (el('cr-c2q').parentElement.style.display = 'none');
+            } else {
+                if (el('cr-c1b')) el('cr-c1b').textContent = count(p1, 'black');
+                if (el('cr-c1w')) el('cr-c1w').textContent = count(p1, 'white');
+                if (el('cr-c1q')) el('cr-c1q').textContent = count(p1, 'queen');
+                if (el('cr-c2b')) el('cr-c2b').textContent = count(p2, 'black');
+                if (el('cr-c2w')) el('cr-c2w').textContent = count(p2, 'white');
+                if (el('cr-c2q')) el('cr-c2q').textContent = count(p2, 'queen');
+            }
+
+            // Queen hold badge — only in long mode
             const holdEl = el('cr-queen-hold');
             if (holdEl) {
-                if (this.gameState.queenPending) {
+                if (this.gameState.mode === 'long' && this.gameState.queenPending) {
                     const who = this.gameState.queenPendingFor === this.myPlayerIdx ? 'YOU' : 'OPP';
                     holdEl.textContent = '\u{1F451} QUEEN HELD - ' + who;
                     holdEl.classList.add('active');
@@ -724,23 +739,13 @@
                 });
 
                 if (gs.mode === 'short') {
-                    // ===== SHORT MODE: foul for pocketing opponent's coin =====
+                    // ===== SHORT MODE: opponent's coin goes to opponent's stack =====
                     ownCoins.forEach(piece => myStack.push(piece));
-                    if (oppCoins.length > 0) {
-                        // FOUL: opponent's coins go back to center + penalty
-                        this._showFoulMessage('FOUL! Wrong color pocketed');
-                        oppCoins.forEach(piece => this._returnToCenter(piece));
-                        if (myStack.length > 0) {
-                            let penaltyIdx = myStack.findIndex(p => p.type === 'black');
-                            if (penaltyIdx === -1) penaltyIdx = myStack.findIndex(p => p.type === 'white');
-                            if (penaltyIdx === -1) penaltyIdx = myStack.length - 1;
-                            this._returnToCenter(myStack.splice(penaltyIdx, 1)[0]);
-                        }
-                        gs.currentPlayer = cp === 1 ? 2 : 1;
-                    } else {
-                        if (ownColorPocketed) keepTurn = true;
-                        if (!keepTurn) gs.currentPlayer = cp === 1 ? 2 : 1;
-                    }
+                    const oppStack = cp === 1 ? gs.p2Pocketed : gs.p1Pocketed;
+                    oppCoins.forEach(piece => oppStack.push(piece));
+                    // Keep turn only if you pocketed your own color
+                    if (ownColorPocketed) keepTurn = true;
+                    if (!keepTurn) gs.currentPlayer = cp === 1 ? 2 : 1;
                 } else {
                     // ===== LONG MODE: all coins count for whoever pockets them =====
                     ownCoins.forEach(piece => myStack.push(piece));
