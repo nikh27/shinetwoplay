@@ -614,13 +614,21 @@
             }
             this.s1.pop(); this.s2.pop();
 
-            // Collisions
-            const p1d = this._checkHit(this.s1, this.s2);
-            const p2d = this._checkHit(this.s2, this.s1);
+            // Collisions — separate self-hit from other-body-hit
             const hh = this._wDist(this.s1[0], this.s2[0]) < HIT_R;
+            const p1self = this._checkSelfHit(this.s1);
+            const p2self = this._checkSelfHit(this.s2);
+            const p1other = this._checkOtherHit(this.s1, this.s2);
+            const p2other = this._checkOtherHit(this.s2, this.s1);
 
+            const p1d = p1self || p1other; // P1 died
+            const p2d = p2self || p2other; // P2 died
+
+            // Head-to-head or both die simultaneously → draw
             if (hh || (p1d && p2d)) { this._endRound('draw'); return; }
+            // Only P1 died → P2 wins
             if (p1d) { this._endRound('P2'); return; }
+            // Only P2 died → P1 wins
             if (p2d) { this._endRound('P1'); return; }
 
             this.fc++;
@@ -631,8 +639,9 @@
             if (this._raf) cancelAnimationFrame(this._raf);
             this._flashCanvas();
 
-            this.score.p1 = this.s1.length;
-            this.score.p2 = this.s2.length;
+            // Track round wins, not snake length
+            if (winner === 'P1') this.score.p1++;
+            else if (winner === 'P2') this.score.p2++;
             this._showScore();
 
             // Tell P2 about the result
@@ -684,10 +693,15 @@
                 }
             }
         }
-        _checkHit(my, other) {
+        _checkSelfHit(sn) {
+            const h = sn[0];
+            for (let i = 10; i < sn.length; i++) if (this._wDist(h, sn[i]) < HIT_R) return true;
+            return false;
+        }
+        _checkOtherHit(my, other) {
             const h = my[0];
-            for (let i = 10; i < my.length; i++) if (this._wDist(h, my[i]) < HIT_R) return true;
-            for (let i = 0; i < other.length; i++) if (this._wDist(h, other[i]) < HIT_R) return true;
+            // Start at i=3 to skip head+neck area (head-to-head is checked separately)
+            for (let i = 3; i < other.length; i++) if (this._wDist(h, other[i]) < HIT_R) return true;
             return false;
         }
 
