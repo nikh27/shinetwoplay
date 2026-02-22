@@ -10,6 +10,25 @@ DEBUG = False
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'CHANGE-ME-to-a-random-64-char-string-in-production')
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
+# ──── Middleware (override for ASGI compatibility) ────
+# Remove SecurityMiddleware and CorsMiddleware — Nginx handles these.
+# These cause 'coroutine' object errors under Django ASGI + Channels.
+MIDDLEWARE = [
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+]
+
+# ──── No database needed ────
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': '/opt/shinetwoplay/shinetwoplay/db.sqlite3',
+    }
+}
+
 # ──── Static files ────
 STATIC_URL = '/static/'
 STATIC_ROOT = '/opt/shinetwoplay/shinetwoplay/staticfiles'
