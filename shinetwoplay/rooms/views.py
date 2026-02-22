@@ -18,7 +18,7 @@ import json
 import os
 import time
 
-from .models import Game
+from .games_list import get_all_games, get_game_by_id
 from .utils import (
     success_response, error_response, generate_room_code, 
     get_avatar_for_gender, get_client_ip
@@ -53,8 +53,8 @@ def room_page(request, room_code):
         # Redirect to home with room code so user can enter name and join
         return redirect(f"/?join={room_code}")
     
-    # Get active games from database
-    games = Game.objects.filter(is_active=True)
+    # Get active games from static list
+    games = get_all_games()
 
     return render(request, "room.html", {
         "room": room_code,
@@ -373,23 +373,11 @@ def api_upload_image(request):
 def api_list_games(request):
     """
     GET /api/games/
-    List all available games (from database)
+    List all available games (from static list)
     """
     try:
-        games = Game.objects.filter(is_active=True)
-        games_data = []
-        
-        for game in games:
-            games_data.append({
-                'game_id': game.game_id,
-                'name': game.name,
-                'image_url': game.image_url,
-                'description': game.description,
-                'min_players': game.min_players,
-                'max_players': game.max_players
-            })
-        
-        return success_response({'games': games_data})
+        games = get_all_games()
+        return success_response({'games': games})
         
     except Exception as e:
         return error_response('SERVER_ERROR', str(e), status=500)
@@ -399,22 +387,14 @@ def api_list_games(request):
 def api_get_game(request, game_id):
     """
     GET /api/games/{game_id}/
-    Get game details (from database)
+    Get game details (from static list)
     """
     try:
-        try:
-            game = Game.objects.get(game_id=game_id)
-        except Game.DoesNotExist:
+        game = get_game_by_id(game_id)
+        if not game:
             return error_response('GAME_NOT_FOUND', 'Game does not exist', status=404)
         
-        return success_response({
-            'game_id': game.game_id,
-            'name': game.name,
-            'image_url': game.image_url,
-            'description': game.description,
-            'min_players': game.min_players,
-            'max_players': game.max_players
-        })
+        return success_response(game)
         
     except Exception as e:
         return error_response('SERVER_ERROR', str(e), status=500)
