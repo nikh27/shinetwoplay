@@ -1,0 +1,25 @@
+[Unit]
+Description=ShineTwo Play - Daphne ASGI Server
+After=network.target redis-server.service
+Requires=redis-server.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/shinetwoplay
+Environment="DJANGO_SETTINGS_MODULE=shinetwoplay.settings_prod"
+ExecStart=/opt/shinetwoplay/venv/bin/daphne \
+    -b 127.0.0.1 \
+    -p 8001 \
+    --access-log /var/log/shinetwoplay/daphne-access.log \
+    shinetwoplay.asgi:application
+Restart=always
+RestartSec=5
+
+# Logging
+StandardOutput=append:/var/log/shinetwoplay/daphne.log
+StandardError=append:/var/log/shinetwoplay/daphne-error.log
+
+[Install]
+WantedBy=multi-user.target
