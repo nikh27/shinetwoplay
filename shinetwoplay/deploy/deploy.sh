@@ -6,18 +6,20 @@
 
 set -e  # Exit on any error
 
-APP_DIR="/opt/shinetwoplay"
+REPO_DIR="/opt/shinetwoplay"
+APP_DIR="/opt/shinetwoplay/shinetwoplay"
 VENV="$APP_DIR/venv"
 LOG_DIR="/var/log/shinetwoplay"
 
 echo "🚀 Deploying ShineTwo Play..."
 
-# Pull latest code
-cd "$APP_DIR"
+# Pull latest code (from repo root)
+cd "$REPO_DIR"
 echo "📥 Pulling latest code..."
 git pull
 
 # Activate virtualenv
+cd "$APP_DIR"
 source "$VENV/bin/activate"
 
 # Install/update dependencies

@@ -7,9 +7,9 @@ Requires=redis-server.service
 Type=simple
 User=ubuntu
 Group=ubuntu
-WorkingDirectory=/opt/shinetwoplay
+WorkingDirectory=/opt/shinetwoplay/shinetwoplay
 Environment="DJANGO_SETTINGS_MODULE=shinetwoplay.settings_prod"
-ExecStart=/opt/shinetwoplay/venv/bin/daphne \
+ExecStart=/opt/shinetwoplay/shinetwoplay/venv/bin/daphne \
     -b 127.0.0.1 \
     -p 8001 \
     --access-log /var/log/shinetwoplay/daphne-access.log \

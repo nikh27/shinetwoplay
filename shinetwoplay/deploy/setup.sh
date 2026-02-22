@@ -3,13 +3,12 @@
 #  ShineTwo Play - First Time Server Setup
 #  Run this ONCE on a fresh EC2 Ubuntu instance
 #  Prerequisites: Python3, Redis, Nginx, Git
-#  should already be installed via:
-#    sudo apt install -y python3 python3-pip python3-venv redis-server nginx git
 # ============================================
 
 set -e  # Exit on any error
 
-APP_DIR="/opt/shinetwoplay"
+REPO_DIR="/opt/shinetwoplay"
+APP_DIR="/opt/shinetwoplay/shinetwoplay"
 LOG_DIR="/var/log/shinetwoplay"
 
 echo "======================================"
@@ -25,17 +24,8 @@ sudo chown ubuntu:ubuntu "$LOG_DIR"
 # ── Step 2: Check if code exists ──
 if [ ! -f "$APP_DIR/manage.py" ]; then
     echo ""
-    echo "❌ Code not found at $APP_DIR"
-    echo ""
-    echo "  Run these commands first:"
-    echo "    sudo mkdir -p $APP_DIR"
-    echo "    sudo chown ubuntu:ubuntu $APP_DIR"
-    echo "    cd $APP_DIR"
-    echo "    git clone https://github.com/nikh27/shinetwoplay.git ."
-    echo "    cd shinetwoplay"
-    echo ""
-    echo "  Then run this script again:"
-    echo "    bash deploy/setup.sh"
+    echo "❌ Code not found at $APP_DIR/manage.py"
+    echo "   Make sure you cloned the repo correctly."
     exit 1
 fi
 
@@ -70,11 +60,10 @@ sudo nginx -t
 sudo systemctl restart nginx
 sudo systemctl enable nginx
 
-# ── Step 7: Verify everything ──
+# ── Verify ──
 echo ""
 echo "🔍 [6/6] Verifying services..."
 echo ""
-
 echo "  Redis:      $(sudo systemctl is-active redis-server)"
 echo "  Daphne:     $(sudo systemctl is-active shinetwoplay)"
 echo "  Nginx:      $(sudo systemctl is-active nginx)"

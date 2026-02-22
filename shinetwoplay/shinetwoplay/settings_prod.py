@@ -12,11 +12,11 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 # ──── Static files ────
 STATIC_URL = '/static/'
-STATIC_ROOT = '/opt/shinetwoplay/staticfiles'
+STATIC_ROOT = '/opt/shinetwoplay/shinetwoplay/staticfiles'
 
 # ──── Media files ────
 MEDIA_URL = '/media/'
-MEDIA_ROOT = '/opt/shinetwoplay/media'
+MEDIA_ROOT = '/opt/shinetwoplay/shinetwoplay/media'
 
 # ──── Redis (same machine) ────
 REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
