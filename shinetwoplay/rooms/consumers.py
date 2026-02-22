@@ -24,7 +24,7 @@ import json
 import time
 from urllib.parse import parse_qs
 
-from .models import Game
+from .games_list import get_game_by_id
 from .redis_client import (
     room_exists, get_room_info, get_players, get_player_count,
     is_room_full, player_exists, add_player, remove_player,
@@ -1380,16 +1380,6 @@ class RoomConsumer(AsyncWebsocketConsumer):
             }
         }))
 
-    @database_sync_to_async
-    def get_game(self, game_id):
-        """Get game from database (static catalog)"""
-        try:
-            game = Game.objects.get(game_id=game_id, is_active=True)
-            return {
-                'game_id': game.game_id,
-                'name': game.name,
-                'image_url': game.image_url,
-                'description': game.description
-            }
-        except Game.DoesNotExist:
-            return None
+    async def get_game(self, game_id):
+        """Get game from static list"""
+        return get_game_by_id(game_id)
