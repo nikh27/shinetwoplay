@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================
-#  ShineTwo Play - Deployment Script
-#  Run this on the EC2 server after git pull
+#  ShineTwo Play - Code Update Script
+#  Run this on EC2 after pushing new code
 # ============================================
 
 set -e  # Exit on any error
@@ -23,10 +23,6 @@ source "$VENV/bin/activate"
 # Install/update dependencies
 echo "📦 Installing dependencies..."
 pip install -r requirements.txt --quiet
-
-# Run migrations
-echo "🗄️  Running migrations..."
-DJANGO_SETTINGS_MODULE=shinetwoplay.settings_prod python manage.py migrate --noinput
 
 # Collect static files
 echo "📁 Collecting static files..."
