@@ -103,5 +103,18 @@ class SnakesHandler(BaseGameHandler):
     def handle_input(self, room_code: str, player: str, input_data: Dict) -> None:
         pass  # Real-time relay handled by consumer
 
+    def start_next_round(self, room_code: str) -> Dict:
+        """Start the next round after a delay."""
+        state = get_game_state(room_code)
+        if not state:
+            return {"error": "Game not found"}
+        
+        # State is already updated in handle_move(round_end)
+        # Just broadcast that the round started
+        return {
+            "state": state,
+            "round_started": True
+        }
+
     def tick(self, room_code: str) -> Dict:
         return {}

@@ -8,7 +8,18 @@ from .settings import *
 # ──── Security ────
 DEBUG = False
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'CHANGE-ME-to-a-random-64-char-string-in-production')
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = [
+    'shinetwoplay.online',
+    'www.shinetwoplay.online',
+    '13.235.50.170',  # EC2 IP (keep for direct access if needed)
+]
+
+# ──── CSRF / HTTPS ────
+CSRF_TRUSTED_ORIGINS = [
+    'https://shinetwoplay.online',
+    'https://www.shinetwoplay.online',
+]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ──── Middleware (override for ASGI compatibility) ────
 # Remove SecurityMiddleware and CorsMiddleware — Nginx handles these.
