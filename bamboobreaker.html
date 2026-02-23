@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bamboo Breaker - 2 Player Panda Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0d2818;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Nunito', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+<canvas id="C"></canvas>
+<script>
+(() => {
+    const canvas = document.getElementById('C');
+    const ctx = canvas.getContext('2d');
+
+    let W, H;
+    function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ── Audio ──
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let ac;
+    function audio() { if (!ac) ac = new AudioCtx(); return ac; }
+
+    function sfx(type) {
+        try {
+            const a = audio(), now = a.currentTime;
+            const o = a.createOscillator(), g = a.createGain();
+            o.connect(g); g.connect(a.destination);
+            if (type === 'move') {
+                o.frequency.setValueAtTime(400, now);
+                o.frequency.exponentialRampToValueAtTime(600, now + 0.05);
+                g.gain.setValueAtTime(0.06, now);
+                g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+                o.start(now); o.stop(now + 0.06);
+            } else if (type === 'crack') {
+                o.type = 'sawtooth';
+                o.frequency.setValueAtTime(220, now);
+                o.frequency.exponentialRampToValueAtTime(60, now + 0.3);
+                g.gain.setValueAtTime(0.12, now);
+                g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                o.start(now); o.stop(now + 0.35);
+            } else if (type === 'break') {
+                o.type = 'square';
+                o.frequency.setValueAtTime(180, now);
+                o.frequency.exponentialRampToValueAtTime(40, now + 0.5);
+                g.gain.setValueAtTime(0.18, now);
+                g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                o.start(now); o.stop(now + 0.5);
+            } else if (type === 'fall') {
+                o.frequency.setValueAtTime(700, now);
+                o.frequency.exponentialRampToValueAtTime(50, now + 0.8);
+                g.gain.setValueAtTime(0.25, now);
+                g.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+                o.start(now); o.stop(now + 0.8);
+            } else if (type === 'push') {
+                o.type = 'square';
+                o.frequency.setValueAtTime(250, now);
+                o.frequency.exponentialRampToValueAtTime(400, now + 0.08);
+                g.gain.setValueAtTime(0.1, now);
+                g.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                o.start(now); o.stop(now + 0.1);
+            } else if (type === 'win') {
+                [523, 659, 784, 1047].forEach((f, i) => {
+                    const oo = a.createOscillator(), gg = a.createGain();
+                    oo.connect(gg); gg.connect(a.destination);
+                    oo.frequency.setValueAtTime(f, now + i * 0.12);
+                    gg.gain.setValueAtTime(0.1, now + i * 0.12);
+                    gg.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.25);
+                    oo.start(now + i * 0.12); oo.stop(now + i * 0.12 + 0.25);
+                });
+            }
+        } catch(e) {}
+    }
+
+    // ── Config ──
+    const COLS = 8, ROWS = 10;
+    const SPEED = 180; // pixels per second
+    const CRACK_TIME = 5.2; // seconds to crack
+    const BREAK_TIME = 2.8; // seconds cracked → broken
+    const PUSH_FORCE = 350;
+
+    // Tile states: 0=solid, 1=cracking, 2=broken
+    let grid = [];
+    let particles = [];
+    let screenShake = 0;
+    let gameState = 'menu'; // menu, playing, roundEnd
+    let round = 1;
+    let winnerIdx = -1;
+
+    // ── Layout ──
+    function getLayout() {
+        const joyH = Math.min(150, H * 0.17);
+        const hud = 36;
+        const boardAreaH = H - joyH * 2 - hud * 2 - 10;
+        const boardAreaW = W - 16;
+        const tw = Math.floor(Math.min(boardAreaW / COLS, boardAreaH / ROWS));
+        const gap = Math.max(2, tw * 0.06);
+        const bw = COLS * tw + (COLS - 1) * gap;
+        const bh = ROWS * tw + (ROWS - 1) * gap;
+        const bx = (W - bw) / 2;
+        const by = joyH + hud + (boardAreaH - bh) / 2;
+        return { tw, gap, bw, bh, bx, by, joyH, hud };
+    }
+
+    // ── Players ──
+    let P = [
+        { x: 0, y: 0, vx: 0, vy: 0, score: 0, alive: true, dir: Math.PI/2, walkCycle: 0,
+          fallT: -1, pushVx: 0, pushVy: 0, color: '#4fc3f7', dark: '#0288d1', light: '#b3e5fc', name: 'Blue Panda' },
+        { x: 0, y: 0, vx: 0, vy: 0, score: 0, alive: true, dir: -Math.PI/2, walkCycle: 0,
+          fallT: -1, pushVx: 0, pushVy: 0, color: '#ef5350', dark: '#c62828', light: '#ffcdd2', name: 'Red Panda' }
+    ];
+
+    // ── Joysticks ──
+    let joys = [
+        { active: false, tid: -1, cx: 0, cy: 0, dx: 0, dy: 0 },
+        { active: false, tid: -1, cx: 0, cy: 0, dx: 0, dy: 0 }
+    ];
+
+    // Keyboard
+    let keys = {};
+
+    // ── Init ──
+    function initGrid() {
+        grid = [];
+        for (let r = 0; r < ROWS; r++) {
+            grid[r] = [];
+            for (let c = 0; c < COLS; c++) {
+                grid[r][c] = { state: 0, timer: 0, breakAnim: 0, fallRot: (Math.random()-0.5)*0.8, shakeT: 0 };
+            }
+        }
+    }
+
+    function resetPlayers() {
+        const L = getLayout();
+        P[0].x = L.bx + 1.5 * (L.tw + L.gap);
+        P[0].y = L.by + 1.5 * (L.tw + L.gap);
+        P[1].x = L.bx + (COLS - 1.5) * (L.tw + L.gap);
+        P[1].y = L.by + (ROWS - 1.5) * (L.tw + L.gap);
+        for (let p of P) {
+            p.vx = p.vy = 0;
+            p.alive = true;
+            p.fallT = -1;
+            p.pushVx = p.pushVy = 0;
+            p.walkCycle = 0;
+        }
+        P[0].dir = Math.PI * 0.5;
+        P[1].dir = -Math.PI * 0.5;
+    }
+
+    // Get tile row/col from pixel position
+    function pixelToTile(px, py) {
+        const L = getLayout();
+        const c = Math.floor((px - L.bx) / (L.tw + L.gap));
+        const r = Math.floor((py - L.by) / (L.tw + L.gap));
+        return { r, c };
+    }
+
+    function tileCenter(r, c) {
+        const L = getLayout();
+        return {
+            x: L.bx + c * (L.tw + L.gap) + L.tw / 2,
+            y: L.by + r * (L.tw + L.gap) + L.tw / 2
+        };
+    }
+
+    // ── Particles ──
+    function spawnParticles(x, y, colors, count) {
+        for (let i = 0; i < count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const spd = 1 + Math.random() * 4;
+            particles.push({
+                x, y,
+                vx: Math.cos(a) * spd,
+                vy: Math.sin(a) * spd - 2.5,
+                size: 2 + Math.random() * 6,
+                life: 1,
+                decay: 0.01 + Math.random() * 0.025,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rot: Math.random() * 6.28,
+                rotV: (Math.random() - 0.5) * 0.3
+            });
+        }
+    }
+
+    // ── Helpers ──
+    function roundRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+
+    // ── Draw tile ──
+    function drawTile(r, c) {
+        const t = grid[r][c];
+        const L = getLayout();
+        const x = L.bx + c * (L.tw + L.gap);
+        const y = L.by + r * (L.tw + L.gap);
+        const w = L.tw, h = L.tw;
+        const depth = Math.max(5, w * 0.13);
+
+        ctx.save();
+
+        // Shake
+        if (t.shakeT > 0) {
+            ctx.translate((Math.random()-0.5)*4*t.shakeT, (Math.random()-0.5)*4*t.shakeT);
+        }
+
+        if (t.state === 2) {
+            // ── BROKEN: falling tile animation then hole ──
+            const bp = Math.min(1, t.breakAnim);
+
+            if (bp < 1) {
+                // Falling tile piece
+                ctx.save();
+                const cx = x + w/2, cy = y + h/2;
+                ctx.translate(cx, cy);
+                ctx.rotate(t.fallRot * bp * 3);
+                ctx.scale(1 - bp * 0.6, 1 - bp * 0.6);
+                ctx.translate(-w/2, -h/2);
+                ctx.globalAlpha = 1 - bp;
+
+                // Tile top
+                const tg = ctx.createLinearGradient(0, 0, w, h);
+                tg.addColorStop(0, '#8bc34a');
+                tg.addColorStop(1, '#558b2f');
+                roundRect(0, 0, w, h, 5);
+                ctx.fillStyle = tg;
+                ctx.fill();
+
+                // Big cracks
+                ctx.strokeStyle = 'rgba(50,25,0,0.6)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(w*0.1, h*0.2); ctx.lineTo(w*0.4, h*0.5); ctx.lineTo(w*0.2, h*0.9);
+                ctx.moveTo(w*0.5, h*0.05); ctx.lineTo(w*0.6, h*0.4); ctx.lineTo(w*0.8, h*0.7);
+                ctx.moveTo(w*0.4, h*0.5); ctx.lineTo(w*0.75, h*0.45);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            // Dark hole
+            ctx.globalAlpha = 0.5 + 0.3 * Math.min(1, bp);
+            roundRect(x + 2, y + 2, w - 4, h - 4, 5);
+            const hg = ctx.createRadialGradient(x+w/2, y+h/2, 0, x+w/2, y+h/2, w*0.65);
+            hg.addColorStop(0, '#050510');
+            hg.addColorStop(0.7, '#0a0a1a');
+            hg.addColorStop(1, '#151525');
+            ctx.fillStyle = hg;
+            ctx.fill();
+
+            // Inner glow
+            ctx.globalAlpha = 0.15;
+            roundRect(x + 4, y + 4, w - 8, h - 8, 4);
+            ctx.strokeStyle = '#3a1a5e';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.restore();
+            return;
+        }
+
+        const cracking = t.state === 1;
+        const cp = cracking ? Math.min(1, t.timer / BREAK_TIME) : 0;
+
+        // ── 3D SIDES ──
+        // Bottom face
+        ctx.fillStyle = cracking ? `rgb(${130-cp*40}, ${120-cp*30}, ${30})` : '#33691e';
+        ctx.beginPath();
+        ctx.moveTo(x + 3, y + h);
+        ctx.lineTo(x + w - 3, y + h);
+        ctx.lineTo(x + w - 3, y + h + depth);
+        ctx.lineTo(x + 3, y + h + depth);
+        ctx.closePath();
+        ctx.fill();
+
+        // Right face
+        ctx.fillStyle = cracking ? `rgb(${110-cp*40}, ${100-cp*25}, ${25})` : '#2a5516';
+        ctx.beginPath();
+        ctx.moveTo(x + w, y + 3);
+        ctx.lineTo(x + w + depth * 0.4, y + 3 + depth * 0.3);
+        ctx.lineTo(x + w + depth * 0.4, y + h + depth * 0.7);
+        ctx.lineTo(x + w, y + h + depth);
+        ctx.closePath();
+        ctx.fill();
+
+        // ── TOP FACE ──
+        const g1 = cracking ? `rgb(${180+cp*30}, ${210-cp*60}, ${140-cp*80})` : '#7cb342';
+        const g2 = cracking ? `rgb(${140+cp*20}, ${170-cp*50}, ${100-cp*60})` : '#558b2f';
+        const tg = ctx.createLinearGradient(x, y, x + w, y + h);
+        tg.addColorStop(0, g1);
+        tg.addColorStop(1, g2);
+        roundRect(x, y, w, h, 5);
+        ctx.fillStyle = tg;
+        ctx.fill();
+
+        // Wood grain lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 0.7;
+        for (let i = 1; i <= 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + 3, y + h * i / 4);
+            ctx.lineTo(x + w - 3, y + h * i / 4);
+            ctx.stroke();
+        }
+
+        // Bamboo knot
+        ctx.fillStyle = 'rgba(0,0,0,0.06)';
+        ctx.beginPath();
+        ctx.ellipse(x + w/2, y + h/2, w*0.12, h*0.06, 0, 0, Math.PI*2);
+        ctx.fill();
+
+        // Shine highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.beginPath();
+        ctx.ellipse(x + w*0.3, y + h*0.25, w*0.18, h*0.08, -0.3, 0, Math.PI*2);
+        ctx.fill();
+
+        // Border
+        roundRect(x, y, w, h, 5);
+        ctx.strokeStyle = cracking ? `rgba(180,80,0,${0.3+cp*0.4})` : 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // ── CRACK VISUALS ──
+        if (cracking) {
+            // Cracks grow over time
+            ctx.strokeStyle = `rgba(60,20,0,${0.3 + cp * 0.5})`;
+            ctx.lineWidth = 1 + cp * 1.5;
+
+            ctx.beginPath();
+            ctx.moveTo(x + w*0.15, y + h*0.1);
+            ctx.lineTo(x + w*(0.3+cp*0.1), y + h*0.4);
+            ctx.lineTo(x + w*0.2, y + h*(0.5+cp*0.15));
+            ctx.lineTo(x + w*(0.35+cp*0.05), y + h*0.85);
+            ctx.stroke();
+
+            if (cp > 0.3) {
+                ctx.beginPath();
+                ctx.moveTo(x + w*0.7, y + h*0.05);
+                ctx.lineTo(x + w*0.55, y + h*0.35);
+                ctx.lineTo(x + w*0.75, y + h*0.65);
+                ctx.stroke();
+            }
+            if (cp > 0.5) {
+                ctx.beginPath();
+                ctx.moveTo(x + w*(0.3+cp*0.1), y + h*0.4);
+                ctx.lineTo(x + w*0.65, y + h*0.38);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(x + w*0.2, y + h*(0.5+cp*0.15));
+                ctx.lineTo(x + w*0.5, y + h*0.62);
+                ctx.lineTo(x + w*0.8, y + h*0.8);
+                ctx.stroke();
+            }
+
+            // Pulsing danger glow
+            const pulse = Math.sin(Date.now() * 0.006 * (1 + cp * 2)) * 0.5 + 0.5;
+            ctx.globalAlpha = (0.05 + cp * 0.2) * pulse;
+            roundRect(x, y, w, h, 5);
+            ctx.fillStyle = cp > 0.7 ? '#ff1100' : '#ff6600';
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Small dust particles on edges when close to breaking
+            if (cp > 0.6) {
+                ctx.fillStyle = `rgba(160,120,60,${cp * 0.4})`;
+                for (let i = 0; i < 3; i++) {
+                    const px = x + Math.random() * w;
+                    const py = y + h - 2 + Math.random() * 4;
+                    ctx.beginPath();
+                    ctx.arc(px, py, 1 + Math.random(), 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        ctx.restore();
+    }
+
+    // ── Draw Panda – big detailed 3D character ──
+    function drawPanda(p, idx) {
+        const L = getLayout();
+        const size = L.tw * 1.05; // BIGGER panda
+        const hs = size / 2;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+
+        // Fall
+        if (p.fallT >= 0) {
+            const ft = Math.min(1, p.fallT);
+            ctx.rotate(ft * Math.PI * 3);
+            ctx.scale(1 - ft * 0.9, 1 - ft * 0.9);
+            ctx.globalAlpha = 1 - ft;
+        }
+
+        const isMoving = Math.abs(p.vx) > 5 || Math.abs(p.vy) > 5;
+        const breathe = Math.sin(Date.now() * 0.003) * 0.015;
+        const bob = isMoving ? Math.sin(p.walkCycle * 13) * 4 : Math.sin(Date.now() * 0.0025) * 1.5;
+        const tilt = isMoving ? Math.sin(p.walkCycle * 13) * 0.04 : 0;
+        ctx.translate(0, bob);
+        ctx.rotate(tilt);
+
+        const mc = p.color, dc = p.dark, lc = p.light;
+
+        // Direction
+        const normDir = ((p.dir % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
+        const facingDown = normDir > Math.PI * 0.25 && normDir < Math.PI * 0.75;
+        const facingUp = normDir > Math.PI * 1.25 && normDir < Math.PI * 1.75;
+        const facingLeft = normDir > Math.PI * 0.75 && normDir < Math.PI * 1.25;
+        const facingRight = !facingDown && !facingUp && !facingLeft;
+        const sideShift = facingLeft ? -1 : facingRight ? 1 : 0;
+
+        // ── Ground shadow ──
+        const shadowScale = 1 + breathe;
+        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        ctx.beginPath();
+        ctx.ellipse(0, hs * 0.82 - bob, hs * 0.65 * shadowScale, hs * 0.16, 0, 0, Math.PI*2);
+        ctx.fill();
+        // Shadow edge
+        ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        const armSwing = isMoving ? Math.sin(p.walkCycle * 13) * 0.45 : Math.sin(Date.now() * 0.002) * 0.05;
+        const legSwing = isMoving ? Math.sin(p.walkCycle * 13) * hs * 0.18 : 0;
+
+        // ══════════ BACK ELEMENTS (drawn first) ══════════
+
+        // ── Back arm (behind body) ──
+        if (facingLeft || facingRight) {
+            const backArmX = -sideShift * hs * 0.35;
+            ctx.save();
+            ctx.translate(backArmX, hs * 0.05);
+            ctx.rotate(-sideShift * 0.2 - armSwing * 0.5);
+            // Upper arm
+            ctx.fillStyle = '#151515';
+            ctx.beginPath();
+            ctx.ellipse(0, hs * 0.1, hs * 0.12, hs * 0.22, -sideShift * 0.15, 0, Math.PI*2);
+            ctx.fill();
+            // Paw
+            ctx.fillStyle = '#0d0d0d';
+            ctx.beginPath();
+            ctx.ellipse(-sideShift * hs * 0.02, hs * 0.28, hs * 0.09, hs * 0.08, 0, 0, Math.PI*2);
+            ctx.fill();
+            // Paw pads
+            ctx.fillStyle = '#3a3a3a';
+            ctx.beginPath();
+            ctx.ellipse(-sideShift * hs * 0.02, hs * 0.28, hs * 0.05, hs * 0.04, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // ── Back leg ──
+        if (facingDown || facingLeft || facingRight) {
+            const backLegOff = facingDown ? -legSwing : (sideShift < 0 ? legSwing : -legSwing);
+            // Left foot back
+            ctx.fillStyle = '#111';
+            ctx.beginPath();
+            ctx.ellipse(-hs*0.16 + backLegOff * 0.5, hs*0.7, hs*0.14, hs*0.09, -0.1, 0, Math.PI*2);
+            ctx.fill();
+            // Foot pad
+            ctx.fillStyle = '#2a2a2a';
+            ctx.beginPath();
+            ctx.ellipse(-hs*0.16 + backLegOff * 0.5, hs*0.72, hs*0.08, hs*0.05, 0, 0, Math.PI*2);
+            ctx.fill();
+            // Toes
+            ctx.fillStyle = '#333';
+            for (let t = -1; t <= 1; t++) {
+                ctx.beginPath();
+                ctx.arc(-hs*0.16 + backLegOff * 0.5 + t * hs*0.04, hs*0.65, hs*0.025, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        // ══════════ BODY ══════════
+
+        // ── Main body (furry oval) ──
+        const bodyGrad = ctx.createRadialGradient(
+            sideShift * hs * 0.05 - hs*0.08, hs * 0.1, hs * 0.1,
+            sideShift * hs * 0.03, hs * 0.2, hs * 0.55
+        );
+        bodyGrad.addColorStop(0, '#2a2a2a');
+        bodyGrad.addColorStop(0.5, '#1a1a1a');
+        bodyGrad.addColorStop(1, '#111');
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.ellipse(sideShift * hs * 0.03, hs * 0.2, hs * (0.55 + breathe), hs * (0.5 + breathe), 0, 0, Math.PI*2);
+        ctx.fill();
+
+        // Body fur texture
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < 6; i++) {
+            const fx = sideShift * hs * 0.03 + (Math.random()-0.5) * hs * 0.6;
+            const fy = hs * 0.2 + (Math.random()-0.5) * hs * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(fx, fy);
+            ctx.lineTo(fx + (Math.random()-0.5) * 6, fy + 3 + Math.random()*3);
+            ctx.stroke();
+        }
+
+        // ── Belly (white patch) ──
+        if (!facingUp) {
+            const bellyOff = sideShift * hs * 0.06;
+            const bellyGrad = ctx.createRadialGradient(
+                bellyOff, hs * 0.25, 0,
+                bellyOff, hs * 0.28, hs * 0.32
+            );
+            bellyGrad.addColorStop(0, '#fafaf5');
+            bellyGrad.addColorStop(0.6, '#f0efe8');
+            bellyGrad.addColorStop(1, '#e8e6dd');
+            ctx.fillStyle = bellyGrad;
+            ctx.beginPath();
+            ctx.ellipse(bellyOff, hs * 0.28, hs * 0.3, hs * 0.28, sideShift * 0.05, 0, Math.PI*2);
+            ctx.fill();
+
+            // Belly fur lines
+            ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < 4; i++) {
+                const bx = bellyOff + (Math.random()-0.5) * hs * 0.3;
+                const by = hs * 0.2 + Math.random() * hs * 0.2;
+                ctx.beginPath();
+                ctx.moveTo(bx, by);
+                ctx.quadraticCurveTo(bx + 2, by + 4, bx - 1, by + 7);
+                ctx.stroke();
+            }
+        }
+
+        // ── Front leg ──
+        {
+            const frontLegOff = facingDown ? legSwing : (sideShift > 0 ? legSwing : -legSwing);
+            ctx.fillStyle = '#111';
+            ctx.beginPath();
+            ctx.ellipse(hs*0.16 + frontLegOff * 0.5, hs*0.7, hs*0.14, hs*0.09, 0.1, 0, Math.PI*2);
+            ctx.fill();
+            // Foot pad
+            ctx.fillStyle = '#2a2a2a';
+            ctx.beginPath();
+            ctx.ellipse(hs*0.16 + frontLegOff * 0.5, hs*0.72, hs*0.08, hs*0.05, 0, 0, Math.PI*2);
+            ctx.fill();
+            // Toes
+            ctx.fillStyle = '#333';
+            for (let t = -1; t <= 1; t++) {
+                ctx.beginPath();
+                ctx.arc(hs*0.16 + frontLegOff * 0.5 + t * hs*0.04, hs*0.65, hs*0.025, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        // ── Front arm ──
+        if (facingDown || facingUp) {
+            // Both arms
+            for (let side = -1; side <= 1; side += 2) {
+                ctx.save();
+                ctx.translate(side * hs * 0.5, hs * 0.02);
+                ctx.rotate(side * 0.25 + (side === 1 ? armSwing : -armSwing));
+                // Upper arm
+                const armGrad = ctx.createLinearGradient(0, -hs*0.05, 0, hs*0.35);
+                armGrad.addColorStop(0, '#1e1e1e');
+                armGrad.addColorStop(1, '#0e0e0e');
+                ctx.fillStyle = armGrad;
+                ctx.beginPath();
+                ctx.ellipse(0, hs * 0.12, hs * 0.11, hs * 0.22, side * 0.1, 0, Math.PI*2);
+                ctx.fill();
+                // Paw
+                ctx.fillStyle = '#0a0a0a';
+                ctx.beginPath();
+                ctx.ellipse(side * hs * 0.02, hs * 0.3, hs * 0.1, hs * 0.09, 0, 0, Math.PI*2);
+                ctx.fill();
+                // Paw pad (pink-ish)
+                ctx.fillStyle = idx === 0 ? '#5a9ab5' : '#b56060';
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath();
+                ctx.ellipse(side * hs * 0.02, hs * 0.3, hs * 0.055, hs * 0.045, 0, 0, Math.PI*2);
+                ctx.fill();
+                // Finger pads
+                for (let f = -1; f <= 1; f++) {
+                    ctx.beginPath();
+                    ctx.arc(side * hs * 0.02 + f * hs * 0.035, hs * 0.24, hs * 0.018, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+                ctx.restore();
+            }
+        } else {
+            // Front arm only
+            const armX = sideShift * hs * 0.45;
+            ctx.save();
+            ctx.translate(armX, hs * 0.02);
+            ctx.rotate(sideShift * 0.2 + armSwing);
+            const armGrad = ctx.createLinearGradient(0, -hs*0.05, 0, hs*0.35);
+            armGrad.addColorStop(0, '#1e1e1e');
+            armGrad.addColorStop(1, '#0e0e0e');
+            ctx.fillStyle = armGrad;
+            ctx.beginPath();
+            ctx.ellipse(0, hs * 0.12, hs * 0.19, hs * 0.12, sideShift * 0.15, 0, Math.PI*2);
+            ctx.fill();
+            // Paw
+            ctx.fillStyle = '#0a0a0a';
+            ctx.beginPath();
+            ctx.ellipse(sideShift * hs * 0.12, hs * 0.2, hs * 0.1, hs * 0.09, 0, 0, Math.PI*2);
+            ctx.fill();
+            // Pad
+            ctx.fillStyle = idx === 0 ? '#5a9ab5' : '#b56060';
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            ctx.ellipse(sideShift * hs * 0.12, hs * 0.2, hs * 0.055, hs * 0.045, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        }
+
+        // ══════════ SCARF / BANDANA ══════════
+        // Main wrap
+        const scarfGrad = ctx.createLinearGradient(-hs*0.4, -hs*0.12, hs*0.4, -hs*0.02);
+        scarfGrad.addColorStop(0, dc);
+        scarfGrad.addColorStop(0.5, mc);
+        scarfGrad.addColorStop(1, dc);
+        ctx.fillStyle = scarfGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, -hs * 0.08, hs * 0.48, hs * 0.1, 0, 0, Math.PI*2);
+        ctx.fill();
+        // Scarf shading
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.ellipse(0, -hs * 0.06, hs * 0.46, hs * 0.06, 0, 0, Math.PI);
+        ctx.stroke();
+
+        // Knot
+        if (!facingUp) {
+            ctx.fillStyle = dc;
+            ctx.beginPath();
+            ctx.ellipse(sideShift * hs * 0.12, -hs * 0.03, hs * 0.08, hs * 0.07, sideShift * 0.3, 0, Math.PI*2);
+            ctx.fill();
+            // Knot highlight
+            ctx.fillStyle = mc;
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.ellipse(sideShift * hs * 0.1, -hs * 0.05, hs * 0.03, hs * 0.025, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // Scarf tail (fluttery)
+        if (!facingUp) {
+            const flutter = Math.sin(Date.now() * 0.005 + idx) * hs * 0.04;
+            ctx.fillStyle = mc;
+            ctx.beginPath();
+            ctx.moveTo(sideShift * hs * 0.12, -hs * 0.01);
+            ctx.quadraticCurveTo(sideShift * hs * 0.28 + flutter, hs * 0.1, sideShift * hs * 0.22 + flutter * 1.5, hs * 0.2);
+            ctx.quadraticCurveTo(sideShift * hs * 0.15 + flutter * 0.5, hs * 0.18, sideShift * hs * 0.18, hs * 0.08);
+            ctx.quadraticCurveTo(sideShift * hs * 0.08, hs * 0.04, sideShift * hs * 0.12, -hs * 0.01);
+            ctx.fill();
+            // Second tail
+            ctx.beginPath();
+            ctx.moveTo(sideShift * hs * 0.14, 0);
+            ctx.quadraticCurveTo(sideShift * hs * 0.35 - flutter, hs * 0.08, sideShift * hs * 0.3 - flutter * 1.2, hs * 0.16);
+            ctx.quadraticCurveTo(sideShift * hs * 0.2 - flutter * 0.3, hs * 0.12, sideShift * hs * 0.22, hs * 0.05);
+            ctx.quadraticCurveTo(sideShift * hs * 0.1, hs * 0.02, sideShift * hs * 0.14, 0);
+            ctx.fill();
+        }
+
+        // ══════════ HEAD ══════════
+        // Head (bigger, rounder)
+        const headX = sideShift * hs * 0.02;
+        const headY = -hs * 0.35;
+        const headGrad = ctx.createRadialGradient(
+            headX - hs*0.08, headY - hs*0.08, 0,
+            headX, headY, hs * 0.48
+        );
+        headGrad.addColorStop(0, '#ffffff');
+        headGrad.addColorStop(0.5, '#f8f8f3');
+        headGrad.addColorStop(1, '#e8e6dd');
+        ctx.fillStyle = headGrad;
+        ctx.beginPath();
+        ctx.ellipse(headX, headY, hs * 0.46, hs * 0.42, 0, 0, Math.PI*2);
+        ctx.fill();
+
+        // Head outline (subtle)
+        ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+
+        // ── Ears (with inner detail) ──
+        const earSpread = hs * 0.37;
+        const earYpos = -hs * 0.66;
+        for (let side = -1; side <= 1; side += 2) {
+            const earX = headX + side * earSpread + sideShift * hs * 0.03;
+            const sc = (side === -1 && facingRight) || (side === 1 && facingLeft) ? 0.65 : 1;
+
+            // Outer ear
+            const earGrad = ctx.createRadialGradient(earX, earYpos, 0, earX, earYpos, hs*0.18*sc);
+            earGrad.addColorStop(0, '#2a2a2a');
+            earGrad.addColorStop(1, '#0e0e0e');
+            ctx.fillStyle = earGrad;
+            ctx.beginPath();
+            ctx.ellipse(earX, earYpos, hs * 0.18 * sc, hs * 0.18, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // Inner ear
+            const innerGrad = ctx.createRadialGradient(earX, earYpos, 0, earX, earYpos, hs*0.1*sc);
+            innerGrad.addColorStop(0, mc);
+            innerGrad.addColorStop(1, dc);
+            ctx.fillStyle = innerGrad;
+            ctx.beginPath();
+            ctx.ellipse(earX, earYpos + hs*0.01, hs * 0.1 * sc, hs * 0.1, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // Ear highlight
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.beginPath();
+            ctx.ellipse(earX - hs*0.02, earYpos - hs*0.03, hs * 0.05 * sc, hs * 0.04, -0.3, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        // ══════════ FACE DETAILS ══════════
+        if (facingUp) {
+            // ── Back of head ──
+            ctx.fillStyle = '#151515';
+            ctx.beginPath();
+            ctx.ellipse(headX - hs*0.13, headY, hs*0.12, hs*0.16, -0.15, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(headX + hs*0.13, headY, hs*0.12, hs*0.16, 0.15, 0, Math.PI*2);
+            ctx.fill();
+
+            // Back head fur tuft
+            ctx.fillStyle = '#e8e6dd';
+            ctx.beginPath();
+            ctx.ellipse(headX, headY + hs*0.05, hs*0.08, hs*0.04, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // Tail (fluffy)
+            ctx.fillStyle = '#f0efe8';
+            ctx.beginPath();
+            ctx.ellipse(0, hs*0.68, hs*0.1, hs*0.08, Math.sin(Date.now()*0.004)*0.2, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(-hs*0.02, hs*0.66, hs*0.04, hs*0.03, 0, 0, Math.PI*2);
+            ctx.fill();
+
+        } else {
+            // ── FACE (front/side view) ──
+            const eyeShift = sideShift * hs * 0.06;
+
+            // Eye patches (darker, teardrop shaped)
+            const lpScale = facingRight ? 0.6 : facingLeft ? 1.2 : 1;
+            const rpScale = facingLeft ? 0.6 : facingRight ? 1.2 : 1;
+            const leyeX = headX - hs * 0.18 + eyeShift;
+            const reyeX = headX + hs * 0.18 + eyeShift;
+            const eyeYp = headY - hs * 0.03;
+
+            // Left patch
+            const lpGrad = ctx.createRadialGradient(leyeX, eyeYp, 0, leyeX, eyeYp, hs*0.18*lpScale);
+            lpGrad.addColorStop(0, '#1a1a1a');
+            lpGrad.addColorStop(0.7, '#111');
+            lpGrad.addColorStop(1, '#0a0a0a');
+            ctx.fillStyle = lpGrad;
+            ctx.beginPath();
+            ctx.ellipse(leyeX, eyeYp, hs*0.17*lpScale, hs*0.14, -0.2, 0, Math.PI*2);
+            ctx.fill();
+
+            // Right patch
+            const rpGrad = ctx.createRadialGradient(reyeX, eyeYp, 0, reyeX, eyeYp, hs*0.18*rpScale);
+            rpGrad.addColorStop(0, '#1a1a1a');
+            rpGrad.addColorStop(0.7, '#111');
+            rpGrad.addColorStop(1, '#0a0a0a');
+            ctx.fillStyle = rpGrad;
+            ctx.beginPath();
+            ctx.ellipse(reyeX, eyeYp, hs*0.17*rpScale, hs*0.14, 0.2, 0, Math.PI*2);
+            ctx.fill();
+
+            // ── Eyes (big, expressive) ──
+            const eyeR = hs * 0.1;
+
+            // Left eye white
+            const lewGrad = ctx.createRadialGradient(leyeX, eyeYp, 0, leyeX, eyeYp, eyeR*lpScale);
+            lewGrad.addColorStop(0, '#ffffff');
+            lewGrad.addColorStop(1, '#e8e8e8');
+            ctx.fillStyle = lewGrad;
+            ctx.beginPath();
+            ctx.ellipse(leyeX, eyeYp, eyeR*lpScale, eyeR*0.95, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // Right eye white
+            const rewGrad = ctx.createRadialGradient(reyeX, eyeYp, 0, reyeX, eyeYp, eyeR*rpScale);
+            rewGrad.addColorStop(0, '#ffffff');
+            rewGrad.addColorStop(1, '#e8e8e8');
+            ctx.fillStyle = rewGrad;
+            ctx.beginPath();
+            ctx.ellipse(reyeX, eyeYp, eyeR*rpScale, eyeR*0.95, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // Iris (colored based on team)
+            const irisColor = idx === 0 ? '#2196f3' : '#d32f2f';
+            const irisDark = idx === 0 ? '#1565c0' : '#b71c1c';
+            const pupOff = hs * 0.03;
+            const px = sideShift * pupOff;
+            const py = facingDown ? pupOff : -pupOff * 0.3;
+            const irisR = hs * 0.065;
+
+            // Left iris
+            const liGrad = ctx.createRadialGradient(leyeX+px, eyeYp+py, 0, leyeX+px, eyeYp+py, irisR*lpScale);
+            liGrad.addColorStop(0, irisColor);
+            liGrad.addColorStop(1, irisDark);
+            ctx.fillStyle = liGrad;
+            ctx.beginPath();
+            ctx.arc(leyeX + px, eyeYp + py, irisR * lpScale, 0, Math.PI*2);
+            ctx.fill();
+
+            // Right iris
+            const riGrad = ctx.createRadialGradient(reyeX+px, eyeYp+py, 0, reyeX+px, eyeYp+py, irisR*rpScale);
+            riGrad.addColorStop(0, irisColor);
+            riGrad.addColorStop(1, irisDark);
+            ctx.fillStyle = riGrad;
+            ctx.beginPath();
+            ctx.arc(reyeX + px, eyeYp + py, irisR * rpScale, 0, Math.PI*2);
+            ctx.fill();
+
+            // Pupils
+            ctx.fillStyle = '#050505';
+            ctx.beginPath();
+            ctx.arc(leyeX + px, eyeYp + py, hs*0.04*lpScale, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(reyeX + px, eyeYp + py, hs*0.04*rpScale, 0, Math.PI*2);
+            ctx.fill();
+
+            // Eye shine (big)
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.beginPath();
+            ctx.arc(leyeX + px + hs*0.025, eyeYp + py - hs*0.025, hs*0.025*lpScale, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(reyeX + px + hs*0.025, eyeYp + py - hs*0.025, hs*0.025*rpScale, 0, Math.PI*2);
+            ctx.fill();
+            // Small secondary shine
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.beginPath();
+            ctx.arc(leyeX + px - hs*0.02, eyeYp + py + hs*0.02, hs*0.012*lpScale, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(reyeX + px - hs*0.02, eyeYp + py + hs*0.02, hs*0.012*rpScale, 0, Math.PI*2);
+            ctx.fill();
+
+            // ── Nose (3D heart shape) ──
+            const noseX = headX + eyeShift;
+            const noseY = headY + hs * 0.14;
+            const noseGrad = ctx.createRadialGradient(noseX - hs*0.01, noseY - hs*0.01, 0, noseX, noseY, hs*0.07);
+            noseGrad.addColorStop(0, '#3a3a3a');
+            noseGrad.addColorStop(1, '#1a1a1a');
+            ctx.fillStyle = noseGrad;
+            // Heart-ish nose
+            ctx.beginPath();
+            ctx.moveTo(noseX, noseY + hs*0.04);
+            ctx.quadraticCurveTo(noseX - hs*0.06, noseY + hs*0.01, noseX - hs*0.05, noseY - hs*0.02);
+            ctx.quadraticCurveTo(noseX - hs*0.03, noseY - hs*0.05, noseX, noseY - hs*0.02);
+            ctx.quadraticCurveTo(noseX + hs*0.03, noseY - hs*0.05, noseX + hs*0.05, noseY - hs*0.02);
+            ctx.quadraticCurveTo(noseX + hs*0.06, noseY + hs*0.01, noseX, noseY + hs*0.04);
+            ctx.fill();
+            // Nose shine
+            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            ctx.beginPath();
+            ctx.ellipse(noseX - hs*0.015, noseY - hs*0.02, hs*0.015, hs*0.01, -0.3, 0, Math.PI*2);
+            ctx.fill();
+
+            // ── Mouth ──
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 1.5;
+            ctx.lineCap = 'round';
+            // Line down from nose
+            ctx.beginPath();
+            ctx.moveTo(noseX, noseY + hs*0.04);
+            ctx.lineTo(noseX, noseY + hs*0.09);
+            ctx.stroke();
+            // Smile curves
+            ctx.beginPath();
+            ctx.moveTo(noseX - hs*0.06, noseY + hs*0.1);
+            ctx.quadraticCurveTo(noseX - hs*0.02, noseY + hs*0.14, noseX, noseY + hs*0.09);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(noseX + hs*0.06, noseY + hs*0.1);
+            ctx.quadraticCurveTo(noseX + hs*0.02, noseY + hs*0.14, noseX, noseY + hs*0.09);
+            ctx.stroke();
+
+            // ── Cheek blush ──
+            ctx.globalAlpha = 0.3;
+            const blushGrad1 = ctx.createRadialGradient(leyeX - hs*0.06, headY + hs*0.13, 0, leyeX - hs*0.06, headY + hs*0.13, hs*0.08);
+            blushGrad1.addColorStop(0, lc);
+            blushGrad1.addColorStop(1, 'transparent');
+            ctx.fillStyle = blushGrad1;
+            ctx.beginPath();
+            ctx.arc(leyeX - hs*0.06, headY + hs*0.13, hs*0.08, 0, Math.PI*2);
+            ctx.fill();
+
+            const blushGrad2 = ctx.createRadialGradient(reyeX + hs*0.06, headY + hs*0.13, 0, reyeX + hs*0.06, headY + hs*0.13, hs*0.08);
+            blushGrad2.addColorStop(0, lc);
+            blushGrad2.addColorStop(1, 'transparent');
+            ctx.fillStyle = blushGrad2;
+            ctx.beginPath();
+            ctx.arc(reyeX + hs*0.06, headY + hs*0.13, hs*0.08, 0, Math.PI*2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // ── Whisker dots ──
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            for (let side = -1; side <= 1; side += 2) {
+                const wx = noseX + side * hs * 0.08;
+                const wy = noseY + hs * 0.03;
+                for (let j = 0; j < 3; j++) {
+                    ctx.beginPath();
+                    ctx.arc(wx + side * j * hs * 0.03, wy + (j-1) * hs * 0.02, hs * 0.008, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+
+            // ── Eyebrows (expressive) ──
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.lineWidth = hs * 0.04;
+            ctx.lineCap = 'round';
+            // Left brow
+            ctx.beginPath();
+            ctx.moveTo(leyeX - hs*0.1*lpScale, eyeYp - hs*0.12);
+            ctx.quadraticCurveTo(leyeX, eyeYp - hs*0.16, leyeX + hs*0.08*lpScale, eyeYp - hs*0.11);
+            ctx.stroke();
+            // Right brow
+            ctx.beginPath();
+            ctx.moveTo(reyeX - hs*0.08*rpScale, eyeYp - hs*0.11);
+            ctx.quadraticCurveTo(reyeX, eyeYp - hs*0.16, reyeX + hs*0.1*rpScale, eyeYp - hs*0.12);
+            ctx.stroke();
+        }
+
+        // ══════════ PLAYER INDICATOR ══════════
+        // Glowing ring
+        ctx.strokeStyle = mc;
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = mc;
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.ellipse(0, hs * 0.82 - bob, hs * 0.55, hs * 0.14, 0, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Player tag above head
+        ctx.fillStyle = mc;
+        ctx.font = `bold ${hs * 0.22}px 'Nunito', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Tag background
+        const tagText = idx === 0 ? 'BLUE' : 'RED';
+        const tagW = ctx.measureText(tagText).width + hs * 0.2;
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        roundRect(-tagW/2, -hs * 0.95, tagW, hs * 0.22, hs * 0.06);
+        ctx.fill();
+        ctx.fillStyle = mc;
+        ctx.fillText(tagText, 0, -hs * 0.85);
+
+        ctx.restore();
+    }
+
+    // ── Draw Joystick ──
+    function drawJoy(j, idx, cx, cy, radius) {
+        const mc = idx === 0 ? '#4fc3f7' : '#ef5350';
+        const dc = idx === 0 ? '#0288d1' : '#c62828';
+
+        ctx.save();
+
+        // Outer ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Inner zone
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.85, 0, Math.PI * 2);
+        const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 0.85);
+        bg.addColorStop(0, 'rgba(255,255,255,0.06)');
+        bg.addColorStop(1, 'rgba(255,255,255,0.01)');
+        ctx.fillStyle = bg;
+        ctx.fill();
+
+        // Direction arrows
+        const ad = radius * 0.65;
+        const as = radius * 0.14;
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        for (let i = 0; i < 4; i++) {
+            const a = i * Math.PI / 2 - Math.PI / 2;
+            const ax = cx + Math.cos(a) * ad;
+            const ay = cy + Math.sin(a) * ad;
+            ctx.save();
+            ctx.translate(ax, ay);
+            ctx.rotate(a + Math.PI / 2);
+            ctx.beginPath();
+            ctx.moveTo(0, -as);
+            ctx.lineTo(as * 0.7, as * 0.4);
+            ctx.lineTo(-as * 0.7, as * 0.4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Knob
+        let kx = cx, ky = cy;
+        if (j.active) {
+            const maxD = radius * 0.45;
+            const d = Math.min(maxD, Math.sqrt(j.dx*j.dx + j.dy*j.dy));
+            const a = Math.atan2(j.dy, j.dx);
+            kx = cx + Math.cos(a) * d;
+            ky = cy + Math.sin(a) * d;
+        }
+
+        const kr = radius * 0.3;
+        ctx.beginPath();
+        ctx.arc(kx, ky, kr, 0, Math.PI * 2);
+        const kg = ctx.createRadialGradient(kx - kr*0.2, ky - kr*0.2, 0, kx, ky, kr);
+        kg.addColorStop(0, mc);
+        kg.addColorStop(1, dc);
+        ctx.fillStyle = kg;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Shine
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(kx - kr*0.15, ky - kr*0.2, kr*0.25, kr*0.12, -0.3, 0, Math.PI*2);
+        ctx.fill();
+
+        // Label
+        ctx.fillStyle = mc;
+        ctx.globalAlpha = 0.6;
+        ctx.font = `bold ${radius * 0.2}px 'Nunito', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(idx === 0 ? 'BLUE PANDA' : 'RED PANDA', cx, cy + radius + radius * 0.22);
+        ctx.globalAlpha = 1;
+
+        ctx.restore();
+    }
+
+    // ── Modal ──
+    function drawModal(title, sub, desc, btn) {
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillRect(0, 0, W, H);
+
+        const mw = Math.min(400, W * 0.88);
+        const mh = 340;
+        const mx = (W - mw) / 2;
+        const my = (H - mh) / 2;
+
+        // BG
+        const mg = ctx.createLinearGradient(mx, my, mx + mw, my + mh);
+        mg.addColorStop(0, '#2e7d32');
+        mg.addColorStop(1, '#1b5e20');
+        roundRect(mx, my, mw, mh, 20);
+        ctx.fillStyle = mg;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Emoji
+        ctx.font = '44px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🐼', W/2, my + 50);
+
+        // Title
+        ctx.fillStyle = 'white';
+        ctx.font = `bold ${Math.min(26, W * 0.055)}px 'Fredoka One', cursive`;
+        ctx.fillText(title, W/2, my + 100);
+
+        // Subtitle
+        ctx.fillStyle = '#a5d6a7';
+        ctx.font = `bold ${Math.min(15, W * 0.033)}px 'Nunito', sans-serif`;
+        ctx.fillText(sub, W/2, my + 128);
+
+        // Desc
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        ctx.font = `${Math.min(12, W * 0.027)}px 'Nunito', sans-serif`;
+        desc.split('\n').forEach((l, i) => ctx.fillText(l, W/2, my + 158 + i * 18));
+
+        // Button
+        const bw = 200, bh = 50;
+        const bx = (W - bw) / 2, by2 = my + mh - 72;
+        // Shadow
+        roundRect(bx + 2, by2 + 4, bw, bh, 25);
+        ctx.fillStyle = '#b36200';
+        ctx.fill();
+        // Face
+        const bg = ctx.createLinearGradient(bx, by2, bx, by2 + bh);
+        bg.addColorStop(0, '#ffb300');
+        bg.addColorStop(1, '#f57c00');
+        roundRect(bx, by2, bw, bh, 25);
+        ctx.fillStyle = bg;
+        ctx.fill();
+
+        ctx.fillStyle = 'white';
+        ctx.font = `bold ${Math.min(20, W * 0.04)}px 'Fredoka One', cursive`;
+        ctx.fillText(btn, W/2, by2 + bh/2 + 1);
+
+        return { bx, by: by2, bw, bh };
+    }
+
+    let modalBtn = null;
+
+    // ── Player movement input (keyboard) ──
+    function getKeyboardInput(idx) {
+        let dx = 0, dy = 0;
+        if (idx === 0) {
+            if (keys['w'] || keys['W']) dy -= 1;
+            if (keys['s'] || keys['S']) dy += 1;
+            if (keys['a'] || keys['A']) dx -= 1;
+            if (keys['d'] || keys['D']) dx += 1;
+        } else {
+            if (keys['ArrowUp']) dy -= 1;
+            if (keys['ArrowDown']) dy += 1;
+            if (keys['ArrowLeft']) dx -= 1;
+            if (keys['ArrowRight']) dx += 1;
+        }
+        // Normalize diagonal
+        if (dx !== 0 && dy !== 0) {
+            dx *= 0.707;
+            dy *= 0.707;
+        }
+        return { dx, dy };
+    }
+
+    function getJoyInput(idx) {
+        const j = joys[idx];
+        if (!j.active) return { dx: 0, dy: 0 };
+        const jl = joyLayout();
+        const deadzone = jl.r * 0.15;
+        const maxDist = jl.r * 0.9;
+        const dist = Math.sqrt(j.dx * j.dx + j.dy * j.dy);
+        if (dist < deadzone) return { dx: 0, dy: 0 };
+        const norm = Math.min(1, (dist - deadzone) / (maxDist - deadzone));
+        const a = Math.atan2(j.dy, j.dx);
+        return { dx: Math.cos(a) * norm, dy: Math.sin(a) * norm };
+    }
+
+    // ── GAME UPDATE ──
+    function update(dt) {
+        if (gameState !== 'playing') return;
+
+        const L = getLayout();
+
+        // Move players
+        for (let i = 0; i < 2; i++) {
+            const p = P[i];
+            if (!p.alive) continue;
+
+            // Input
+            const ki = getKeyboardInput(i);
+            const ji = getJoyInput(i);
+            let inputX = ki.dx + ji.dx;
+            let inputY = ki.dy + ji.dy;
+            // Clamp
+            const mag = Math.sqrt(inputX*inputX + inputY*inputY);
+            if (mag > 1) { inputX /= mag; inputY /= mag; }
+
+            // Apply movement
+            p.vx = inputX * SPEED + p.pushVx;
+            p.vy = inputY * SPEED + p.pushVy;
+
+            // Decay push
+            p.pushVx *= 0.9;
+            p.pushVy *= 0.9;
+            if (Math.abs(p.pushVx) < 1) p.pushVx = 0;
+            if (Math.abs(p.pushVy) < 1) p.pushVy = 0;
+
+            // Move
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+
+            // Clamp to board
+            const margin = L.tw * 0.3;
+            const leftEdge = L.bx - margin;
+            const rightEdge = L.bx + L.bw + margin;
+            const topEdge = L.by - margin;
+            const botEdge = L.by + L.bh + margin;
+
+            // Fall off if way out
+            if (p.x < leftEdge || p.x > rightEdge || p.y < topEdge || p.y > botEdge) {
+                playerFall(i);
+                continue;
+            }
+
+            // Check tile under player
+            const tc = pixelToTile(p.x, p.y);
+            if (tc.r >= 0 && tc.r < ROWS && tc.c >= 0 && tc.c < COLS) {
+                const tile = grid[tc.r][tc.c];
+                if (tile.state === 2) {
+                    // On broken tile - fall!
+                    playerFall(i);
+                    continue;
+                }
+            } else {
+                // Off grid
+                playerFall(i);
+                continue;
+            }
+
+            // Update direction
+            if (Math.abs(p.vx) > 10 || Math.abs(p.vy) > 10) {
+                p.dir = Math.atan2(p.vy, p.vx);
+                p.walkCycle += dt;
+            }
+        }
+
+        // ── Player collision / push ──
+        if (P[0].alive && P[1].alive) {
+            const dx = P[1].x - P[0].x;
+            const dy = P[1].y - P[0].y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const minDist = L.tw * 0.55;
+
+            if (dist < minDist && dist > 0) {
+                const nx = dx / dist, ny = dy / dist;
+                const overlap = minDist - dist;
+
+                // Separate
+                P[0].x -= nx * overlap * 0.5;
+                P[0].y -= ny * overlap * 0.5;
+                P[1].x += nx * overlap * 0.5;
+                P[1].y += ny * overlap * 0.5;
+
+                // Push force: whoever is moving faster pushes the other
+                const v0 = Math.sqrt(P[0].vx*P[0].vx + P[0].vy*P[0].vy);
+                const v1 = Math.sqrt(P[1].vx*P[1].vx + P[1].vy*P[1].vy);
+
+                if (v0 > 30 || v1 > 30) {
+                    sfx('push');
+                    screenShake = 0.3;
+                }
+
+                if (v0 > v1) {
+                    P[1].pushVx += nx * PUSH_FORCE * dt * 3;
+                    P[1].pushVy += ny * PUSH_FORCE * dt * 3;
+                } else {
+                    P[0].pushVx -= nx * PUSH_FORCE * dt * 3;
+                    P[0].pushVy -= ny * PUSH_FORCE * dt * 3;
+                }
+            }
+        }
+
+        // ── Tile degradation: tiles break under players even when standing still ──
+        for (let i = 0; i < 2; i++) {
+            if (!P[i].alive) continue;
+            const tc = pixelToTile(P[i].x, P[i].y);
+            if (tc.r < 0 || tc.r >= ROWS || tc.c < 0 || tc.c >= COLS) continue;
+            const tile = grid[tc.r][tc.c];
+
+            if (tile.state === 0) {
+                // Start cracking
+                tile.state = 1;
+                tile.timer = 0;
+                tile.shakeT = 1;
+                sfx('crack');
+            }
+        }
+
+        // ── Update all tiles ──
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const t = grid[r][c];
+                if (t.shakeT > 0) t.shakeT = Math.max(0, t.shakeT - dt * 4);
+
+                if (t.state === 1) {
+                    // Only crack while a player is standing on this tile
+                    let playerOn = false;
+                    for (let i = 0; i < 2; i++) {
+                        if (!P[i].alive) continue;
+                        const pc = pixelToTile(P[i].x, P[i].y);
+                        if (pc.r === r && pc.c === c) playerOn = true;
+                    }
+                    if (playerOn) {
+                        t.timer += dt;
+                    }
+                    // If no player on it, timer freezes (stops cracking)
+
+                    if (t.timer >= BREAK_TIME) {
+                        // BREAK!
+                        t.state = 2;
+                        t.breakAnim = 0;
+                        t.fallRot = (Math.random() - 0.5) * 1.2;
+                        sfx('break');
+                        screenShake = 0.4;
+                        const center = tileCenter(r, c);
+                        spawnParticles(center.x, center.y, ['#7cb342','#558b2f','#8d6e63','#a5d6a7','#6d4c41'], 18);
+
+                        // Check if player is on it - they fall!
+                        for (let i = 0; i < 2; i++) {
+                            if (!P[i].alive) continue;
+                            const pc = pixelToTile(P[i].x, P[i].y);
+                            if (pc.r === r && pc.c === c) {
+                                playerFall(i);
+                            }
+                        }
+                    }
+                }
+
+                if (t.state === 2) {
+                    t.breakAnim = Math.min(1, t.breakAnim + dt * 2);
+                }
+            }
+        }
+
+        // ── Update fall ──
+        for (let p of P) {
+            if (p.fallT >= 0) p.fallT += dt * 1.8;
+        }
+
+        // ── Particles ──
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx; p.y += p.vy;
+            p.vy += 0.12;
+            p.rot += p.rotV;
+            p.life -= p.decay;
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        if (screenShake > 0) screenShake = Math.max(0, screenShake - dt * 3);
+    }
+
+    function playerFall(idx) {
+        const p = P[idx];
+        if (!p.alive) return;
+        p.alive = false;
+        p.fallT = 0;
+        sfx('fall');
+        spawnParticles(p.x, p.y, [p.color, '#fff', '#222'], 25);
+        screenShake = 1;
+
+        const winner = 1 - idx;
+        P[winner].score++;
+
+        setTimeout(() => {
+            gameState = 'roundEnd';
+            winnerIdx = winner;
+            sfx('win');
+        }, 900);
+    }
+
+    // ── DRAW ──
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        // BG gradient
+        const bg = ctx.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, '#1a472a');
+        bg.addColorStop(0.5, '#153a22');
+        bg.addColorStop(1, '#0d2818');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // Bamboo stripes
+        ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < W; x += 50) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        }
+
+        ctx.save();
+        if (screenShake > 0) {
+            ctx.translate((Math.random()-0.5)*10*screenShake, (Math.random()-0.5)*10*screenShake);
+        }
+
+        const L = getLayout();
+
+        // Board shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        roundRect(L.bx - 10, L.by - 6, L.bw + 20, L.bh + 28, 14);
+        ctx.fill();
+
+        // Board bg
+        const bbg = ctx.createLinearGradient(L.bx, L.by, L.bx, L.by + L.bh);
+        bbg.addColorStop(0, 'rgba(0,0,0,0.45)');
+        bbg.addColorStop(1, 'rgba(0,0,0,0.65)');
+        roundRect(L.bx - 6, L.by - 6, L.bw + 12, L.bh + 12, 12);
+        ctx.fillStyle = bbg;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Tiles
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                drawTile(r, c);
+            }
+        }
+
+        // Players (sorted by Y for overlap)
+        const order = [0, 1].sort((a, b) => P[a].y - P[b].y);
+        order.forEach(i => drawPanda(P[i], i));
+
+        // Particles
+        particles.forEach(p => {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+            ctx.restore();
+        });
+
+        ctx.restore(); // shake
+
+        // ── Joysticks ──
+        const jl = joyLayout();
+        drawJoy(joys[0], 0, jl.x, jl.y1, jl.r);
+        drawJoy(joys[1], 1, jl.x, jl.y2, jl.r);
+
+        // ── HUD ──
+        const fontSize = Math.min(16, W * 0.035);
+        ctx.font = `bold ${fontSize}px 'Fredoka One', cursive`;
+        ctx.textBaseline = 'top';
+
+        ctx.fillStyle = '#4fc3f7';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Blue: ${P[0].score}`, 12, 8);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Round ${round}`, W/2, 8);
+
+        ctx.fillStyle = '#ef5350';
+        ctx.textAlign = 'right';
+        ctx.fillText(`Red: ${P[1].score}`, W - 12, 8);
+
+        // Keyboard hints
+        if (!('ontouchstart' in window)) {
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.font = `${Math.min(10, W * 0.022)}px 'Nunito', sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.fillText('Blue: W A S D (hold to move)', 12, 28);
+            ctx.textAlign = 'right';
+            ctx.fillText('Red: Arrow Keys (hold to move)', W - 12, 28);
+        }
+
+        // ── Modals ──
+        if (gameState === 'menu') {
+            modalBtn = drawModal(
+                'Bamboo Breaker',
+                '2-Player Panda Battle!',
+                'Move freely across bamboo tiles.\nTiles crack & break under you!\nPush your opponent into holes!\nStanding still? Tiles still break!',
+                'PLAY!'
+            );
+        } else if (gameState === 'roundEnd') {
+            modalBtn = drawModal(
+                `${winnerIdx === 0 ? '💙' : '❤️'} Player ${winnerIdx + 1} Wins!`,
+                `${P[winnerIdx].name} is victorious!`,
+                `Score: Blue [${P[0].score}] - Red [${P[1].score}]\nRound ${round} complete!`,
+                'NEXT ROUND'
+            );
+        }
+    }
+
+    // ── Input events ──
+    document.addEventListener('keydown', e => {
+        keys[e.key] = true;
+        if ((gameState === 'menu' || gameState === 'roundEnd') && (e.key === 'Enter' || e.key === ' ')) {
+            startGame();
+        }
+        e.preventDefault();
+    });
+    document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+    function joyLayout() {
+        const L = getLayout();
+        const r = Math.min(80, W * 0.15, H * 0.08);
+        const joyY1 = L.by - r - L.hud - 8;
+        const joyY2 = L.by + L.bh + r + L.hud + 8;
+        return {
+            r,
+            x: W / 2,
+            y1: Math.max(r + 8, joyY1),
+            y2: Math.min(H - r - 8, joyY2)
+        };
+    }
+
+    canvas.addEventListener('touchstart', e => {
+        try { audio(); } catch(e2) {}
+        e.preventDefault();
+        const jl = joyLayout();
+
+        for (const t of e.changedTouches) {
+            // Modal click
+            if (gameState !== 'playing') {
+                if (modalBtn && t.clientX >= modalBtn.bx && t.clientX <= modalBtn.bx + modalBtn.bw &&
+                    t.clientY >= modalBtn.by && t.clientY <= modalBtn.by + modalBtn.bh) {
+                    startGame();
+                    return;
+                }
+                continue;
+            }
+
+            // Assign to closest joystick
+            const d1 = Math.sqrt((t.clientX - jl.x)**2 + (t.clientY - jl.y1)**2);
+            const d2 = Math.sqrt((t.clientX - jl.x)**2 + (t.clientY - jl.y2)**2);
+
+            let ji;
+            if (t.clientY < H / 2) {
+                ji = 0; // top half = P1
+            } else {
+                ji = 1; // bottom half = P2
+            }
+
+            if (!joys[ji].active) {
+                joys[ji].active = true;
+                joys[ji].tid = t.identifier;
+                joys[ji].cx = ji === 0 ? jl.x : jl.x;
+                joys[ji].cy = ji === 0 ? jl.y1 : jl.y2;
+                joys[ji].dx = t.clientX - joys[ji].cx;
+                joys[ji].dy = t.clientY - joys[ji].cy;
+            }
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', e => {
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+            for (let ji = 0; ji < 2; ji++) {
+                if (joys[ji].active && joys[ji].tid === t.identifier) {
+                    joys[ji].dx = t.clientX - joys[ji].cx;
+                    joys[ji].dy = t.clientY - joys[ji].cy;
+                }
+            }
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', e => {
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+            for (let ji = 0; ji < 2; ji++) {
+                if (joys[ji].tid === t.identifier) {
+                    joys[ji].active = false;
+                    joys[ji].dx = joys[ji].dy = 0;
+                }
+            }
+        }
+    }, { passive: false });
+    canvas.addEventListener('touchcancel', e => {
+        for (let ji = 0; ji < 2; ji++) { joys[ji].active = false; joys[ji].dx = joys[ji].dy = 0; }
+    }, { passive: false });
+
+    // ── Mouse support for joysticks (desktop) ──
+    let mouseJoy = -1; // which joystick mouse is dragging (-1 = none)
+
+    canvas.addEventListener('mousedown', e => {
+        try { audio(); } catch(e2) {}
+        e.preventDefault();
+
+        // Modal click
+        if (gameState !== 'playing') {
+            if (modalBtn && e.clientX >= modalBtn.bx && e.clientX <= modalBtn.bx + modalBtn.bw &&
+                e.clientY >= modalBtn.by && e.clientY <= modalBtn.by + modalBtn.bh) {
+                startGame();
+            }
+            return;
+        }
+
+        // Check which joystick zone
+        const jl = joyLayout();
+        const zoneSize = jl.r * 2.5;
+        const d1 = Math.sqrt((e.clientX - jl.x)**2 + (e.clientY - jl.y1)**2);
+        const d2 = Math.sqrt((e.clientX - jl.x)**2 + (e.clientY - jl.y2)**2);
+
+        if (d1 < zoneSize) {
+            mouseJoy = 0;
+            joys[0].active = true;
+            joys[0].cx = jl.x;
+            joys[0].cy = jl.y1;
+            joys[0].dx = e.clientX - jl.x;
+            joys[0].dy = e.clientY - jl.y1;
+        } else if (d2 < zoneSize) {
+            mouseJoy = 1;
+            joys[1].active = true;
+            joys[1].cx = jl.x;
+            joys[1].cy = jl.y2;
+            joys[1].dx = e.clientX - jl.x;
+            joys[1].dy = e.clientY - jl.y2;
+        }
+    });
+
+    canvas.addEventListener('mousemove', e => {
+        if (mouseJoy < 0) return;
+        e.preventDefault();
+        joys[mouseJoy].dx = e.clientX - joys[mouseJoy].cx;
+        joys[mouseJoy].dy = e.clientY - joys[mouseJoy].cy;
+    });
+
+    canvas.addEventListener('mouseup', e => {
+        if (mouseJoy >= 0) {
+            joys[mouseJoy].active = false;
+            joys[mouseJoy].dx = joys[mouseJoy].dy = 0;
+            mouseJoy = -1;
+        }
+    });
+
+    canvas.addEventListener('mouseleave', e => {
+        if (mouseJoy >= 0) {
+            joys[mouseJoy].active = false;
+            joys[mouseJoy].dx = joys[mouseJoy].dy = 0;
+            mouseJoy = -1;
+        }
+    });
+
+    function startGame() {
+        if (gameState === 'roundEnd') round++;
+        initGrid();
+        resetPlayers();
+        gameState = 'playing';
+        winnerIdx = -1;
+        particles = [];
+        screenShake = 0;
+    }
+
+    // ── Main loop ──
+    let last = 0;
+    function loop(t) {
+        const dt = Math.min(0.05, (t - last) / 1000);
+        last = t;
+        update(dt);
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    initGrid();
+    resetPlayers();
+    requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

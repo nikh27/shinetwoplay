@@ -3147,7 +3147,6 @@
                 // Remote audio element
                 if (!this.remoteAudio) {
                     this.remoteAudio = document.createElement('audio');
-                    this.remoteAudio.autoplay = true;
                     this.remoteAudio.playsInline = true;
                     this.remoteAudio.volume = 1.0;
                     document.body.appendChild(this.remoteAudio);
@@ -3337,6 +3336,13 @@
 
                 if (this.micOn) {
                     try {
+                        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                            showToast('Microphone requires HTTPS or localhost', 'error');
+                            this.micOn = false;
+                            this._updateUI();
+                            return;
+                        }
+                        showToast('Please allow microphone access...', 'info');
                         this.localStream = await navigator.mediaDevices.getUserMedia({
                             audio: {
                                 echoCancellation: { ideal: true },
@@ -3794,7 +3800,12 @@
                     url: shareUrl
                 }).then(() => {
                     addNotification('Room link shared!');
-                }).catch(() => {});
+                }).catch((err) => {
+                    if (err.name !== 'AbortError') {
+                        navigator.clipboard.writeText(shareUrl);
+                        alert(`Room link copied!\n${shareUrl}`);
+                    }
+                });
             } else {
                 navigator.clipboard.writeText(shareUrl);
                 alert(`Room link copied!\n${shareUrl}`);
@@ -4287,6 +4298,11 @@
         async function startRecording() {
             try {
                 recordingCancelled = false;
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    showToast('Microphone requires HTTPS or localhost', 'error');
+                    return;
+                }
+                showToast('Please allow microphone access...', 'info');
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 recordingStream = stream;
                 mediaRecorder = new MediaRecorder(stream);

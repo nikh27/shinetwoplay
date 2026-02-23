@@ -349,8 +349,9 @@
                 document.getElementById('bb-canvas-wrap').classList.add('bb-flipped');
             }
 
+            this._onResize = () => this._resize();
             this._resize();
-            window.addEventListener('resize', () => this._resize());
+            window.addEventListener('resize', this._onResize);
             this._bindControls();
 
             setTimeout(() => this._startMatch(), 2000);
@@ -385,6 +386,7 @@
         /* ===== CANVAS RESIZE ===== */
         _resize() {
             const wrap = document.getElementById('bb-canvas-wrap');
+            if (!wrap) return; // Prevent TypeError if element is gone
             this.canvas.width = Math.min(wrap.clientWidth, 460);
             this.canvas.height = wrap.clientHeight;
             this._initGameState();
@@ -1282,6 +1284,7 @@
             if (this._syncTimer) clearInterval(this._syncTimer);
             if (this._serveTimer) clearTimeout(this._serveTimer);
             if (this._raf) cancelAnimationFrame(this._raf);
+            if (this._onResize) window.removeEventListener('resize', this._onResize);
             super.destroy();
         }
     }
