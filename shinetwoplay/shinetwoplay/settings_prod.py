@@ -11,7 +11,9 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'CHANGE-ME-to-a-random-64-char-
 ALLOWED_HOSTS = [
     'shinetwoplay.online',
     'www.shinetwoplay.online',
-    '13.235.50.170',  # EC2 IP (keep for direct access if needed)
+    '13.235.50.170',  # EC2 IP
+    '_',              # Catch-all Nginx proxy host
+    'localhost',      # Local connections
 ]
 
 # ──── CSRF / HTTPS ────

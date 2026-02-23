@@ -14,11 +14,14 @@ def validate_username(username):
     
     if len(username) > 8:
         return False, "Username must be 8 characters or less"
-    
-    if not re.match(r'^[a-zA-Z0-9]+$', username):
-        return False, "Username must contain only letters and numbers"
-    
-    return True, None
+
+    if username.strip() == "":
+        return False, "Username cannot be empty"
+
+    if not re.match(r'^[a-zA-Z0-9 ]+$', username):
+        return False, "Username must contain only letters, numbers, and spaces"
+
+    return True, "Valid username"
 
 
 def validate_gender(gender):

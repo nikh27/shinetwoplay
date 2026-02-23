@@ -3574,20 +3574,28 @@
 
         // Reconnect on player reconnect
         const _origReconn = typeof handlePlayerReconnectedEvent === 'function' ? handlePlayerReconnectedEvent : null;
-        if (_origReconn) {
-            handlePlayerReconnectedEvent = function(payload) {
-                _origReconn(payload);
-                if (isOwner && payload.user !== USER) {
-                    console.log('📞 Restarting WebRTC after reconnect...');
-                    window.voiceChat.disconnect();
-                    setTimeout(() => {
-                        window.voiceChat.connect(true).then(() => window.voiceChat.startCall());
-                    }, 1000);
-                }
-            };
-        }
+        handlePlayerReconnectedEvent = function(payload) {
+            if (_origReconn) _origReconn(payload);
+            
+            // Only restart connection if the reconnected user is someone else AND we already have 2+ players
+            if (payload.user !== USER && Object.keys(players).length >= 2) {
+                console.log('📞 Restarting WebRTC after reconnect...');
+                window.voiceChat.disconnect();
+                // Both peers attempt to reconnect after a short delay to let WS settle
+                setTimeout(() => {
+                    window.voiceChat.connect(isOwner).then(() => {
+                        // Owner initiates the call, non-owner waits for offer
+                        if (isOwner) window.voiceChat.startCall();
+                    });
+                }, 1000);
+            }
+        };
         function handleGameLoadedEvent(payload) {
             console.log('🎮 Game loaded:', payload.game_id);
+            
+            // Force blur on chat input to remove keyboard-open class and close virtual keyboard
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) chatInput.blur();
             
             // Add game-active class to body
             document.body.classList.add('game-active');
@@ -4927,9 +4935,6 @@
             document.getElementById('gameChatFloatMsgs').style.display = 'flex';
             _gchatUnread = 0;
             _gchatOpen = false;
-            // Reset message list
-            const list = document.getElementById('gameChatList');
-            list.innerHTML = '<div class="gchat-item system" id="gameChatEmpty"><div class="gchat-text">No messages yet</div></div>';
         }
 
         function hideGlobalGameChat() {
