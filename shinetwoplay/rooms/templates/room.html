@@ -692,6 +692,8 @@
             flex-direction: column;
             min-height: 0;
             overflow: hidden;
+            position: relative;
+            z-index: 60;
         }
 
         .chat-messages {
@@ -886,9 +888,8 @@
             gap: 8px;
             align-items: center;
             flex-shrink: 0;
-            position: sticky;
-            bottom: 0;
-            z-index: 50;
+            position: relative;
+            z-index: 200;
         }
 
         .chat-input {
@@ -1816,6 +1817,7 @@
             max-width: 85%;
             text-align: center;
             box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            pointer-events: none;
         }
 
         .toast.active {
@@ -2289,7 +2291,7 @@
             <div class="chat-container">
                 <div class="chat-messages" id="chatMessages">
                 </div>
-                <div class="chat-input-container" style="position:relative;">
+                <div class="chat-input-container">
                     <div class="media-btn-wrapper">
                         <button class="media-toggle-btn" id="mediaToggleBtn" onclick="toggleMediaPopup()">+</button>
                         <div class="media-popup" id="mediaPopup">

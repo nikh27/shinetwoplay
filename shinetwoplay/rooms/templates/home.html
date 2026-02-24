@@ -173,7 +173,7 @@
 
         .welcome-title {
             font-family: 'Fredoka', sans-serif;
-            font-size: 42px;
+            font-size: 32px;
             background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange), var(--sunshine-peach));
             -webkit-background-clip: text;
             background-clip: text;
@@ -182,7 +182,11 @@
 
         .welcome-subtitle {
             color: var(--text-medium);
-            margin-top: 10px;
+            margin-top: 8px;
+            font-size: 13px;
+            font-style: italic;
+            font-weight: 500;
+            letter-spacing: 0.3px;
         }
 
         .room-controls {
@@ -423,8 +427,8 @@
 
     <div class="main-content">
         <div class="welcome-section">
-            <h1 class="welcome-title">Welcome Shine</h1>
-            <p class="welcome-subtitle">Connect with a friend and play together</p>
+            <h1 class="welcome-title" id="welcomeTitle">good afternoon</h1>
+            <p class="welcome-subtitle" id="welcomeSubtitle">when the two of us play, the world becomes brighter</p>
         </div>
 
         <div class="room-controls">
@@ -442,33 +446,40 @@
         </div>
     </div>
 
-    <div class="footer">
-    <svg width="18" height="18" viewBox="0 0 64 64" fill="none" 
-        style="vertical-align:middle;margin-right:6px;">
-        
-        <!-- Ears -->
-        <circle cx="18" cy="18" r="10" fill="black"/>
-        <circle cx="46" cy="18" r="10" fill="black"/>
-        
-        <!-- Face -->
-        <circle cx="32" cy="34" r="22" fill="white" stroke="black" stroke-width="3"/>
-        
-        <!-- Eye patches -->
-        <ellipse cx="22" cy="34" rx="6" ry="8" fill="black"/>
-        <ellipse cx="42" cy="34" rx="6" ry="8" fill="black"/>
-        
-        <!-- Eyes -->
-        <circle cx="22" cy="34" r="3" fill="white"/>
-        <circle cx="42" cy="34" r="3" fill="white"/>
-        
-        <!-- Nose -->
-        <ellipse cx="32" cy="42" rx="4" ry="3" fill="black"/>
-        
-        <!-- Smile -->
-        <path d="M26 48 Q32 52 38 48" stroke="black" stroke-width="2" fill="none"/>
-        
-    </svg>
-    © 2026 ShineTwoPlay
+    <div class="footer" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div>
+            <svg width="18" height="18" viewBox="0 0 64 64" fill="none" 
+                style="vertical-align:middle;margin-right:6px;">
+                
+                <!-- Ears -->
+                <circle cx="18" cy="18" r="10" fill="black"/>
+                <circle cx="46" cy="18" r="10" fill="black"/>
+                
+                <!-- Face -->
+                <circle cx="32" cy="34" r="22" fill="white" stroke="black" stroke-width="3"/>
+                
+                <!-- Eye patches -->
+                <ellipse cx="22" cy="34" rx="6" ry="8" fill="black"/>
+                <ellipse cx="42" cy="34" rx="6" ry="8" fill="black"/>
+                
+                <!-- Eyes -->
+                <circle cx="22" cy="34" r="3" fill="white"/>
+                <circle cx="42" cy="34" r="3" fill="white"/>
+                
+                <!-- Nose -->
+                <ellipse cx="32" cy="42" rx="4" ry="3" fill="black"/>
+                
+                <!-- Smile -->
+                <path d="M26 48 Q32 52 38 48" stroke="black" stroke-width="2" fill="none"/>
+                
+            </svg>
+            © 2026 ShineTwoPlay
+        </div>
+        <div style="font-size: 11px; display: flex; gap: 12px; opacity: 0.6;">
+            <a href="/shine2play/" style="color: inherit; text-decoration: none;">Shine2Play</a>
+            <a href="/stp/" style="color: inherit; text-decoration: none;">STP Games</a>
+            <a href="/s2p/" style="color: inherit; text-decoration: none;">S2P Platform</a>
+        </div>
     </div>
 </div>
 
@@ -498,8 +509,8 @@ window.addEventListener('DOMContentLoaded', () => {
         gender = savedGender || "male";  // Default to male if not set
         document.getElementById("usernameText").innerText = savedUsername;
         document.getElementById("usernameDisplay").classList.remove("empty");
-        document.querySelector(".welcome-title").innerText = "Welcome " + savedUsername;
     }
+    updateGreeting();
     
     // Check for join parameter (from shared link)
     const urlParams = new URLSearchParams(window.location.search);
@@ -625,7 +636,7 @@ function saveUsername() {
     localStorage.setItem("gender", gender);  // Save gender
     document.getElementById("usernameText").innerText = name;
     document.getElementById("usernameDisplay").classList.remove("empty");
-    document.querySelector(".welcome-title").innerText = "Welcome " + name;
+    updateGreeting();
     closeModal();
 }
 
@@ -738,6 +749,33 @@ closeModal = function() {
         return;
     }
 };
+
+function updateGreeting() {
+    const h = new Date().getHours();
+    let greeting, subtitle;
+
+    if (h >= 5 && h < 12) {
+        greeting = 'Good Morning';
+        subtitle = 'a new day to play, a new reason to smile ✨';
+    } else if (h >= 12 && h < 17) {
+        greeting = 'Good Afternoon';
+        subtitle = 'when the two of us play, the world becomes brighter ✨';
+    } else if (h >= 17 && h < 21) {
+        greeting = 'Good Evening';
+        subtitle = 'every sunset is better when we play together ✨';
+    } else {
+        greeting = 'Good Night';
+        subtitle = 'even the stars wait for us to play one more round ✨';
+    }
+
+    const el = document.getElementById('welcomeTitle');
+    if (userName) {
+        el.innerText = greeting + ', ' + userName;
+    } else {
+        el.innerText = greeting;
+    }
+    document.getElementById('welcomeSubtitle').innerText = subtitle;
+}
 </script>
 </body>
 </html>
