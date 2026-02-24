@@ -3539,12 +3539,18 @@
                     spkBtn.className = 'vc-btn ' + (this.spkOn ? 'on' : 'muted');
                 }
 
-                // In-game buttons
-                ['ttt', 'c4', 'pa'].forEach(p => {
-                    const mic = document.getElementById(`${p}-mic-btn`);
-                    const spk = document.getElementById(`${p}-spk-btn`);
-                    if (mic) { mic.style.opacity = this.micOn ? '1' : '0.5'; mic.textContent = this.micOn ? '🎤' : '🔇'; }
-                    if (spk) { spk.style.opacity = this.spkOn ? '1' : '0.5'; spk.textContent = this.spkOn ? '🔊' : '🔇'; }
+                // In-game buttons dynamically selected by suffix
+                const gameMicBtns = document.querySelectorAll('[id$="-mic-btn"]');
+                const gameSpkBtns = document.querySelectorAll('[id$="-spk-btn"]');
+                
+                gameMicBtns.forEach(mic => {
+                    mic.style.opacity = this.micOn ? '1' : '0.5'; 
+                    mic.textContent = this.micOn ? '🎤' : '🔇';
+                });
+                
+                gameSpkBtns.forEach(spk => {
+                    spk.style.opacity = this.spkOn ? '1' : '0.5'; 
+                    spk.textContent = this.spkOn ? '🔊' : '🔇';
                 });
             }
 
@@ -3642,6 +3648,11 @@
             
             // Show overlay
             document.getElementById('gameOverlay').style.display = 'flex';
+            
+            // Apply current voice chat mute/unmute state to the newly loaded game UI
+            if (window.voiceChat) {
+                window.voiceChat._updateUI();
+            }
             
             // Show global game chat controls
             showGlobalGameChat();
