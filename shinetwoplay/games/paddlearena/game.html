@@ -590,9 +590,12 @@
                 if(d.r==='P1') this.p1X=d.x; else this.p2X=d.x;
             } 
             else if (d.type === 's' && this.myRole === 'P2') {
-                /* Sync state from P1 */
-                if(this.ball1) Object.assign(this.ball1, d.b1); else this.ball1 = d.b1;
-                if(this.ball2) Object.assign(this.ball2, d.b2); else this.ball2 = d.b2;
+                /* Sync state from P1 using LERP targets instead of snapping */
+                if(!this.ball1) this.ball1 = { ...d.b1, targetX: d.b1.x, targetY: d.b1.y };
+                else { this.ball1.targetX = d.b1.x; this.ball1.targetY = d.b1.y; this.ball1.active = d.b1.active; }
+                
+                if(!this.ball2) this.ball2 = { ...d.b2, targetX: d.b2.x, targetY: d.b2.y };
+                else { this.ball2.targetX = d.b2.x; this.ball2.targetY = d.b2.y; this.ball2.active = d.b2.active; }
                 
                 if (d.sc) { this.score = d.sc; this._showScore(); }
                 if (d.obs) this._syncObs(d.obs);
@@ -603,7 +606,8 @@
                 this.ball2El.style.display = b2a ? 'block': 'none';
             } 
             else if (d.type === 'serve' && this.myRole === 'P2') {
-                this.ball1 = d.b1; this.ball2 = d.b2;
+                this.ball1 = { ...d.b1, targetX: d.b1.x, targetY: d.b1.y };
+                this.ball2 = { ...d.b2, targetX: d.b2.x, targetY: d.b2.y };
                 this.score = d.sc; this._showScore();
                 this._loadObs(d.obs);
                 this.ball1El.style.display = 'block';
@@ -698,7 +702,19 @@
                 this._rBall(this.ball1, this.ball1El, true, ts);
                 this._rBall(this.ball2, this.ball2El, false, ts);
             } else {
-                /* P2 render */
+                /* P2 render with LERP interpolation for smooth movement */
+                const lerpSpd = 0.3 * dt;
+                
+                if (this.ball1 && this.ball1.active) {
+                    if (this.ball1.targetX !== undefined) this.ball1.x += (this.ball1.targetX - this.ball1.x) * lerpSpd;
+                    if (this.ball1.targetY !== undefined) this.ball1.y += (this.ball1.targetY - this.ball1.y) * lerpSpd;
+                }
+                
+                if (this.ball2 && this.ball2.active) {
+                    if (this.ball2.targetX !== undefined) this.ball2.x += (this.ball2.targetX - this.ball2.x) * lerpSpd;
+                    if (this.ball2.targetY !== undefined) this.ball2.y += (this.ball2.targetY - this.ball2.y) * lerpSpd;
+                }
+
                 this._rBall(this.ball1, this.ball1El, true, ts);
                 this._rBall(this.ball2, this.ball2El, false, ts);
             }

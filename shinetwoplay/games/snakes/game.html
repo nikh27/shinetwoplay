@@ -528,10 +528,18 @@
                 this.remoteJA = d.a;
             }
             else if (d.type === 'sync' && this.myRole === 'P2') {
-                // Reconstruct full snake from sparse data
+                // Reconstruct full snake from sparse data into TARGET arrays for lerping
                 this.a1 = d.a1; this.a2 = d.a2;
-                this._interpolateSnake(this.s1, d.s1, d.l1);
-                this._interpolateSnake(this.s2, d.s2, d.l2);
+                if (!this.targetS1) this.targetS1 = [];
+                if (!this.targetS2) this.targetS2 = [];
+                
+                this._interpolateSnake(this.targetS1, d.s1, d.l1);
+                this._interpolateSnake(this.targetS2, d.s2, d.l2);
+                
+                // If local arrays empty or dramatically different length, snap instantly
+                if(this.s1.length === 0 || Math.abs(this.s1.length - d.l1) > 2) this.s1 = JSON.parse(JSON.stringify(this.targetS1));
+                if(this.s2.length === 0 || Math.abs(this.s2.length - d.l2) > 2) this.s2 = JSON.parse(JSON.stringify(this.targetS2));
+                
                 if (d.sc) { this.score = d.sc; this._showScore(); }
             }
             else if (d.type === 'round_result') {
@@ -571,12 +579,36 @@
         /* ===== GAME PHYSICS (P1 only) ===== */
         _loop(ts) {
             if (!this.playing) return;
+            if (!this._lastFrameTime) this._lastFrameTime = ts;
+            const dt = Math.min(2.5, (ts - this._lastFrameTime) / 16.667);
+            this._lastFrameTime = ts;
 
             if (this.myRole === 'P1') {
                 this._update();
             } else {
-                // P2 just applies local joystick for responsiveness (will be corrected by sync)
+                // P2 lerps towards target arrays for smooth movement
                 this._readKeyboard();
+                const AW = this.AW, AH = this.AH;
+                const lerpSpd = 0.35 * dt;
+
+                const lerpSnake = (cur, tgt) => {
+                    if (!tgt || tgt.length === 0) return;
+                    for (let i = 0; i < cur.length && i < tgt.length; i++) {
+                        let cx = cur[i].x, cy = cur[i].y;
+                        let tx = tgt[i].x, ty = tgt[i].y;
+
+                        // Wrap-around interpolation protection
+                        let dx = tx - cx, dy = ty - cy;
+                        if (dx > AW / 2) dx -= AW; if (dx < -AW / 2) dx += AW;
+                        if (dy > AH / 2) dy -= AH; if (dy < -AH / 2) dy += AH;
+
+                        cur[i].x = this._wrap(cx + dx * lerpSpd, AW);
+                        cur[i].y = this._wrap(cy + dy * lerpSpd, AH);
+                    }
+                };
+
+                lerpSnake(this.s1, this.targetS1);
+                lerpSnake(this.s2, this.targetS2);
             }
 
             this._drawFrame();

@@ -495,14 +495,14 @@
                 }
             }
             else if (d.type === 'sync' && this.myRole === 'P2') {
-                /* Smooth sync ball state from P1 */
+                /* Smooth sync ball state from P1 using target coordinates */
                 if (d.ball) {
                     const p = this.game.pool;
                     const targetX = d.ball.x + p.x;
                     const targetY = d.ball.y + p.y;
-                    /* Interpolate position for smooth visuals */
-                    this.game.ball.x += (targetX - this.game.ball.x) * 0.5;
-                    this.game.ball.y += (targetY - this.game.ball.y) * 0.5;
+                    
+                    this.game.ball.targetX = targetX;
+                    this.game.ball.targetY = targetY;
                     this.game.ball.vx = d.ball.vx;
                     this.game.ball.vy = d.ball.vy;
                     this.game.ball.rot = d.ball.rot;
@@ -1262,11 +1262,21 @@
                 if (this.myRole === 'P1') {
                     this._updateBall();
                 } else {
-                    /* P2: apply velocity for smooth interpolation between syncs */
+                    /* P2: apply lerp interpolation to smooth out the network sync packets */
                     const b = this.game.ball;
+                    
+                    /* Extrapolate based on velocity to keep movements fluid */
                     b.x += b.vx * 0.3;
                     b.y += b.vy * 0.3;
                     b.rot += Math.sqrt(b.vx*b.vx + b.vy*b.vy) * 0.02;
+                    
+                    /* Gently pull the ball towards the authoritative server target position */
+                    if (b.targetX !== undefined) {
+                        b.x += (b.targetX - b.x) * 0.25;
+                    }
+                    if (b.targetY !== undefined) {
+                        b.y += (b.targetY - b.y) * 0.25;
+                    }
                 }
                 this._updateRipples();
             }

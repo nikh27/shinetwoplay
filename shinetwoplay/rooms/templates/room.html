@@ -3622,6 +3622,12 @@
         function handleGameLoadedEvent(payload) {
             console.log('🎮 Game loaded:', payload.game_id);
             
+            // Cleanup existing game if any
+            if (typeof currentGame !== 'undefined' && currentGame) {
+                if (currentGame.destroy) currentGame.destroy();
+                currentGame = null;
+            }
+            
             // Force blur on chat input to remove keyboard-open class and close virtual keyboard
             const chatInput = document.getElementById('chatInput');
             if (chatInput) chatInput.blur();
@@ -3629,8 +3635,9 @@
             // Add game-active class to body
             document.body.classList.add('game-active');
             
-            // Inject game HTML into overlay
+            // Inject game HTML into overlay, wiping old contents
             const container = document.getElementById('gameContainer');
+            container.innerHTML = ''; 
             container.innerHTML = payload.game_html;
             
             // Show overlay
@@ -3639,11 +3646,13 @@
             // Show global game chat controls
             showGlobalGameChat();
             
-            // Execute any scripts in the injected HTML
-            const scripts = container.querySelectorAll('script');
-            scripts.forEach(script => {
+            // Execute scripts in injected HTML
+            const innerScripts = container.querySelectorAll('script');
+            innerScripts.forEach(script => {
                 const newScript = document.createElement('script');
                 newScript.textContent = script.textContent;
+                // Add class to identify dynamically injected game scripts to prevent duplicate accumulation
+                newScript.className = 'dynamic-game-script'; 
                 document.body.appendChild(newScript);
             });
             
