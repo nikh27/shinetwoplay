@@ -1,7 +1,15 @@
 from django.urls import path
+from django.views.generic import TemplateView
 from . import views
 
 urlpatterns = [
+    # SEO & Discoverability
+    path("robots.txt", TemplateView.as_view(template_name="seo/robots.txt", content_type="text/plain")),
+    path("sitemap.xml", TemplateView.as_view(template_name="seo/sitemap.xml", content_type="application/xml")),
+    path("shine2play/", TemplateView.as_view(template_name="seo/shine2play.html"), name="seo_shine2play"),
+    path("stp/", TemplateView.as_view(template_name="seo/stp.html"), name="seo_stp"),
+    path("s2p/", TemplateView.as_view(template_name="seo/s2p.html"), name="seo_s2p"),
+
     # Template views
     path("", views.home, name="home"),
     path("rooms/<str:room_code>/", views.room_page, name="room_page"),
