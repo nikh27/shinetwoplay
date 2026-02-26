@@ -21,8 +21,10 @@ def clean_redis():
     except Exception as e:
         print(f"[-] Failed to clear Redis: {e}")
 
-def clean_directory(directory_path, keep_dir=True):
-    """Deletes all files and subdirectories inside the given path."""
+def clean_directory(directory_path, empty_files_only=False):
+    """Deletes all files and subdirectories inside the given path.
+    If empty_files_only is True, files are truncated (emptied) instead of deleted,
+    which prevents file-in-use errors (WinError 32) when the server is running."""
     if not directory_path.exists():
         print(f"[*] Directory {directory_path} does not exist. Skipping.")
         return
@@ -31,10 +33,13 @@ def clean_directory(directory_path, keep_dir=True):
     try:
         for item in directory_path.iterdir():
             if item.is_file() or item.is_symlink():
-                # Don't delete .gitkeep if it exists
+                # Don't delete or empty .gitkeep
                 if item.name != '.gitkeep':
-                    item.unlink()
-            elif item.is_dir():
+                    if empty_files_only:
+                        open(item, 'w').close()
+                    else:
+                        item.unlink()
+            elif item.is_dir() and not empty_files_only:
                 shutil.rmtree(item)
         print(f"[+] Directory {directory_path} cleared successfully.")
     except Exception as e:
@@ -53,8 +58,8 @@ def main():
     clean_directory(MEDIA_DIR)
     print("")
 
-    # 3. Clear Logs folder
-    clean_directory(LOGS_DIR)
+    # 3. Clear Logs folder (Empty files instead of deleting to avoid WinError 32)
+    clean_directory(LOGS_DIR, empty_files_only=True)
     print("")
 
     print("========================================")
