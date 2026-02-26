@@ -37,6 +37,7 @@ def run_worker():
                 continue
             
             queue_name, raw_data = result
+            print(f"[*] Worker popped item from {queue_name}: {raw_data}")
             data = json.loads(raw_data)
             
             ip = data.get('ip', 'Unknown')
@@ -46,6 +47,7 @@ def run_worker():
             else:
                 # API Lookup
                 try:
+                    print(f"[*] Looking up IP: {ip}")
                     url = f'http://ip-api.com/json/{ip}?fields=status,country,regionName,city,isp'
                     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                     with urllib.request.urlopen(req, timeout=3) as response:
@@ -56,7 +58,8 @@ def run_worker():
                             isp = api_data.get('isp', 'N/A')
                         else:
                             country, city, isp = 'Unknown', 'Unknown', 'Unknown'
-                except Exception:
+                except Exception as api_err:
+                    print(f"[-] API Lookup failed: {api_err}")
                     country, city, isp = 'Error', 'Error', 'Error'
                     
             # Parse User Agent briefly
@@ -71,10 +74,10 @@ def run_worker():
                     f"ISP: {isp} | Device: {device} | Browser: {browser} | "
                     f"Ref: {data.get('referer', 'None')}"
                 )
+                print(f"[*] Logging to HOME: {log_msg}")
                 home_logger.info(log_msg)
                 
             elif queue_name == 'shinetwoplay:analytics_room':
-                # Room queue includes Name and Gender
                 name = data.get('name', 'Unknown')
                 gender = data.get('gender', 'Unknown')
                 room_path = data.get('path', 'Unknown')
@@ -84,10 +87,12 @@ def run_worker():
                     f"ISP: {isp} | Device: {device} | Browser: {browser} | "
                     f"Ref: {data.get('referer', 'None')}"
                 )
+                print(f"[*] Logging to ROOM: {log_msg}")
                 room_logger.info(log_msg)
             
-            # Rate limit slightly to avoid API bans (ip-api allows 45 req/min)
+            # Rate limit slightly to avoid API bans
             time.sleep(1.5)
             
         except Exception as e:
-            time.sleep(5)  # Backoff on error
+            print(f"[-] CRITICAL WORKER ERROR: {e}")
+            time.sleep(5)

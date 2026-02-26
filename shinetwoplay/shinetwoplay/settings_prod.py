@@ -32,6 +32,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'rooms.analytics.AnalyticsMiddleware',
 ]
 
 # ──── No database needed ────
@@ -92,6 +93,22 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+        'home_analytics_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': '/opt/shinetwoplay/shinetwoplay/logs/home_analytics.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB limit
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'room_analytics_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': '/opt/shinetwoplay/shinetwoplay/logs/room_analytics.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB limit
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
         'django': {
@@ -102,6 +119,16 @@ LOGGING = {
         'django.channels': {
             'handlers': ['file', 'error_file'],
             'level': 'DEBUG',
+            'propagate': False,
+        },
+        'shinetwoplay.analytics.home': {
+            'handlers': ['home_analytics_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'shinetwoplay.analytics.room': {
+            'handlers': ['room_analytics_file'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
