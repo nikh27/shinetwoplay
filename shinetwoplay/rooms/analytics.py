@@ -22,8 +22,12 @@ class AnalyticsMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
 
-        # Skip logging for static, media, internal apis, or websockets if desired
-        if request.path.startswith('/static/') or request.path.startswith('/media/') or request.path.startswith('/api/'):
+        # We perfectly ONLY track / or /rooms/...
+        # All other paths (SEO routes, APIs, media, static) are ignored entirely.
+        is_home = (request.path == '/')
+        is_room = request.path.startswith('/rooms/')
+        
+        if not (is_home or is_room):
             return response
 
         try:
@@ -33,6 +37,16 @@ class AnalyticsMiddleware:
                 ip = x_forwarded_for.split(',')[0].strip()
             else:
                 ip = request.META.get('REMOTE_ADDR')
+                
+            # Deduplication Check (10 minutes = 600 seconds)
+            # This ensures multiple refreshes don't spam the logs.
+            cache_key = f"seen:{ip}:{request.path}"
+            if redis_client.get(cache_key):
+                # We've seen this IP visit this path recently. Ignore.
+                return response
+                
+            # Mark them as seen for the next 10 minutes
+            redis_client.setex(cache_key, 600, "1")
 
             # Extract User Agent and Referer
             user_agent = request.META.get('HTTP_USER_AGENT', '')
@@ -49,8 +63,14 @@ class AnalyticsMiddleware:
                 'status_code': response.status_code
             }
 
-            # Push to Redis queue instantly
-            redis_client.lpush('shinetwoplay:analytics_queue', json.dumps(data))
+            if is_home:
+                redis_client.lpush('shinetwoplay:analytics_home', json.dumps(data))
+            elif is_room:
+                # Get specific data provided in Room URL (like ?name=Bob&gender=Male)
+                data['name'] = request.GET.get('name', 'Unknown')
+                data['gender'] = request.GET.get('gender', 'Unknown')
+                redis_client.lpush('shinetwoplay:analytics_room', json.dumps(data))
+                
         except Exception:
             # Never let analytics crash the main app
             pass

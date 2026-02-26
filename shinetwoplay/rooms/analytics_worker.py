@@ -6,7 +6,9 @@ import urllib.request
 import redis
 from django.conf import settings
 
-logger = logging.getLogger('shinetwoplay.analytics')
+# Initialize Loggers
+home_logger = logging.getLogger('shinetwoplay.analytics.home')
+room_logger = logging.getLogger('shinetwoplay.analytics.room')
 
 def start_worker():
     """Starts the background analytics worker as a daemon thread."""
@@ -28,8 +30,8 @@ def run_worker():
 
     while True:
         try:
-            # BLPOP blocks until an item is available or timeout (0 = wait forever)
-            result = redis_client.blpop('shinetwoplay:analytics_queue', timeout=0)
+            # BLPOP blocks until an item is available in EITHER queue
+            result = redis_client.blpop(['shinetwoplay:analytics_home', 'shinetwoplay:analytics_room'], timeout=0)
             if not result:
                 continue
             
@@ -61,17 +63,29 @@ def run_worker():
             device = "Mobile" if "Mobi" in ua else "Desktop"
             browser = ua.split()[-1] if ua else "Unknown"
             
-            # Format and Log
-            log_msg = (
-                f"VISITOR | IP: {ip} | Loc: {city}, {country} | "
-                f"ISP: {isp} | Device: {device} | Browser: {browser} | "
-                f"Path: {data.get('method')} {data.get('path')} | "
-                f"Status: {data.get('status_code')} | "
-                f"Ref: {data.get('referer', 'None')}"
-            )
-            logger.info(log_msg)
+            # Format and Log based on Queue
+            if queue_name == 'shinetwoplay:analytics_home':
+                log_msg = (
+                    f"HOME VISITOR | IP: {ip} | Loc: {city}, {country} | "
+                    f"ISP: {isp} | Device: {device} | Browser: {browser} | "
+                    f"Ref: {data.get('referer', 'None')}"
+                )
+                home_logger.info(log_msg)
+                
+            elif queue_name == 'shinetwoplay:analytics_room':
+                # Room queue includes Name and Gender
+                name = data.get('name', 'Unknown')
+                gender = data.get('gender', 'Unknown')
+                room_path = data.get('path', 'Unknown')
+                log_msg = (
+                    f"ROOM VISITOR | Room: {room_path} | Name: {name} | Gender: {gender} | "
+                    f"IP: {ip} | Loc: {city}, {country} | "
+                    f"ISP: {isp} | Device: {device} | Browser: {browser} | "
+                    f"Ref: {data.get('referer', 'None')}"
+                )
+                room_logger.info(log_msg)
             
-            # rate limit slightly to avoid API bans (ip-api allows 45 req/min)
+            # Rate limit slightly to avoid API bans (ip-api allows 45 req/min)
             time.sleep(1.5)
             
         except Exception as e:
