@@ -4,7 +4,7 @@
 
 1. CONNECT TO SERVER (SSH)
 ----------------------------------------------------
-ssh -i shinetwoplay.pem ubuntu@13.235.50.170
+ssh -i shinetwoplay.pem ubuntu@13.235.50.170 (its dummy)
 
 2. UPDATE CODE & RESTART SERVER (DEPLOY)
 ----------------------------------------------------
