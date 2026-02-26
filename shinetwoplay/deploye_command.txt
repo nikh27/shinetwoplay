@@ -1,0 +1,63 @@
+====================================================
+           SHINETWOPLAY - CHEAT SHEET
+====================================================
+
+1. CONNECT TO SERVER (SSH)
+----------------------------------------------------
+ssh -i shinetwoplay.pem ubuntu@13.235.50.170
+
+2. UPDATE CODE & RESTART SERVER (DEPLOY)
+----------------------------------------------------
+cd /opt/shinetwoplay && git pull && cd shinetwoplay && sudo systemctl restart shinetwoplay
+
+3. VIEW VISITOR ANALYTICS LOGS (LIVE)
+----------------------------------------------------
+# Watch people visiting the Home Page live:
+tail -f /opt/shinetwoplay/shinetwoplay/logs/home_analytics.log
+
+# Watch people joining Rooms live (with Name & Gender):
+tail -f /opt/shinetwoplay/shinetwoplay/logs/room_analytics.log
+
+4. VIEW SERVER ERROR & ACCESS LOGS
+----------------------------------------------------
+# NGINX (The outer web-server)
+# See every single request hitting your site:
+sudo tail -f /var/log/shinetwoplay/nginx-access.log
+
+# See Nginx crash/SSL errors:
+sudo tail -f /var/log/shinetwoplay/nginx-error.log
+
+# DAPHNE (Your Python/Django Application)
+# See print() statements and background worker logs:
+sudo tail -f /var/log/shinetwoplay/daphne.log
+
+# See Python crashes and traceback errors:
+sudo tail -f /var/log/shinetwoplay/daphne-error.log
+
+# See WebSocket routing access logs:
+sudo tail -f /var/log/shinetwoplay/daphne-access.log
+
+5. CHECK SERVICE STATUS (Is it crashing?)
+----------------------------------------------------
+# Check if Daphne is healthy and running:
+sudo systemctl status shinetwoplay
+
+# View the last 50 Daphne systemd boot logs:
+sudo journalctl -u shinetwoplay.service -n 50 --no-pager
+
+# Check if Nginx is healthy:
+sudo systemctl status nginx
+
+# Check if Redis is healthy (Queue memory):
+sudo systemctl status redis-server
+
+6. MAINTENANCE COMMANDS (Run inside /opt/shinetwoplay/shinetwoplay)
+----------------------------------------------------
+# Activate Virtual Environment (Required for Python commands):
+source venv/bin/activate
+
+# Update/Collect new icons, images, or CSS files to Nginx:
+python manage.py collectstatic
+
+# Wipe Analytics, Redis, and Media entirely clean:
+python cleanup.py
