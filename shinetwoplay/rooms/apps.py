@@ -12,9 +12,12 @@ class RoomsConfig(AppConfig):
         
         # Safely determine if this process is a web server process
         cmd = sys.argv[0] if sys.argv else ""
-        is_server = 'daphne' in cmd or 'runserver' in sys.argv or os.environ.get('RUN_MAIN') == 'true'
         
-        if is_server:
+        # In production systemd, cmd might be /opt/.../venv/bin/daphne
+        is_daphne = 'daphne' in cmd or 'daphne' in sys.argv
+        is_runserver = 'runserver' in sys.argv or os.environ.get('RUN_MAIN') == 'true'
+        
+        if is_daphne or is_runserver:
             try:
                 from .analytics_worker import start_worker
                 start_worker()
