@@ -17,8 +17,10 @@
 
     <!-- Board Area -->
     <div class="ludo-board-wrapper">
-        <div id="ludo-board" class="board-grid ludo-board-grid rounded-xl overflow-hidden relative"></div>
-        <div id="ludo-pieces" class="ludo-pieces-layer"></div>
+        <div id="ludo-board-wrapper-inner" class="ludo-board-inner">
+            <div id="ludo-board" class="board-grid ludo-board-grid rounded-xl overflow-hidden relative"></div>
+            <div id="ludo-pieces" class="ludo-pieces-layer"></div>
+        </div>
         <div id="ludo-event-toast" class="ludo-event-toast"></div>
     </div>
 
@@ -196,6 +198,25 @@
     margin: 0 auto;
 }
 
+.ludo-board-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.34,1.56,0.64,1);
+    transform-origin: center center;
+}
+
+/* Board rotated 180° for Player 2 (blue) so their home is always at the bottom */
+.ludo-board-inner.ludo-board-rotated {
+    transform: rotate(180deg);
+}
+
+/* Counter-rotate pieces so they remain upright on the rotated board */
+.ludo-board-inner.ludo-board-rotated .ludo-piece {
+    transform-origin: center center;
+}
+/* We counter-rotate via JS in _renderPieces when board is rotated */
+
 .ludo-board-grid {
     display: grid;
     grid-template-columns: repeat(15, 1fr);
@@ -219,10 +240,10 @@
 /* ── Pieces Layer ── */
 .ludo-pieces-layer {
     position: absolute;
-    top: 5px;
-    left: 5px;
-    right: 5px;
-    bottom: 5px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     pointer-events: none;
     z-index: 10;
 }
@@ -537,6 +558,19 @@ class LudoGame extends BaseGame {
         this._updateAvatars();
         this._updateRound();
         this._updateUI();
+        this._applyBoardRotation();
+    }
+
+    // ── Board Rotation for Player 2 ──
+    _applyBoardRotation() {
+        const myColor = this._myColor();
+        const wrapper = document.getElementById('ludo-board-wrapper-inner');
+        if (!wrapper) return;
+        if (myColor === 'blue') {
+            wrapper.classList.add('ludo-board-rotated');
+        } else {
+            wrapper.classList.remove('ludo-board-rotated');
+        }
     }
 
     update(state) {
@@ -679,7 +713,17 @@ class LudoGame extends BaseGame {
 
             el.style.left = `calc(${bL}% + 2px)`;
             el.style.top  = `calc(${bT}% + 2px)`;
-            el.style.transform = `translate(${tx}%,${ty}%)`;
+
+            // Counter-rotate pieces for Player 2 so they stay upright
+            const isRotated = document.getElementById('ludo-board-wrapper-inner')?.classList.contains('ludo-board-rotated');
+            if (tx !== 0 || ty !== 0) {
+                el.style.transform = isRotated
+                    ? `translate(${tx}%,${ty}%) rotate(180deg)`
+                    : `translate(${tx}%,${ty}%)`;
+            } else {
+                el.style.transform = isRotated ? 'rotate(180deg)' : '';
+            }
+
 
             // Highlight selectable pieces
             const canMove = phase === 'MOVE' && state.turn === p.player && isMyTurn && this._isValidMove(p, state.dice_value);
@@ -980,15 +1024,20 @@ class LudoGame extends BaseGame {
 window.GameClasses = window.GameClasses || {};
 window.GameClasses.ludo = LudoGame;
 
-// Wire up roll button after DOM ready
+// Wire up roll button after DOM ready.
+// NOTE: room.html stores currentGame as a local var (not window.currentGame),
+// so we use typeof guard and direct reference at click-time via a named function.
+function _ludoRollBtnClick() {
+    // Access room.html's local `currentGame` variable at click-time
+    if (typeof currentGame !== 'undefined' && currentGame && currentGame._handleRollClick) {
+        currentGame._handleRollClick();
+    }
+}
+
 (function wireLudoBtn() {
     const btn = document.getElementById('ludo-roll-btn');
     if (btn) {
-        btn.onclick = () => {
-            if (window.currentGame && window.currentGame instanceof LudoGame) {
-                window.currentGame._handleRollClick();
-            }
-        };
+        btn.onclick = _ludoRollBtnClick;
     }
 })();
 
