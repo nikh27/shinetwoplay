@@ -1,0 +1,1003 @@
+<!-- Ludo Game UI - Multiplayer WebSocket Edition -->
+
+<div class="ludo-container">
+
+    <!-- Top Bar: Back + Mic + Speaker + Round -->
+    <div class="ludo-top-bar">
+        <div style="display:flex; gap:6px; align-items:center;">
+            <button class="ludo-icon-btn" onclick="exitGame()" title="Exit">✕</button>
+            <button class="ludo-icon-btn ludo-voice-btn" id="ludo-mic-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+            <button class="ludo-icon-btn ludo-voice-btn" id="ludo-spk-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">🔊</button>
+        </div>
+        <div class="ludo-round-badge" id="ludo-round-info">Round 1/1</div>
+    </div>
+
+    <!-- Instruction Row -->
+    <div class="ludo-instruction" id="ludo-instruction">Roll the dice to start!</div>
+
+    <!-- Board Area -->
+    <div class="ludo-board-wrapper">
+        <div id="ludo-board" class="board-grid ludo-board-grid rounded-xl overflow-hidden relative"></div>
+        <div id="ludo-pieces" class="ludo-pieces-layer"></div>
+        <div id="ludo-event-toast" class="ludo-event-toast"></div>
+    </div>
+
+    <!-- Bottom Control Bar: Red Panel | Dice | Blue Panel -->
+    <div class="ludo-bottom-bar">
+
+        <!-- Red Player Panel -->
+        <div id="ludo-panel-red" class="ludo-player-panel ludo-panel-red">
+            <div class="ludo-panel-avatar" id="ludo-avatar-red">
+                <img id="ludo-avatar-img-red" src="/static/games/icons/avatar_male.png" alt="red player">
+            </div>
+            <div class="ludo-panel-name" id="ludo-name-red">RED</div>
+        </div>
+
+        <!-- Center: 3D Dice + Roll Button -->
+        <div id="ludo-center-dice" class="ludo-center-dice">
+            <div class="dice-scene ludo-dice-scene" id="ludo-dice-scene-wrapper">
+                <div class="ludo-dice-glow-ring" id="ludo-dice-glow-ring"></div>
+                <div class="dice-cube dice-show-1" id="ludo-dice-cube">
+                    <!-- Face 1 -->
+                    <div class="dice-face dice-face--light dice-face-1">
+                        <div style="grid-area:2/2"><div class="dice-pip" data-pip></div></div>
+                    </div>
+                    <!-- Face 2 -->
+                    <div class="dice-face dice-face--light dice-face-2">
+                        <div style="grid-area:1/3"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:3/1"><div class="dice-pip" data-pip></div></div>
+                    </div>
+                    <!-- Face 3 -->
+                    <div class="dice-face dice-face--light dice-face-3">
+                        <div style="grid-area:1/3"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:2/2"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:3/1"><div class="dice-pip" data-pip></div></div>
+                    </div>
+                    <!-- Face 4 -->
+                    <div class="dice-face dice-face--light dice-face-4">
+                        <div style="grid-area:1/1"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:1/3"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:3/1"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:3/3"><div class="dice-pip" data-pip></div></div>
+                    </div>
+                    <!-- Face 5 -->
+                    <div class="dice-face dice-face--light dice-face-5">
+                        <div style="grid-area:1/1"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:1/3"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:2/2"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:3/1"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:3/3"><div class="dice-pip" data-pip></div></div>
+                    </div>
+                    <!-- Face 6 -->
+                    <div class="dice-face dice-face--light dice-face-6">
+                        <div style="grid-area:1/1"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:2/1"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:3/1"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:1/3"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:2/3"><div class="dice-pip" data-pip></div></div>
+                        <div style="grid-area:3/3"><div class="dice-pip" data-pip></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="dice-shadow ludo-dice-shadow" id="ludo-dice-shadow"></div>
+            <button id="ludo-roll-btn" class="ludo-roll-btn" disabled>ROLL</button>
+        </div>
+
+        <!-- Blue Player Panel -->
+        <div id="ludo-panel-blue" class="ludo-player-panel ludo-panel-blue">
+            <div class="ludo-panel-avatar" id="ludo-avatar-blue">
+                <img id="ludo-avatar-img-blue" src="/static/games/icons/avatar_male.png" alt="blue player">
+            </div>
+            <div class="ludo-panel-name" id="ludo-name-blue">BLUE</div>
+        </div>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div class="ludo-overlay" id="ludo-pause-overlay" style="display:none;">
+        <div class="ludo-overlay-content">
+            <div style="font-size:40px;">⏸️</div>
+            <h2>Game Paused</h2>
+            <p><span id="ludo-disconnected-player">Opponent</span> disconnected</p>
+            <p>Waiting... <span id="ludo-countdown">30</span>s</p>
+        </div>
+    </div>
+
+    <!-- Result Overlay -->
+    <div class="ludo-overlay" id="ludo-result-overlay" style="display:none;">
+        <div class="ludo-overlay-content">
+            <div id="ludo-result-icon" style="font-size:48px;">🏆</div>
+            <h2 id="ludo-result-text">You Win!</h2>
+            <p id="ludo-result-subtext">Next round starting...</p>
+        </div>
+    </div>
+
+</div>
+
+<style>
+/* ===== Ludo Game - All scoped to .ludo- ===== */
+/* Re-use the 3D dice CSS already defined globally in the room (from ludo.html injected styles) */
+/* We define our own board + layout CSS here */
+
+.ludo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 6px 8px 4px;
+    position: relative;
+    overflow: hidden;
+    background: #111827;
+    font-family: 'Inter', sans-serif;
+    box-sizing: border-box;
+}
+
+/* ── Top Bar ── */
+.ludo-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+}
+
+.ludo-icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.12);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    transition: background 0.2s;
+}
+.ludo-icon-btn:hover { background: rgba(255,255,255,0.25); }
+
+.ludo-round-badge {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+}
+
+/* ── Instruction ── */
+.ludo-instruction {
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fef08a;
+    margin-bottom: 4px;
+    min-height: 18px;
+    flex-shrink: 0;
+}
+
+/* ── Board ── */
+.ludo-board-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    aspect-ratio: 1;
+    flex-shrink: 0;
+    background: #1f2937;
+    border-radius: 14px;
+    padding: 5px;
+    border: 2px solid #374151;
+    box-shadow: 0 0 30px rgba(0,0,0,0.6);
+    margin: 0 auto;
+}
+
+.ludo-board-grid {
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(15, 1fr);
+    width: 100%;
+    aspect-ratio: 1;
+    background: #f8fafc;
+    box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.ludo-cell {
+    border: 0.5px solid rgba(148,163,184,0.35);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Pieces Layer ── */
+.ludo-pieces-layer {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* ── Piece styles ── */
+.ludo-piece {
+    position: absolute;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    border: 3px solid;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+    transition: left 0.22s linear, top 0.22s linear, transform 0.2s ease-out;
+    z-index: 20;
+    cursor: default;
+}
+.ludo-piece.highlight {
+    animation: ludo-pulse 1.4s infinite;
+    cursor: pointer;
+    z-index: 30;
+}
+.ludo-piece.highlight:hover { transform: scale(1.22) !important; }
+
+@keyframes ludo-pulse {
+    0%, 100% { filter: drop-shadow(0 0 6px #fbbf24) brightness(1); }
+    50%       { filter: drop-shadow(0 0 16px #f59e0b) brightness(1.3); }
+}
+
+/* ── Event Toast ── */
+.ludo-event-toast {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    font-size: 28px;
+    font-weight: 900;
+    color: white;
+    padding: 8px 20px;
+    border-radius: 16px;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s;
+    text-shadow: 0 3px 8px rgba(0,0,0,0.8);
+}
+
+/* ── Bottom Bar ── */
+.ludo-bottom-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 340px;
+    margin: 6px auto 0;
+    padding: 0 4px;
+    flex-shrink: 0;
+}
+
+/* ── Player Panel ── */
+.ludo-player-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: #1f2937;
+    border: 2px solid rgba(107,114,128,0.4);
+    border-radius: 14px;
+    padding: 6px 8px;
+    min-width: 68px;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    opacity: 0.6;
+}
+.ludo-player-panel.active-turn {
+    transform: translateY(-8px) scale(1.06);
+    opacity: 1;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    animation: ludo-border-pulse 1.5s infinite;
+}
+@keyframes ludo-border-pulse {
+    0%, 100% { border-color: rgba(255,255,255,0.2); }
+    50%       { border-color: rgba(255,255,255,0.75); }
+}
+.ludo-panel-red.active-turn { border-color: #f87171; box-shadow: 0 8px 24px rgba(248,113,113,0.5); }
+.ludo-panel-blue.active-turn { border-color: #60a5fa; box-shadow: 0 8px 24px rgba(96,165,250,0.5); }
+
+.ludo-panel-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.4);
+}
+.ludo-panel-red .ludo-panel-avatar { border-color: #f87171; }
+.ludo-panel-blue .ludo-panel-avatar { border-color: #60a5fa; }
+.ludo-panel-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.ludo-panel-name {
+    font-size: 10px;
+    font-weight: 800;
+    color: #e5e7eb;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    max-width: 64px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+}
+.ludo-panel-red .ludo-panel-name { color: #fca5a5; }
+.ludo-panel-blue .ludo-panel-name { color: #93c5fd; }
+
+/* ── Center Dice ── */
+.ludo-center-dice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+
+.ludo-dice-scene {
+    width: 52px;
+    height: 52px;
+    perspective: 300px;
+    position: relative;
+}
+
+
+
+.ludo-dice-glow-ring {
+    position: absolute;
+    inset: -8px;
+    border-radius: 24%;
+    opacity: 0;
+    transition: opacity 0.4s, box-shadow 0.4s;
+    pointer-events: none;
+    z-index: -1;
+}
+.ludo-dice-glow-ring.active { opacity: 1; }
+
+.ludo-dice-shadow {
+    width: 50%;
+    height: 8px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.4) 0%, transparent 70%);
+    border-radius: 50%;
+    margin: 2px auto 0;
+    transition: all 0.3s;
+}
+.ludo-dice-shadow.rolling { width: 32%; opacity: 0.3; transform: translateY(-3px); }
+
+.ludo-roll-btn {
+    padding: 6px 20px;
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    border: 2px solid #374151;
+    color: white;
+    background: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.ludo-roll-btn:not(:disabled):hover { transform: scale(1.06); }
+.ludo-roll-btn:not(:disabled):active { transform: scale(0.94); }
+.ludo-roll-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ludo-roll-btn.ludo-roll-red  { background: #f87171; border-color: #991b1b; box-shadow: 0 4px 20px rgba(248,113,113,0.5); }
+.ludo-roll-btn.ludo-roll-blue { background: #60a5fa; border-color: #1d4ed8; box-shadow: 0 4px 20px rgba(96,165,250,0.5); }
+
+/* ── 3D Dice (self-contained, not in room.html) ── */
+.dice-cube {
+    width: 100%; height: 100%;
+    position: relative; transform-style: preserve-3d;
+    transition: transform 0.1s ease-out;
+}
+.dice-cube.rolling { animation: ludo-dice-tumble 0.65s cubic-bezier(0.2,0.8,0.3,1); }
+@keyframes ludo-dice-tumble {
+    0%   { transform: rotateX(20deg) rotateY(0deg) scale(0.9); }
+    25%  { transform: rotateX(350deg) rotateY(200deg) rotateZ(-40deg) scale(1.1); }
+    55%  { transform: rotateX(680deg) rotateY(280deg) rotateZ(-20deg) scale(1.04); }
+    100% { transform: rotateX(1000deg) rotateY(0deg) rotateZ(0deg) scale(1.0); }
+}
+.dice-face {
+    position: absolute; width: 100%; height: 100%;
+    border-radius: 18%; display: grid; padding: 17%; box-sizing: border-box;
+    backface-visibility: visible;
+    grid-template: 1fr 1fr 1fr / 1fr 1fr 1fr; gap: 6%;
+}
+.dice-face--light {
+    background: linear-gradient(145deg,#fff 0%,#f5f5f5 40%,#e8e8e8 100%);
+    box-shadow: inset 0 2px 8px rgba(255,255,255,0.9),inset 0 -3px 8px rgba(0,0,0,0.12);
+    border: 1.5px solid rgba(0,0,0,0.06);
+}
+.dice-pip {
+    width: 100%; height: 100%; border-radius: 50%;
+    background: radial-gradient(circle at 38% 38%,#666,#1a1a1a 70%);
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.25),0 1px 3px rgba(0,0,0,0.4);
+}
+.dice-pip.pip-red  { background: radial-gradient(circle at 38% 38%,#f87171,#b91c1c 70%); box-shadow: inset 0 1px 2px rgba(255,255,255,0.3),0 1px 3px rgba(185,28,28,0.5); }
+.dice-pip.pip-blue { background: radial-gradient(circle at 38% 38%,#60a5fa,#1d4ed8 70%); box-shadow: inset 0 1px 2px rgba(255,255,255,0.3),0 1px 3px rgba(29,78,216,0.5); }
+/* face positions for 52px scene (26px = half) */
+.ludo-dice-scene .dice-face-1 { transform: rotateY(0deg)   translateZ(26px) !important; }
+.ludo-dice-scene .dice-face-2 { transform: rotateY(90deg)  translateZ(26px) !important; }
+.ludo-dice-scene .dice-face-3 { transform: rotateX(90deg)  translateZ(26px) !important; }
+.ludo-dice-scene .dice-face-4 { transform: rotateX(-90deg) translateZ(26px) !important; }
+.ludo-dice-scene .dice-face-5 { transform: rotateY(-90deg) translateZ(26px) !important; }
+.ludo-dice-scene .dice-face-6 { transform: rotateY(180deg) translateZ(26px) !important; }
+/* show transforms */
+.dice-show-1 { transform: rotateY(0deg)    rotateX(0deg); }
+.dice-show-2 { transform: rotateY(-90deg)  rotateX(0deg); }
+.dice-show-3 { transform: rotateX(-90deg)  rotateY(0deg); }
+.dice-show-4 { transform: rotateX(90deg)   rotateY(0deg); }
+.dice-show-5 { transform: rotateY(90deg)   rotateX(0deg); }
+.dice-show-6 { transform: rotateY(180deg)  rotateX(0deg); }
+/* land bounce */
+.dice-cube.landed { animation: ludo-dice-land 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes ludo-dice-land {
+    0%   { transform: var(--land-transform) scale(1.12); }
+    50%  { transform: var(--land-transform) scale(0.94); }
+    100% { transform: var(--land-transform) scale(1); }
+}
+
+/* ── Overlays ── */
+.ludo-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    z-index: 60;
+    backdrop-filter: blur(6px);
+}
+.ludo-overlay-content {
+    text-align: center;
+    color: white;
+    animation: ludo-pop-in 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes ludo-pop-in {
+    from { transform: scale(0) rotate(-10deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0); opacity: 1; }
+}
+.ludo-overlay-content h2 { font-size: 26px; margin: 10px 0; }
+.ludo-overlay-content p  { color: #9ca3af; font-size: 13px; }
+</style>
+
+<script>
+// ===== Ludo Multiplayer Game Class =====
+
+// PATH, SAFE_SPOTS, PLAYERS config (mirrors server-side handler.py)
+const LUDO_PATH = [
+    {r:7,c:2},{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},
+    {r:6,c:7},{r:5,c:7},{r:4,c:7},{r:3,c:7},{r:2,c:7},{r:1,c:7},
+    {r:1,c:8},{r:1,c:9},
+    {r:2,c:9},{r:3,c:9},{r:4,c:9},{r:5,c:9},{r:6,c:9},
+    {r:7,c:10},{r:7,c:11},{r:7,c:12},{r:7,c:13},{r:7,c:14},{r:7,c:15},
+    {r:8,c:15},{r:9,c:15},
+    {r:9,c:14},{r:9,c:13},{r:9,c:12},{r:9,c:11},{r:9,c:10},
+    {r:10,c:9},{r:11,c:9},{r:12,c:9},{r:13,c:9},{r:14,c:9},{r:15,c:9},
+    {r:15,c:8},{r:15,c:7},
+    {r:14,c:7},{r:13,c:7},{r:12,c:7},{r:11,c:7},{r:10,c:7},
+    {r:9,c:6},{r:9,c:5},{r:9,c:4},{r:9,c:3},{r:9,c:2},{r:9,c:1},
+    {r:8,c:1},{r:7,c:1}
+];
+const LUDO_SAFE = new Set([0,8,13,21,26,34,39,47]);
+const LUDO_PLAYERS_CFG = {
+    red: {
+        hex:'#f87171', border:'#991b1b', glow:'rgba(248,113,113,0.6)', pipClass:'pip-red',
+        startIdx:0,
+        yardBases:[{r:3,c:3},{r:3,c:4},{r:4,c:3},{r:4,c:4}],
+        homePath:[{r:8,c:2},{r:8,c:3},{r:8,c:4},{r:8,c:5},{r:8,c:6}],
+        homeCenter:{r:8,c:7.5}
+    },
+    blue: {
+        hex:'#60a5fa', border:'#1d4ed8', glow:'rgba(96,165,250,0.6)', pipClass:'pip-blue',
+        startIdx:26,
+        yardBases:[{r:12,c:12},{r:12,c:13},{r:13,c:12},{r:13,c:13}],
+        homePath:[{r:8,c:14},{r:8,c:13},{r:8,c:12},{r:8,c:11},{r:8,c:10}],
+        homeCenter:{r:8,c:8.5}
+    }
+};
+
+const LUDO_DICE_SHOW = {
+    1:'dice-show-1',2:'dice-show-2',3:'dice-show-3',
+    4:'dice-show-4',5:'dice-show-5',6:'dice-show-6'
+};
+const LUDO_DICE_TRANSFORMS = {
+    1:'rotateY(0deg) rotateX(0deg)',
+    2:'rotateY(-90deg) rotateX(0deg)',
+    3:'rotateX(-90deg) rotateY(0deg)',
+    4:'rotateX(90deg) rotateY(0deg)',
+    5:'rotateY(90deg) rotateX(0deg)',
+    6:'rotateY(180deg) rotateX(0deg)'
+};
+
+class LudoGame extends BaseGame {
+    constructor() {
+        super();
+        this.gameMode = "turn_based";
+        this._rolling = false;
+    }
+
+    init(state) {
+        this.state = state;
+        this._buildBoard();
+        this._buildPieces();
+        this._updateAvatars();
+        this._updateRound();
+        this._updateUI();
+    }
+
+    update(state) {
+        this.state = state;
+        this._renderPieces();
+        this._updateUI();
+        this._updateRound();
+    }
+
+    // ── Board Construction ──
+    _buildBoard() {
+        const board = document.getElementById('ludo-board');
+        if (!board) return;
+        board.innerHTML = '';
+
+        for (let r = 1; r <= 15; r++) {
+            for (let c = 1; c <= 15; c++) {
+                let bg = '#ffffff';
+
+                // Home yard quadrants
+                if (r <= 6 && c <= 6)  bg = '#991b1b';
+                if (r <= 6 && c >= 10) bg = '#fef08a';
+                if (r >= 10 && c <= 6) bg = '#bbf7d0';
+                if (r >= 10 && c >= 10) bg = '#1e40af';
+
+                // Home column strips
+                const isRedHome  = r===8 && c>=2 && c<=6;
+                const isBlueHome = r===8 && c>=10 && c<=14;
+                const isYellowHome = c===8 && r>=2 && r<=6;
+                const isGreenHome  = c===8 && r>=10 && r<=14;
+                const isCenter = r>=7 && r<=9 && c>=7 && c<=9;
+
+                if (isRedHome)    bg = '#991b1b';
+                if (isBlueHome)   bg = '#1e40af';
+                if (isYellowHome) bg = '#fde047';
+                if (isGreenHome)  bg = '#86efac';
+                if (isCenter)     bg = '#1e293b';
+
+                // Safe spots
+                const safeIdx = LUDO_PATH.findIndex(p => p.r===r && p.c===c);
+                const isSafe  = safeIdx > -1 && LUDO_SAFE.has(safeIdx);
+                if (isSafe) {
+                    if      (safeIdx===0)  bg = '#dc2626';
+                    else if (safeIdx===26) bg = '#0ea5e9';
+                    else if (safeIdx===13) bg = '#ca8a04';
+                    else if (safeIdx===39) bg = '#16a34a';
+                    else                   bg = '#334155';
+                }
+
+                const cell = document.createElement('div');
+                cell.className = 'ludo-cell';
+                cell.style.backgroundColor = bg;
+
+                const inYard = (r<=6&&c<=6)||(r>=10&&c>=10)||(r<=6&&c>=10)||(r>=10&&c<=6);
+                if (inYard) cell.style.border = `0.5px solid ${bg}`;
+                if (isSafe && !isCenter) cell.innerHTML = `<span style="color:white;font-size:clamp(8px,1.5vw,14px);line-height:1;">★</span>`;
+                if (isCenter) { cell.style.border = 'none'; }
+
+                board.appendChild(cell);
+            }
+        }
+
+        // Trophy overlay
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:5;left:40%;top:40%;width:20%;height:20%;';
+        ov.innerHTML = `<div style="transform:rotate(45deg);font-size:clamp(14px,3vw,24px);color:#fbbf24;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><span style="transform:rotate(-45deg);">🏆</span></div>`;
+        document.getElementById('ludo-board').appendChild(ov);
+
+        // White inner yard boxes
+        const piecesLayer = document.getElementById('ludo-pieces');
+        if (piecesLayer) {
+            [[2,2],[11,11],[2,11],[11,2]].forEach(([row,col]) => {
+                const y = document.createElement('div');
+                y.style.cssText = `position:absolute;background:rgba(255,255,255,0.9);border-radius:10px;border:1px solid #cbd5e1;box-shadow:inset 0 2px 8px rgba(0,0,0,0.1);left:calc(${col-1}*100%/15 + 3%);top:calc(${row-1}*100%/15 + 3%);width:calc(4*100%/15 - 6%);height:calc(4*100%/15 - 6%);`;
+                piecesLayer.appendChild(y);
+            });
+        }
+    }
+
+    _buildPieces() {
+        const layer = document.getElementById('ludo-pieces');
+        if (!layer || !this.state) return;
+
+        // Remove old piece elements
+        layer.querySelectorAll('.ludo-piece').forEach(el => el.remove());
+
+        const pct = 100/15;
+        this.state.pieces.forEach(p => {
+            const cfg = LUDO_PLAYERS_CFG[p.player];
+            const el = document.createElement('div');
+            el.id = `ludo-piece-${p.player}-${p.id}`;
+            el.className = 'ludo-piece';
+            el.style.width  = `calc(${pct}% - 4px)`;
+            el.style.height = `calc(${pct}% - 4px)`;
+            el.style.backgroundColor = cfg.hex;
+            el.style.borderColor = cfg.border;
+            el.innerHTML = `<div style="width:45%;height:45%;border-radius:50%;background:rgba(255,255,255,0.45);box-shadow:inset 0 2px 4px rgba(0,0,0,0.2);"></div>`;
+            el.onclick = () => this._onPieceClick(p.player, p.id);
+            layer.appendChild(el);
+        });
+
+        this._renderPieces();
+    }
+
+    _renderPieces() {
+        if (!this.state) return;
+        const state = this.state;
+        const pct = 100/15;
+
+        // Group pieces by coordinate key for stacking offsets
+        const occ = {};
+        state.pieces.forEach(p => {
+            const coord = this._getCoord(p);
+            p._coord = coord;
+            const k = `${coord.r},${coord.c}`;
+            if (!occ[k]) occ[k] = [];
+            occ[k].push(p);
+        });
+
+        const myColor = this._myColor();
+        const isMyTurn = state.turn === myColor;
+        const phase = state.phase;
+
+        state.pieces.forEach(p => {
+            const el = document.getElementById(`ludo-piece-${p.player}-${p.id}`);
+            if (!el) return;
+
+            const coord = p._coord;
+            const group = occ[`${coord.r},${coord.c}`];
+            const idx   = group.indexOf(p);
+
+            const bL = (coord.c - 1) * pct;
+            const bT = (coord.r - 1) * pct;
+
+            let tx = 0, ty = 0;
+            if (group.length > 1 && p.pos !== -1 && p.pos !== 56) {
+                const offs = [{x:-18,y:-18},{x:18,y:-18},{x:-18,y:18},{x:18,y:18}];
+                if (idx < 4) { tx = offs[idx].x; ty = offs[idx].y; }
+            }
+
+            el.style.left = `calc(${bL}% + 2px)`;
+            el.style.top  = `calc(${bT}% + 2px)`;
+            el.style.transform = `translate(${tx}%,${ty}%)`;
+
+            // Highlight selectable pieces
+            const canMove = phase === 'MOVE' && state.turn === p.player && isMyTurn && this._isValidMove(p, state.dice_value);
+            if (canMove) el.classList.add('highlight');
+            else         el.classList.remove('highlight');
+        });
+    }
+
+    _getCoord(p) {
+        const cfg = LUDO_PLAYERS_CFG[p.player];
+        if (p.pos === -1)                     return cfg.yardBases[p.id];
+        if (p.pos >= 0 && p.pos <= 50)        return LUDO_PATH[(cfg.startIdx + p.pos) % 52];
+        if (p.pos >= 51 && p.pos <= 55)       return cfg.homePath[p.pos - 51];
+        if (p.pos === 56)                     return cfg.homeCenter;
+        return cfg.yardBases[p.id]; // fallback
+    }
+
+    _isValidMove(piece, diceValue) {
+        if (piece.pos === -1)               return diceValue === 6;
+        if (piece.pos + diceValue > 56)     return false;
+        return true;
+    }
+
+    // ── UI Updates ──
+    _updateUI() {
+        if (!this.state) return;
+        const state   = this.state;
+        const myColor = this._myColor();
+        const isMyTurn= state.turn === myColor;
+        const cfg     = LUDO_PLAYERS_CFG[state.turn];
+
+        // Roll button
+        const rollBtn = document.getElementById('ludo-roll-btn');
+        if (rollBtn) {
+            rollBtn.disabled = !(isMyTurn && state.phase === 'ROLL') || this._rolling;
+            rollBtn.className = 'ludo-roll-btn';
+            if (isMyTurn && state.phase === 'ROLL') {
+                rollBtn.classList.add(state.turn === 'red' ? 'ludo-roll-red' : 'ludo-roll-blue');
+            }
+        }
+
+        // Dice glow ring
+        const glowRing = document.getElementById('ludo-dice-glow-ring');
+        if (glowRing) {
+            glowRing.style.boxShadow = `0 0 18px ${cfg.glow}, 0 0 36px ${cfg.glow}`;
+            if (state.phase === 'ROLL') glowRing.classList.add('active');
+            else glowRing.classList.remove('active');
+        }
+
+        // Instruction text
+        const inst = document.getElementById('ludo-instruction');
+        if (inst) {
+            if (state.phase === 'ROLL') {
+                inst.textContent = isMyTurn ? `Your turn to roll! 🎲` : `${state.players[state.turn]}'s turn to roll...`;
+                inst.style.color = '#fef08a';
+            } else if (state.phase === 'MOVE') {
+                inst.textContent = isMyTurn ? `Pick a piece to move (${state.dice_value}) 🎯` : `${state.players[state.turn]} is moving...`;
+                inst.style.color = '#ffffff';
+            }
+        }
+
+        // Active panel highlight
+        ['red','blue'].forEach(color => {
+            const panel = document.getElementById(`ludo-panel-${color}`);
+            if (panel) panel.classList.toggle('active-turn', state.turn === color);
+        });
+
+        // Show dice value if available
+        if (state.dice_value !== null) {
+            this._showDiceFace(state.dice_value, state.turn);
+        }
+
+        // Pause overlay
+        if (state.paused) this.showPauseOverlay();
+        else              this.hidePauseOverlay();
+    }
+
+    _updateAvatars() {
+        if (!this.state) return;
+        const state = this.state;
+
+        ['red','blue'].forEach(color => {
+            const username = state.players[color];
+            const nameEl   = document.getElementById(`ludo-name-${color}`);
+            const imgEl    = document.getElementById(`ludo-avatar-img-${color}`);
+            if (nameEl) nameEl.textContent = username || color.toUpperCase();
+            if (imgEl && typeof players !== 'undefined' && players[username]) {
+                const gender = players[username].gender || 'male';
+                imgEl.src = gender === 'female'
+                    ? '/static/games/icons/avatar_female.png'
+                    : '/static/games/icons/avatar_male.png';
+            }
+        });
+    }
+
+    _updateRound() {
+        if (!this.state) return;
+        const el = document.getElementById('ludo-round-info');
+        if (el) el.textContent = `Round ${this.state.current_round}/${this.state.total_rounds}`;
+    }
+
+    // ── Dice Animation ──
+    _showDiceFace(val, playerColor) {
+        const cube = document.getElementById('ludo-dice-cube');
+        if (!cube) return;
+        for (let i = 1; i <= 6; i++) cube.classList.remove(LUDO_DICE_SHOW[i]);
+        cube.classList.add(LUDO_DICE_SHOW[val]);
+
+        // Color pips
+        const cfg = LUDO_PLAYERS_CFG[playerColor];
+        cube.querySelectorAll('[data-pip]').forEach(p => p.classList.remove('pip-red','pip-blue'));
+        const face = cube.querySelector(`.dice-face-${val}`);
+        if (face) face.querySelectorAll('[data-pip]').forEach(p => p.classList.add(cfg.pipClass));
+    }
+
+    _animateDice(val, playerColor, callback) {
+        const cube   = document.getElementById('ludo-dice-cube');
+        const shadow = document.getElementById('ludo-dice-shadow');
+        if (!cube) { callback && callback(); return; }
+
+        // Remove all show/landed classes
+        cube.classList.remove('landed');
+        for (let i = 1; i <= 6; i++) cube.classList.remove(LUDO_DICE_SHOW[i]);
+        cube.querySelectorAll('[data-pip]').forEach(p => p.classList.remove('pip-red','pip-blue'));
+
+        cube.classList.add('rolling');
+        if (shadow) { shadow.classList.add('rolling'); }
+
+        setTimeout(() => {
+            cube.classList.remove('rolling');
+            if (shadow) shadow.classList.remove('rolling');
+
+            cube.style.setProperty('--land-transform', LUDO_DICE_TRANSFORMS[val]);
+            cube.classList.add(LUDO_DICE_SHOW[val]);
+            cube.classList.add('landed');
+
+            // Color pips
+            const cfg = LUDO_PLAYERS_CFG[playerColor];
+            const face = cube.querySelector(`.dice-face-${val}`);
+            if (face) face.querySelectorAll('[data-pip]').forEach(p => p.classList.add(cfg.pipClass));
+
+            setTimeout(() => cube.classList.remove('landed'), 300);
+            callback && callback();
+        }, 680);
+    }
+
+    // ── Piece Click ──
+    _onPieceClick(playerColor, pieceId) {
+        if (!this.state) return;
+        const state   = this.state;
+        const myColor = this._myColor();
+        if (state.turn !== myColor || state.turn !== playerColor) return;
+        if (state.phase !== 'MOVE') return;
+        const piece = state.pieces.find(p => p.player === playerColor && p.id === pieceId);
+        if (!piece || !this._isValidMove(piece, state.dice_value)) return;
+
+        this.sendMove('move', { piece_id: pieceId });
+    }
+
+    // ── Roll Click (bound to button) ──
+    _handleRollClick() {
+        if (!this.state) return;
+        const state   = this.state;
+        const myColor = this._myColor();
+        if (state.turn !== myColor || state.phase !== 'ROLL' || this._rolling) return;
+
+        this._rolling = true;
+        const rollBtn = document.getElementById('ludo-roll-btn');
+        if (rollBtn) rollBtn.disabled = true;
+
+        // Send roll to server — server will respond with update containing dice_value
+        // We do a local dice animation immediately for responsiveness
+        const fakeVal = Math.floor(Math.random() * 6) + 1;
+        this._animateDice(fakeVal, myColor, () => {
+            this.sendMove('roll', {});
+            this._rolling = false;
+        });
+    }
+
+    // ── Helper: my color ──
+    _myColor() {
+        if (!this.state) return null;
+        for (const [color, username] of Object.entries(this.state.players)) {
+            if (username === USER) return color;
+        }
+        return null;
+    }
+
+    // ── Toast ──
+    _showToast(text, colorHex, glow) {
+        const toast = document.getElementById('ludo-event-toast');
+        if (!toast) return;
+        toast.textContent = text;
+        toast.style.backgroundColor = colorHex;
+        toast.style.boxShadow = `0 8px 30px ${glow}`;
+        toast.style.transform = 'translate(-50%,-50%) scale(1.1)';
+        toast.style.opacity = '1';
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translate(-50%,-50%) scale(0.5)';
+        }, 1400);
+    }
+
+    // ── BaseGame hooks ──
+    onRoundEnd(result) {
+        const isWinner = result.round_winner === USER;
+        const isDraw   = result.round_winner === 'draw';
+
+        const myColor = this._myColor();
+        if (myColor) {
+            const cfg = LUDO_PLAYERS_CFG[myColor];
+            if (isWinner) this._showToast('YOU WIN! 🏆', cfg.hex, cfg.glow);
+        }
+
+        const overlay  = document.getElementById('ludo-result-overlay');
+        const icon     = document.getElementById('ludo-result-icon');
+        const text     = document.getElementById('ludo-result-text');
+        const subtext  = document.getElementById('ludo-result-subtext');
+
+        if (isDraw) { icon.textContent='🤝'; text.textContent="It's a Draw!"; }
+        else if (isWinner) { icon.textContent='🏆'; text.textContent='You Win!'; }
+        else { icon.textContent='😔'; text.textContent='You Lose!'; }
+
+        if (result.game_ended) subtext.textContent = 'Returning to lobby...';
+        else subtext.innerHTML = 'Next round in <span id="ludo-next-round-timer">3</span>...';
+
+        let delay = 0;
+        if (result.reveal_at) delay = Math.max(0, result.reveal_at - Date.now());
+
+        setTimeout(() => {
+            if (overlay) overlay.style.display = 'flex';
+            if (!result.game_ended) {
+                let t = 3;
+                const intv = setInterval(() => {
+                    t--;
+                    const el = document.getElementById('ludo-next-round-timer');
+                    if (el) el.textContent = t;
+                    if (t <= 0) clearInterval(intv);
+                }, 1000);
+            }
+            const displayMs = result.display_ms || 3000;
+            setTimeout(() => { if (overlay) overlay.style.display = 'none'; }, displayMs);
+        }, delay);
+    }
+
+    onGameEnd(result) {
+        const isWinner = result.game_winner === USER;
+        const isDraw   = result.game_winner === 'draw';
+
+        const overlay  = document.getElementById('ludo-result-overlay');
+        const icon     = document.getElementById('ludo-result-icon');
+        const text     = document.getElementById('ludo-result-text');
+        const subtext  = document.getElementById('ludo-result-subtext');
+
+        if (isDraw)         { icon.textContent='🤝'; text.textContent='Game Draw!'; }
+        else if (isWinner)  { icon.textContent='🎉'; text.textContent='You Won the Game!'; }
+        else                { icon.textContent='😞'; text.textContent='Game Over'; }
+
+        const scores = result.final_scores;
+        if (scores) {
+            subtext.textContent = `Final: ` + Object.entries(scores).map(([p,s]) => `${p}: ${s}`).join(' - ');
+        }
+        if (overlay) overlay.style.display = 'flex';
+
+        // Confetti
+        if (isWinner && window.confetti) {
+            const end = Date.now() + 3000;
+            (function fire() {
+                confetti({ particleCount:5, angle:60, spread:55, origin:{x:0}, zIndex:200 });
+                confetti({ particleCount:5, angle:120, spread:55, origin:{x:1}, zIndex:200 });
+                if (Date.now() < end) requestAnimationFrame(fire);
+            }());
+        }
+    }
+
+    showPauseOverlay() {
+        const overlay = document.getElementById('ludo-pause-overlay');
+        if (overlay) overlay.style.display = 'flex';
+        if (this.state) {
+            const disc = this.state.disconnected_players || [];
+            const el   = document.getElementById('ludo-disconnected-player');
+            if (el && disc.length > 0) el.textContent = disc[0];
+        }
+    }
+
+    hidePauseOverlay() {
+        const overlay = document.getElementById('ludo-pause-overlay');
+        if (overlay) overlay.style.display = 'none';
+    }
+
+    updateCountdown(seconds) {
+        const el = document.getElementById('ludo-countdown');
+        if (el) el.textContent = seconds;
+    }
+}
+
+// Register
+window.GameClasses = window.GameClasses || {};
+window.GameClasses.ludo = LudoGame;
+
+// Wire up roll button after DOM ready
+(function wireLudoBtn() {
+    const btn = document.getElementById('ludo-roll-btn');
+    if (btn) {
+        btn.onclick = () => {
+            if (window.currentGame && window.currentGame instanceof LudoGame) {
+                window.currentGame._handleRollClick();
+            }
+        };
+    }
+})();
+
+// Exit game
+window.exitGame = window.exitGame || function() {
+    if (confirm('Leave the game? Both players will return to lobby.')) {
+        if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ event: 'game_exit' }));
+        }
+    }
+};
+</script>

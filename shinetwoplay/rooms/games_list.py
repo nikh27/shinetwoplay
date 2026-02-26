@@ -5,6 +5,14 @@ This replaces the database dependency for the games catalog.
 
 GAMES = [
     {
+        'game_id': 'ludo',
+        'name': 'Ludo',
+        'image_url': '/static/games/ludo.png',
+        'description': 'Classic Ludo! Roll the dice, move your pieces home. First to bring all 4 home wins!',
+        'min_players': 2,
+        'max_players': 2,
+    },
+    {
         'game_id': 'tictactoe',
         'name': 'Tic Tac Toe',
         'image_url': '/static/games/tictactoe.png',
