@@ -12,6 +12,7 @@ room_logger = logging.getLogger('shinetwoplay.analytics.room')
 
 def start_worker():
     """Starts the background analytics worker as a daemon thread."""
+    print("[*] Analytics Background Worker is waking up and watching Redis queues...")
     thread = threading.Thread(target=run_worker, daemon=True)
     thread.start()
 
