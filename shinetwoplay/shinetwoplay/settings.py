@@ -31,6 +31,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'rooms.analytics.AnalyticsMiddleware',
 ]
 
 ROOT_URLCONF = 'shinetwoplay.urls'
@@ -122,5 +123,47 @@ REDIS_PORT = 6379
 REDIS_DB = 0
 
 # Default primary key field type
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Logging Configuration
+import os
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'analytics': {
+            'format': '%(asctime)s | %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+    'handlers': {
+        'home_analytics_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'home_analytics.log'),
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB limit
+            'backupCount': 5,
+            'formatter': 'analytics',
+        },
+        'room_analytics_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'room_analytics.log'),
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB limit
+            'backupCount': 5,
+            'formatter': 'analytics',
+        },
+    },
+    'loggers': {
+        'shinetwoplay.analytics.home': {
+            'handlers': ['home_analytics_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'shinetwoplay.analytics.room': {
+            'handlers': ['room_analytics_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
