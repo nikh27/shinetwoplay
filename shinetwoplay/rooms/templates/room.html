@@ -3362,10 +3362,21 @@
 
             // ---- Mic Toggle: ON = getUserMedia + replaceTrack, OFF = stop + replaceTrack(null) ----
             async toggleMic() {
+                // Check permission first before toggling
+                if (!this.micOn) {
+                    if (navigator.permissions) {
+                        try {
+                            const perm = await navigator.permissions.query({ name: 'microphone' });
+                            if (perm.state === 'denied') {
+                                showToast('Microphone access denied. Please allow in browser settings.', 'error');
+                                return;
+                            }
+                        } catch(e) { /* permissions API not supported */ }
+                    }
+                }
+
                 this.micOn = !this.micOn;
                 this._updateUI();
-
-                // User clicked a button — use this gesture to ensure remote audio plays
                 this._tryPlayRemote();
 
                 if (this.micOn) {
@@ -3376,7 +3387,6 @@
                             this._updateUI();
                             return;
                         }
-                        showToast('Please allow microphone access...', 'info');
                         this.localStream = await navigator.mediaDevices.getUserMedia({
                             audio: {
                                 echoCancellation: { ideal: true },
@@ -3387,24 +3397,22 @@
                             }
                         });
                         const track = this.localStream.getAudioTracks()[0];
-                        console.log('🎤 Mic ON — hardware active, track:', track.readyState);
-
-                        // Replace track on the transceiver sender (no renegotiation needed)
                         if (this.audioTransceiver) {
                             await this.audioTransceiver.sender.replaceTrack(track);
-                            console.log('🎤 Track replaced on sender. Sender track:', this.audioTransceiver.sender.track?.readyState);
-                        } else {
-                            console.warn('⚠️ No audioTransceiver — mic track cannot be sent!');
                         }
                         this._startLocalDetection(this.localStream);
+                        showToast('Microphone is ON 🎤', 'success');
                     } catch (err) {
                         console.error('❌ Mic access denied:', err);
-                        showToast('Microphone access denied', 'error');
                         this.micOn = false;
                         this._updateUI();
+                        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                            showToast('Microphone access denied. Please allow in browser settings.', 'error');
+                        } else {
+                            showToast('Microphone error: ' + err.message, 'error');
+                        }
                     }
                 } else {
-                    // Stop hardware mic
                     if (this.localStream) {
                         this.localStream.getTracks().forEach(t => t.stop());
                         this.localStream = null;
@@ -3413,7 +3421,7 @@
                         await this.audioTransceiver.sender.replaceTrack(null);
                     }
                     this._stopLocalDetection();
-                    console.log('🎤 Mic OFF — hardware released');
+                    showToast('Microphone is OFF 🔇', 'info');
                 }
             }
 

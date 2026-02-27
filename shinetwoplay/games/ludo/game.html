@@ -186,8 +186,9 @@
 /* ── Board ── */
 .ludo-board-wrapper {
     position: relative;
-    width: 100%;
-    max-width: 340px;
+    /* Scale board: fill width on small, cap at available height on large */
+    width: min(calc(100vw - 16px), calc(100vh - 180px));
+    max-width: 580px;
     aspect-ratio: 1;
     flex-shrink: 0;
     background: #1f2937;
@@ -302,8 +303,8 @@
     flex-direction: row;
     align-items: flex-end;
     justify-content: space-between;
-    width: 100%;
-    max-width: 340px;
+    width: min(calc(100vw - 16px), calc(100vh - 180px));
+    max-width: 580px;
     margin: 6px auto 0;
     padding: 0 4px;
     flex-shrink: 0;
