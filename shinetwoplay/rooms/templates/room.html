@@ -3682,6 +3682,7 @@
             
             // Wait a bit for scripts to register, then init game
             setTimeout(() => {
+                window.players = players; // expose room players (with gender) to game scripts
                 const GameClass = window.GameClasses[payload.game_id] || BaseGame;
                 currentGame = new GameClass();
                 currentGame.init(payload.game_state);

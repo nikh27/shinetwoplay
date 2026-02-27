@@ -398,6 +398,13 @@
     100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
 }
 
+/* Missed sign animation */
+@keyframes dhMissedPop {
+    0% { opacity: 0; transform: translateX(-50%) scale(0.5); }
+    60% { opacity: 1; transform: translateX(-50%) scale(1.15); }
+    100% { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
 /* Result overlay */
 .dh-result-overlay {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -423,6 +430,7 @@ class DiamondHeistGame extends BaseGame {
         this.canGrab = true;
         this.waitTimer = null;
         this.grabTimeoutTimer = null;
+        this.myGrabPending = false; // true while we sent grab but haven't resolved yet
         this.WINNING_SCORE = 3;       // 3 points per round
         this.GRAB_TIMEOUT = 4000;
         this.PENALTY_DURATION = 1800;
@@ -449,24 +457,10 @@ class DiamondHeistGame extends BaseGame {
         if (el2) el2.textContent = p2Name.substring(0, 8);
 
         // Update avatars based on gender from window.players
-        if (window.players) {
-            const p1Data = window.players[p1Name];
-            const p2Data = window.players[p2Name];
-            
-            const av1 = document.querySelector('.dh-av1');
-            const av2 = document.querySelector('.dh-av2');
-            
-            if (av1 && p1Data) {
-                av1.innerHTML = p1Data.gender === 'female' 
-                    ? '<img src="/static/games/icons/avatar_female.png" style="width:100%;height:100%">' 
-                    : '<img src="/static/games/icons/avatar_male.png" style="width:100%;height:100%">';
-            }
-            if (av2 && p2Data) {
-                av2.innerHTML = p2Data.gender === 'female' 
-                    ? '<img src="/static/games/icons/avatar_female.png" style="width:100%;height:100%">' 
-                    : '<img src="/static/games/icons/avatar_male.png" style="width:100%;height:100%">';
-            }
-        }
+        const av1 = document.querySelector('.dh-av1');
+        const av2 = document.querySelector('.dh-av2');
+        this._setAvatar(av1, p1Name, 'p1');
+        this._setAvatar(av2, p2Name, 'p2');
 
         // Setup hand orientation (myHand = bottom, opHand = top)
         const hand1 = document.getElementById('dh-p1-hand');
@@ -494,6 +488,15 @@ class DiamondHeistGame extends BaseGame {
         }
     }
 
+    _setAvatar(el, username, side) {
+        if (!el) return;
+        const pd = window.players && window.players[username];
+        const src = (pd && pd.gender === 'female')
+            ? '/static/games/icons/avatar_female.png'
+            : '/static/games/icons/avatar_male.png';
+        el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    }
+
     setupTapZone() {
         const zone = document.getElementById('dh-tap-zone');
         if (!zone) return;
@@ -516,10 +519,21 @@ class DiamondHeistGame extends BaseGame {
             // Tapped too early - penalty
             this.applyPenalty(this.myRole);
             this.sendInput({ type: 'penalty', player: this.myRole });
-        } else if (this.roundState === 'grab') {
-            // Try to grab
-            this.sendInput({ type: 'grab', player: this.myRole });
-            this.grabDiamond(this.myRole);
+        } else if (this.roundState === 'grab' && !this.myGrabPending) {
+            // Try to grab - mark pending so we don't double-fire
+            this.myGrabPending = true;
+            const ts = Date.now();
+            this._myGrabTs = ts;
+            // Send grab with timestamp so both sides can resolve who was first
+            this.sendInput({ type: 'grab', player: this.myRole, ts: ts });
+            // Animate my hand going in immediately (optimistic)
+            this.startGrabAnimation(this.myRole);
+            // If opponent never sends a grab, resolve as my win after animation
+            this._myGrabResolveTimer = setTimeout(() => {
+                if (this.myGrabPending && this.roundState === 'grab') {
+                    this.resolveGrab(this.myRole, null);
+                }
+            }, this.GRAB_DURATION + 50);
         }
     }
 
@@ -530,9 +544,24 @@ class DiamondHeistGame extends BaseGame {
         if (data.type === 'penalty') {
             this.applyPenalty(data.player);
         } else if (data.type === 'grab') {
-            // Remote player grabbed first
-            if (this.roundState === 'grab') {
-                this.grabDiamond(data.player);
+            if (this.roundState === 'grab' || this.myGrabPending) {
+                const opRole = data.player;
+                if (this.myGrabPending) {
+                    // Both grabbed - resolve by timestamp: lower ts wins
+                    const myTs = this._myGrabTs || 0;
+                    const opTs = data.ts || 0;
+                    if (opTs <= myTs) {
+                        // Opponent grabbed first - I missed
+                        this.resolveGrab(opRole, this.myRole);
+                    } else {
+                        // I grabbed first - opponent missed
+                        this.resolveGrab(this.myRole, opRole);
+                    }
+                } else {
+                    // Only opponent grabbed, animate their hand going in
+                    this.startGrabAnimation(opRole);
+                    this.resolveGrab(opRole, null);
+                }
             }
         } else if (data.type === 'open_case') {
             // P1 says case is open
@@ -540,6 +569,8 @@ class DiamondHeistGame extends BaseGame {
         } else if (data.type === 'new_round') {
             this.roundState = 'waiting';
             this.canGrab = true;
+            this.myGrabPending = false;
+            this._myGrabTs = 0;
             this.resetHands();
             this.showRing();
             this.showGlass();
@@ -550,6 +581,10 @@ class DiamondHeistGame extends BaseGame {
     startNewRound() {
         this.roundState = 'waiting';
         this.canGrab = true;
+        this.myGrabPending = false;
+        this._myGrabTs = 0;
+        clearTimeout(this._myGrabResolveTimer);
+        this.hideMissedSign();
         this.resetHands();
         this.showRing();
         this.showGlass();
@@ -613,17 +648,22 @@ class DiamondHeistGame extends BaseGame {
         }, this.GRAB_DURATION);
     }
 
-    grabDiamond(playerRole) {
+    startGrabAnimation(playerRole) {
+        const hand = document.getElementById(playerRole === 'P1' ? 'dh-p1-hand' : 'dh-p2-hand');
+        if (hand) hand.classList.add('dh-grabbing');
+    }
+
+    // winnerRole grabbed the diamond. loserRole (if any) also grabbed but was too slow.
+    resolveGrab(winnerRole, loserRole) {
         if (this.roundState !== 'grab') return;
         this.roundState = 'scored';
+        this.myGrabPending = false;
+        clearTimeout(this._myGrabResolveTimer);
         clearTimeout(this.waitTimer);
         clearTimeout(this.grabTimeoutTimer);
 
-        const hand = document.getElementById(playerRole === 'P1' ? 'dh-p1-hand' : 'dh-p2-hand');
-        if (hand) hand.classList.add('dh-grabbing');
-
         setTimeout(() => {
-            // Hide ring + glow
+            // Hide ring + glow (winner took it)
             const ring = document.getElementById('dh-ring-group');
             if (ring) {
                 ring.style.transition = 'all 0.15s ease-out';
@@ -631,22 +671,26 @@ class DiamondHeistGame extends BaseGame {
                 ring.style.transform = 'scale(0.5)';
             }
             this.hideGlow();
-            this.createParticles(playerRole);
+            this.createParticles(winnerRole);
 
-            if (playerRole === 'P1') this.scores.p1++;
+            if (winnerRole === 'P1') this.scores.p1++;
             else this.scores.p2++;
             this.updateScores();
 
             const flash = document.getElementById('dh-round-flash');
-            if (flash) flash.className = 'dh-round-flash ' + (playerRole === 'P1' ? 'dh-p1-win' : 'dh-p2-win');
+            if (flash) flash.className = 'dh-round-flash ' + (winnerRole === 'P1' ? 'dh-p1-win' : 'dh-p2-win');
             if (navigator.vibrate) navigator.vibrate(100);
+
+            // Show missed sign on loser's hand if they also grabbed
+            if (loserRole) {
+                this.showMissedSign(loserRole);
+            }
 
             setTimeout(() => {
                 if (flash) flash.className = 'dh-round-flash';
+                this.hideMissedSign();
 
-                // Check if someone reached WINNING_SCORE (5 points) — round over
                 if (this.scores.p1 >= this.WINNING_SCORE || this.scores.p2 >= this.WINNING_SCORE) {
-                    // Round is done! Tell server
                     const winner = this.scores.p1 >= this.WINNING_SCORE ? 'P1' : 'P2';
                     if (this.isP1) {
                         this.sendMove('round_end', {
@@ -655,15 +699,45 @@ class DiamondHeistGame extends BaseGame {
                             p2_score: this.scores.p2
                         });
                     }
-                    // Server will send round_ended/game_ended events — wait for those
                 } else {
-                    // Not done yet, start next grab within same round
                     if (this.isP1) {
                         setTimeout(() => this.startNewRound(), 500);
                     }
                 }
             }, this.NEXT_ROUND_DELAY);
         }, this.GRAB_DURATION);
+    }
+
+    showMissedSign(playerRole) {
+        // Attach missed sign near the loser's hand
+        const hand = document.getElementById(playerRole === 'P1' ? 'dh-p1-hand' : 'dh-p2-hand');
+        if (!hand) return;
+        let missed = document.getElementById('dh-missed-sign');
+        if (!missed) {
+            missed = document.createElement('div');
+            missed.id = 'dh-missed-sign';
+            missed.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);z-index:80;font-size:1.4rem;font-weight:800;color:#ff4444;text-shadow:0 2px 8px rgba(0,0,0,0.8),0 0 20px rgba(255,60,60,0.6);letter-spacing:2px;animation:dhMissedPop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;pointer-events:none;';
+            document.getElementById('dh-container').appendChild(missed);
+        }
+        // Position above the loser hand's side
+        const isBottom = hand.classList.contains('dh-my-hand');
+        missed.style.top = isBottom ? '62%' : '32%';
+        missed.textContent = '✗ MISSED';
+        missed.style.display = 'block';
+        missed.style.animation = 'none';
+        void missed.offsetWidth; // reflow
+        missed.style.animation = 'dhMissedPop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards';
+    }
+
+    hideMissedSign() {
+        const missed = document.getElementById('dh-missed-sign');
+        if (missed) missed.style.display = 'none';
+    }
+
+    grabDiamond(playerRole) {
+        // Legacy - kept for compatibility but routes through new system
+        this.startGrabAnimation(playerRole);
+        this.resolveGrab(playerRole, null);
     }
 
     createParticles(playerRole) {
@@ -758,6 +832,10 @@ class DiamondHeistGame extends BaseGame {
             this.updateScores();
             this.roundState = 'waiting';
             this.canGrab = true;
+            this.myGrabPending = false;
+            this._myGrabTs = 0;
+            clearTimeout(this._myGrabResolveTimer);
+            this.hideMissedSign();
             this.resetHands();
             this.showRing();
             this.showGlass();
@@ -820,6 +898,7 @@ class DiamondHeistGame extends BaseGame {
         super.destroy();
         clearTimeout(this.waitTimer);
         clearTimeout(this.grabTimeoutTimer);
+        clearTimeout(this._myGrabResolveTimer);
     }
 }
 

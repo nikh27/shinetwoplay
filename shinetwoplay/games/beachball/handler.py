@@ -83,15 +83,18 @@ class BeachBallHandler(BaseGameHandler):
         return {'error': f'Unknown action: {action}'}
 
     def _handle_round_end(self, room_code: str, state: Dict, winner: str) -> Dict:
-        """Handle end of a round"""
+        """Handle end of a round — first to WIN_ROUNDS wins the game"""
+        WIN_ROUNDS = 3
         state['current_round'] += 1
         current_round = state['current_round']
         total_rounds = state['total_rounds']
 
-        if current_round > total_rounds:
-            scores = state['scores']
-            players_list = list(scores.keys())
+        scores = state['scores']
+        max_score = max(scores.values()) if scores else 0
 
+        # Game ends when someone reaches WIN_ROUNDS wins, or all rounds are done
+        if max_score >= WIN_ROUNDS or current_round > total_rounds:
+            players_list = list(scores.keys())
             if scores[players_list[0]] > scores[players_list[1]]:
                 state['game_winner'] = players_list[0]
             elif scores[players_list[1]] > scores[players_list[0]]:
@@ -115,7 +118,7 @@ class BeachBallHandler(BaseGameHandler):
                 'state': state,
                 'round_ended': True,
                 'round_winner': winner,
-                'next_round': current_round + 1,
+                'next_round': current_round,
                 'total_rounds': total_rounds,
             }
 

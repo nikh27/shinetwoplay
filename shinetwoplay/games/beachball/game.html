@@ -192,6 +192,34 @@
 /* Score pop */
 @keyframes bb-pop { 0%{transform:scale(1)} 50%{transform:scale(1.2)} 100%{transform:scale(1)} }
 .bb-pop { animation: bb-pop 0.25s ease-out; }
+
+/* Point toast */
+.bb-point-toast {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    background: rgba(0,0,0,0.82);
+    border-radius: 16px;
+    padding: 14px 28px;
+    text-align: center;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0;
+    transition: none;
+}
+.bb-point-toast.show {
+    animation: bb-toast-in 1.2s ease forwards;
+}
+@keyframes bb-toast-in {
+    0%   { opacity:0; transform: translate(-50%,-50%) scale(0.6); }
+    15%  { opacity:1; transform: translate(-50%,-50%) scale(1.05); }
+    30%  { transform: translate(-50%,-50%) scale(1); }
+    70%  { opacity:1; transform: translate(-50%,-50%) scale(1); }
+    100% { opacity:0; transform: translate(-50%,-50%) scale(0.9); }
+}
+.bb-point-toast-emoji { font-size: 28px; }
+.bb-point-toast-text { font-size: 15px; font-weight: 900; color: #fff; margin-top: 4px; letter-spacing: 0.06em; }
 </style>
 
 <div class="bb-wrapper">
@@ -238,6 +266,12 @@
             <div class="bb-waiting" id="bb-wait-text">Starting game...</div>
         </div>
 
+        <!-- Point scored toast -->
+        <div class="bb-point-toast" id="bb-point-toast">
+            <div class="bb-point-toast-emoji" id="bb-toast-emoji">⚽</div>
+            <div class="bb-point-toast-text" id="bb-toast-text">POINT!</div>
+        </div>
+
         <!-- Game Result -->
         <div class="bb-overlay hidden" id="bb-gameover">
             <div class="bb-overlay-emoji" id="bb-go-emoji">🏆</div>
@@ -261,7 +295,7 @@
 (function() {
     /* ========== CONFIGURATION ========== */
     const CONFIG = {
-        WIN_SCORE: 5,
+        WIN_SCORE: 1,
         BALL_FRICTION: 0.995,
         BALL_DRAG: 0.025,
         BALL_RADIUS: 40,
@@ -302,7 +336,8 @@
             this.game = {
                 running: false,
                 time: 0,
-                scores: [0, 0],
+                scores: [0, 0],      // goals in current round (resets each round)
+                roundWins: [0, 0],   // rounds won overall (shown in header)
                 ball: null,
                 players: [],
                 stones: [],
@@ -509,21 +544,21 @@
                 }
                 if (d.scores) {
                     this.game.scores = d.scores;
-                    this._showScore();
                 }
             }
             else if (d.type === 'serve') {
                 this._resetBall();
-                if (d.scores) {
-                    this.game.scores = d.scores;
-                    this._showScore();
-                }
+                this.game.scores = [0, 0];
+                this.game.running = true;  // resume physics on P2 when P1 serves
             }
             else if (d.type === 'goal') {
-                if (d.scores) {
-                    this.game.scores = d.scores;
+                if (d.roundWins) {
+                    this.game.roundWins[0] = d.roundWins[0];
+                    this.game.roundWins[1] = d.roundWins[1];
                     this._showScore();
                 }
+                /* Stop physics on P2 side too */
+                this.game.running = false;
                 this._resetBall();
             }
         }
@@ -550,6 +585,7 @@
             this.playing = true;
             this.game.running = true;
             this.game.scores = [0, 0];
+            this.game.roundWins = [0, 0];
             this._showScore();
             this._updateRoundBadge();
             this.menuOv.classList.add('hidden');
@@ -731,24 +767,28 @@
             if (this.myRole !== 'P1') return; /* Only P1 is authoritative */
             if (this._waitingForServer) return;
 
-            this.game.scores[playerIdx]++;
+            /* Each goal = round win */
+            this.game.roundWins[playerIdx]++;
             this._showScore();
 
-            this.sendInput({ type: 'goal', scores: this.game.scores });
+            /* Stop physics immediately so ball doesn't keep moving */
+            this.game.running = false;
 
-            if (this.game.scores[playerIdx] >= CONFIG.WIN_SCORE) {
-                /* Round is done */
-                const winner = playerIdx === 0 ? 'P1' : 'P2';
-                this.sendMove('round_end', {
-                    winner: winner,
-                    p1_score: this.game.scores[0],
-                    p2_score: this.game.scores[1]
-                });
-                this._waitingForServer = true;
-            } else {
-                this._resetBall();
-                this.sendInput({ type: 'serve', scores: this.game.scores });
-            }
+            /* Tell P2: who scored + new round wins */
+            this.sendInput({
+                type: 'goal',
+                scorerIdx: playerIdx,
+                roundWins: [this.game.roundWins[0], this.game.roundWins[1]]
+            });
+
+            /* Every goal ends the round */
+            const winner = playerIdx === 0 ? 'P1' : 'P2';
+            this.sendMove('round_end', {
+                winner: winner,
+                p1_score: this.game.roundWins[0],
+                p2_score: this.game.roundWins[1]
+            });
+            this._waitingForServer = true;
         }
 
         _resetBall() {
@@ -757,19 +797,21 @@
             this.game.ball.y = p.y + POOL_HEIGHT / 2;
             this.game.ball.vx = 0;
             this.game.ball.vy = 0;
+            this.game.ball.targetX = undefined;
+            this.game.ball.targetY = undefined;
             this.game.stones = [];
         }
 
         /* ===== ROUND / GAME LIFECYCLE ===== */
         _updateRoundBadge() {
-            const played = this.game.scores[0] + this.game.scores[1];
             const badge = document.getElementById('bb-round');
-            badge.textContent = `R${Math.min((this.state ? this.state.current_round : 1), this.totalRounds)}/${this.totalRounds}`;
+            const cr = this.state ? this.state.current_round : 1;
+            badge.textContent = `R${Math.min(cr, this.totalRounds)}/${this.totalRounds}`;
         }
 
         _showScore() {
-            this.s1El.textContent = this.game.scores[0];
-            this.s2El.textContent = this.game.scores[1];
+            this.s1El.textContent = this.game.roundWins[0];
+            this.s2El.textContent = this.game.roundWins[1];
             this.s1El.classList.remove('bb-pop'); this.s2El.classList.remove('bb-pop');
             void this.s1El.offsetWidth;
             this.s1El.classList.add('bb-pop'); this.s2El.classList.add('bb-pop');
@@ -780,34 +822,61 @@
         onRoundEnd(result) {
             this._waitingForServer = false;
 
-            const gs = result && result.game_state;
-            const cr = gs ? gs.current_round : 0;
-            const tr = gs ? gs.total_rounds : 999;
+            const gs = result && result.state;
+            if (gs) this.state = gs;
+            const gameEnded = result && result.game_ended;
+
+            /* Sync roundWins from server scores (keyed by username) */
+            if (gs && gs.scores && gs.players) {
+                const p1user = gs.players['P1'];
+                const p2user = gs.players['P2'];
+                this.game.roundWins[0] = gs.scores[p1user] || 0;
+                this.game.roundWins[1] = gs.scores[p2user] || 0;
+            }
+            this._showScore();
             this._updateRoundBadge();
 
-            if (cr > tr) {
-                /* All rounds done */
+            /* Show point toast for whoever just scored */
+            const roundWinner = result && result.round_winner; // username of winner
+            const iWon = roundWinner === USER;
+            this._showPointToast(iWon);
+
+            if (gameEnded) {
+                /* Game over — stop everything and show final screen after toast */
                 this.playing = false;
                 this.game.running = false;
                 if (this._syncTimer) clearInterval(this._syncTimer);
-
-                let w = 'draw';
-                if (this.game.scores[0] > this.game.scores[1]) w = 'P1';
-                else if (this.game.scores[1] > this.game.scores[0]) w = 'P2';
-                this._showGameOver(w, true);
+                setTimeout(() => {
+                    let w = 'draw';
+                    if (this.game.roundWins[0] > this.game.roundWins[1]) w = 'P1';
+                    else if (this.game.roundWins[1] > this.game.roundWins[0]) w = 'P2';
+                    this._showGameOver(w);
+                }, 1400);
                 return;
             }
 
-            /* More rounds — reset and re-serve */
+            /* More rounds — brief pause then resume */
             this._serveTimer = setTimeout(() => {
                 this._serveTimer = null;
                 this.game.scores = [0, 0];
-                this._showScore();
                 this._resetBall();
+                this.game.running = true;
                 if (this.myRole === 'P1') {
-                    this.sendInput({ type: 'serve', scores: this.game.scores });
+                    this.sendInput({ type: 'serve', scores: [0, 0] });
                 }
             }, SERVE_DELAY);
+        }
+
+        _showPointToast(iWon) {
+            const toast = document.getElementById('bb-point-toast');
+            const emoji = document.getElementById('bb-toast-emoji');
+            const text = document.getElementById('bb-toast-text');
+            emoji.textContent = iWon ? '🎉' : '😬';
+            text.textContent = iWon ? 'YOU SCORED!' : 'THEY SCORED!';
+            toast.classList.remove('show');
+            void toast.offsetWidth; // force reflow to restart animation
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1300);
         }
 
         onGameEnd(result) {
@@ -815,35 +884,43 @@
             this.game.running = false;
             if (this._syncTimer) clearInterval(this._syncTimer);
 
+            const gs = result && result.state;
+            if (gs && gs.scores && gs.players) {
+                const p1user = gs.players['P1'];
+                const p2user = gs.players['P2'];
+                this.game.roundWins[0] = gs.scores[p1user] || 0;
+                this.game.roundWins[1] = gs.scores[p2user] || 0;
+            }
+            this._showScore();
+
             let w = 'draw';
-            if (this.game.scores[0] > this.game.scores[1]) w = 'P1';
-            else if (this.game.scores[1] > this.game.scores[0]) w = 'P2';
-            this._showGameOver(w, true);
+            if (this.game.roundWins[0] > this.game.roundWins[1]) w = 'P1';
+            else if (this.game.roundWins[1] > this.game.roundWins[0]) w = 'P2';
+            this._showGameOver(w);
         }
 
-        _showGameOver(w, isFinal) {
+        _showGameOver(w) {
             const t = document.getElementById('bb-go-text');
             const e = document.getElementById('bb-go-emoji');
-            let wName = this.state.players[w];
+            let wName = this.state && this.state.players && this.state.players[w];
             if (w === 'draw') {
                 t.textContent = "DRAW!"; e.textContent = '🤝'; t.style.color = '#fff';
             } else {
-                if (wName === USER) { t.textContent = "YOU WIN! 🎉"; e.textContent = '🏆'; }
-                else { t.textContent = `${wName} WINS!`; e.textContent = '😔'; }
-                t.style.color = w==='P1'?'#60a5fa':'#f87171';
+                /* Compare winner role to MY role — not username to USER */
+                const iWon = (w === this.myRole);
+                if (iWon) { t.textContent = "YOU WIN! 🎉"; e.textContent = '🏆'; t.style.color = '#34d399'; }
+                else { t.textContent = "YOU LOSE! 😔"; e.textContent = '😢'; t.style.color = '#f87171'; }
             }
-            document.getElementById('bb-go-s1').textContent = this.game.scores[0];
-            document.getElementById('bb-go-s2').textContent = this.game.scores[1];
-            document.getElementById('bb-next-text').textContent = isFinal ? 'Returning to lobby...' : '';
+            document.getElementById('bb-go-s1').textContent = this.game.roundWins[0];
+            document.getElementById('bb-go-s2').textContent = this.game.roundWins[1];
+            document.getElementById('bb-next-text').textContent = 'Returning to lobby...';
             this.goOv.classList.remove('hidden');
 
-            if (isFinal) {
-                setTimeout(() => {
-                    if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({ event: 'game_exit' }));
-                    }
-                }, 4000);
-            }
+            setTimeout(() => {
+                if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ event: 'game_exit' }));
+                }
+            }, 3000);
         }
 
         /* ===== DRAWING ===== */
