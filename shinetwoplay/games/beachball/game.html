@@ -188,6 +188,22 @@
     font-size: 11px; color: #9ca3af; margin-top: 8px;
     animation: bb-pulse 1s ease-in-out infinite;
 }
+.bb-lobby-btn {
+    margin-top: 16px;
+    padding: 10px 28px;
+    border-radius: 20px;
+    border: none;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(59,130,246,0.45);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.bb-lobby-btn:hover { transform: scale(1.05); box-shadow: 0 6px 18px rgba(59,130,246,0.6); }
+.bb-lobby-btn:active { transform: scale(0.97); }
 
 /* Score pop */
 @keyframes bb-pop { 0%{transform:scale(1)} 50%{transform:scale(1.2)} 100%{transform:scale(1)} }
@@ -279,14 +295,15 @@
             <div class="bb-final-row">
                 <div class="bb-final-block">
                     <div class="bb-final-circle p1" id="bb-go-s1">0</div>
-                    <div style="color:#60a5fa;font-size:10px;font-weight:700">P1</div>
+                    <div style="color:#60a5fa;font-size:10px;font-weight:700" id="bb-go-p1name">P1</div>
                 </div>
                 <div class="bb-final-block">
                     <div class="bb-final-circle p2" id="bb-go-s2">0</div>
-                    <div style="color:#f87171;font-size:10px;font-weight:700">P2</div>
+                    <div style="color:#f87171;font-size:10px;font-weight:700" id="bb-go-p2name">P2</div>
                 </div>
             </div>
             <div class="bb-next-round" id="bb-next-text"></div>
+            <button class="bb-lobby-btn" id="bb-lobby-btn" onclick="window._bbReturnLobby && window._bbReturnLobby()">🏠 Return to Lobby</button>
         </div>
     </div>
 </div>
@@ -836,35 +853,24 @@
             this._showScore();
             this._updateRoundBadge();
 
+            /* Stop physics immediately */
+            this.playing = false;
+            this.game.running = false;
+            if (this._syncTimer) clearInterval(this._syncTimer);
+
             /* Show point toast for whoever just scored */
             const roundWinner = result && result.round_winner; // username of winner
             const iWon = roundWinner === USER;
             this._showPointToast(iWon);
 
-            if (gameEnded) {
-                /* Game over — stop everything and show final screen after toast */
-                this.playing = false;
-                this.game.running = false;
-                if (this._syncTimer) clearInterval(this._syncTimer);
-                setTimeout(() => {
-                    let w = 'draw';
-                    if (this.game.roundWins[0] > this.game.roundWins[1]) w = 'P1';
-                    else if (this.game.roundWins[1] > this.game.roundWins[0]) w = 'P2';
-                    this._showGameOver(w);
-                }, 1400);
-                return;
-            }
-
-            /* More rounds — brief pause then resume */
-            this._serveTimer = setTimeout(() => {
-                this._serveTimer = null;
-                this.game.scores = [0, 0];
-                this._resetBall();
-                this.game.running = true;
-                if (this.myRole === 'P1') {
-                    this.sendInput({ type: 'serve', scores: [0, 0] });
-                }
-            }, SERVE_DELAY);
+            /* After toast, show result screen with Return to Lobby button */
+            setTimeout(() => {
+                let w = 'draw';
+                if (this.game.roundWins[0] > this.game.roundWins[1]) w = 'P1';
+                else if (this.game.roundWins[1] > this.game.roundWins[0]) w = 'P2';
+                const subText = gameEnded ? 'Game Over!' : `Round ${this.state ? this.state.current_round - 1 : ''} Complete!`;
+                this._showGameOver(w, subText);
+            }, 1400);
         }
 
         _showPointToast(iWon) {
@@ -896,13 +902,12 @@
             let w = 'draw';
             if (this.game.roundWins[0] > this.game.roundWins[1]) w = 'P1';
             else if (this.game.roundWins[1] > this.game.roundWins[0]) w = 'P2';
-            this._showGameOver(w);
+            this._showGameOver(w, 'Game Over!');
         }
 
-        _showGameOver(w) {
+        _showGameOver(w, subText) {
             const t = document.getElementById('bb-go-text');
             const e = document.getElementById('bb-go-emoji');
-            let wName = this.state && this.state.players && this.state.players[w];
             if (w === 'draw') {
                 t.textContent = "DRAW!"; e.textContent = '🤝'; t.style.color = '#fff';
             } else {
@@ -913,14 +918,26 @@
             }
             document.getElementById('bb-go-s1').textContent = this.game.roundWins[0];
             document.getElementById('bb-go-s2').textContent = this.game.roundWins[1];
-            document.getElementById('bb-next-text').textContent = 'Returning to lobby...';
+
+            /* Update player name labels */
+            if (this.state && this.state.players) {
+                const p1n = document.getElementById('bb-go-p1name');
+                const p2n = document.getElementById('bb-go-p2name');
+                if (p1n) p1n.textContent = this.state.players['P1'] || 'P1';
+                if (p2n) p2n.textContent = this.state.players['P2'] || 'P2';
+            }
+
+            document.getElementById('bb-next-text').textContent = subText || 'Round Over!';
             this.goOv.classList.remove('hidden');
 
-            setTimeout(() => {
+            /* Wire up the Return to Lobby button */
+            window._bbReturnLobby = () => {
                 if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
                     socket.send(JSON.stringify({ event: 'game_exit' }));
                 }
-            }, 3000);
+                const btn = document.getElementById('bb-lobby-btn');
+                if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
+            };
         }
 
         /* ===== DRAWING ===== */

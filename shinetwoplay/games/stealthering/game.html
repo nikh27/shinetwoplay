@@ -398,13 +398,6 @@
     100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
 }
 
-/* Missed sign animation */
-@keyframes dhMissedPop {
-    0% { opacity: 0; transform: translateX(-50%) scale(0.5); }
-    60% { opacity: 1; transform: translateX(-50%) scale(1.15); }
-    100% { opacity: 1; transform: translateX(-50%) scale(1); }
-}
-
 /* Result overlay */
 .dh-result-overlay {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -584,7 +577,7 @@ class DiamondHeistGame extends BaseGame {
         this.myGrabPending = false;
         this._myGrabTs = 0;
         clearTimeout(this._myGrabResolveTimer);
-        this.hideMissedSign();
+
         this.resetHands();
         this.showRing();
         this.showGlass();
@@ -681,14 +674,8 @@ class DiamondHeistGame extends BaseGame {
             if (flash) flash.className = 'dh-round-flash ' + (winnerRole === 'P1' ? 'dh-p1-win' : 'dh-p2-win');
             if (navigator.vibrate) navigator.vibrate(100);
 
-            // Show missed sign on loser's hand if they also grabbed
-            if (loserRole) {
-                this.showMissedSign(loserRole);
-            }
-
             setTimeout(() => {
                 if (flash) flash.className = 'dh-round-flash';
-                this.hideMissedSign();
 
                 if (this.scores.p1 >= this.WINNING_SCORE || this.scores.p2 >= this.WINNING_SCORE) {
                     const winner = this.scores.p1 >= this.WINNING_SCORE ? 'P1' : 'P2';
@@ -706,32 +693,6 @@ class DiamondHeistGame extends BaseGame {
                 }
             }, this.NEXT_ROUND_DELAY);
         }, this.GRAB_DURATION);
-    }
-
-    showMissedSign(playerRole) {
-        // Attach missed sign near the loser's hand
-        const hand = document.getElementById(playerRole === 'P1' ? 'dh-p1-hand' : 'dh-p2-hand');
-        if (!hand) return;
-        let missed = document.getElementById('dh-missed-sign');
-        if (!missed) {
-            missed = document.createElement('div');
-            missed.id = 'dh-missed-sign';
-            missed.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);z-index:80;font-size:1.4rem;font-weight:800;color:#ff4444;text-shadow:0 2px 8px rgba(0,0,0,0.8),0 0 20px rgba(255,60,60,0.6);letter-spacing:2px;animation:dhMissedPop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;pointer-events:none;';
-            document.getElementById('dh-container').appendChild(missed);
-        }
-        // Position above the loser hand's side
-        const isBottom = hand.classList.contains('dh-my-hand');
-        missed.style.top = isBottom ? '62%' : '32%';
-        missed.textContent = '✗ MISSED';
-        missed.style.display = 'block';
-        missed.style.animation = 'none';
-        void missed.offsetWidth; // reflow
-        missed.style.animation = 'dhMissedPop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards';
-    }
-
-    hideMissedSign() {
-        const missed = document.getElementById('dh-missed-sign');
-        if (missed) missed.style.display = 'none';
     }
 
     grabDiamond(playerRole) {
@@ -835,7 +796,7 @@ class DiamondHeistGame extends BaseGame {
             this.myGrabPending = false;
             this._myGrabTs = 0;
             clearTimeout(this._myGrabResolveTimer);
-            this.hideMissedSign();
+    
             this.resetHands();
             this.showRing();
             this.showGlass();

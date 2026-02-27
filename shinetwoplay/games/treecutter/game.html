@@ -70,11 +70,12 @@
           <div class="tc-trophy">🏆</div>
           <h1 class="tc-win-t" id="tc-wt">P1 WINS!</h1>
           <div class="tc-fin-sc">
-              <div class="tc-sb-b"><div class="tc-sb-l tc-c1">P1</div><div class="tc-sb-v" id="tc-fw1">0</div></div>
+              <div class="tc-sb-b"><div class="tc-sb-l tc-c1">ME</div><div class="tc-sb-v" id="tc-fw1">0</div></div>
               <div class="tc-sb-vs">—</div>
-              <div class="tc-sb-b"><div class="tc-sb-l tc-c2">P2</div><div class="tc-sb-v" id="tc-fw2">0</div></div>
+              <div class="tc-sb-b"><div class="tc-sb-l tc-c2">OPP</div><div class="tc-sb-v" id="tc-fw2">0</div></div>
           </div>
-          <p id="tc-result-subtext" style="color:rgba(255,255,255,0.6);font-size:14px;margin-top:10px;">Next round starting...</p>
+          <p id="tc-result-subtext" style="color:rgba(255,255,255,0.6);font-size:14px;margin-top:10px;"></p>
+          <button id="tc-lobby-btn" style="margin-top:14px;padding:10px 28px;border-radius:20px;border:none;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-size:13px;font-weight:800;letter-spacing:0.08em;cursor:pointer;box-shadow:0 4px 14px rgba(59,130,246,0.45);" onclick="window._tcReturnLobby && window._tcReturnLobby()">🏠 Return to Lobby</button>
       </div>
   </div>
 </div>
@@ -715,7 +716,7 @@ class TimberChopGame extends BaseGame {
         }
     }
 
-    endRound(iWon) {
+    endRound(iWon, subText) {
         this.gameOn = false;
         this.renderTree(1);
         this.renderTree(2);
@@ -728,6 +729,18 @@ class TimberChopGame extends BaseGame {
         const fw2 = document.getElementById('tc-fw2');
         if (fw1) fw1.textContent = this.myCut;
         if (fw2) fw2.textContent = this.opCut;
+        const sub = document.getElementById('tc-result-subtext');
+        if (sub) sub.textContent = subText || 'Round Over!';
+
+        /* Wire up Return to Lobby button */
+        window._tcReturnLobby = () => {
+            if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ event: 'game_exit' }));
+            }
+            const btn = document.getElementById('tc-lobby-btn');
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
+        };
+
         setTimeout(() => {
             document.getElementById('tc-result-overlay')?.classList.remove('tc-hidden');
             this.confetti(iWon ? '#e74c5a' : '#3b82f6');
@@ -746,36 +759,25 @@ class TimberChopGame extends BaseGame {
     update(state) {
         this.state = state;
         this.updateRoundInfo();
-
-        // If server sent round_started, reset for new round
-        if (state.round_started) {
-            if (this.isP1) {
-                this.genBranches();
-                this.sendInput({ type: 'branches', data: this.branches });
-                this.startGame();
-            }
-        }
+        /* round_started is intentionally NOT handled here;
+           players return to lobby between rounds via the lobby button. */
     }
 
     onRoundEnd(payload) {
         const roundWinner = payload.round_winner;
         const myName = this.state.players[this.myRole];
         const iWon = (roundWinner === myName);
-        this.endRound(iWon);
-        const sub = document.getElementById('tc-result-subtext');
-        if (sub) sub.textContent = 'Next round starting...';
-        setTimeout(() => {
-            document.getElementById('tc-result-overlay')?.classList.add('tc-hidden');
-        }, 2500);
+        const cr = this.state && this.state.current_round ? this.state.current_round - 1 : '';
+        const gameEnded = payload && payload.game_ended;
+        const subText = gameEnded ? 'Game Over!' : `Round ${cr} Complete!`;
+        this.endRound(iWon, subText);
     }
 
     onGameEnd(payload) {
         const winner = payload.game_winner;
         const myName = this.state.players[this.myRole];
-        const iWon = (winner === myName) || (winner === 'draw' && false);
-        this.endRound(iWon);
-        const sub = document.getElementById('tc-result-subtext');
-        if (sub) sub.textContent = winner === 'draw' ? "It's a Draw!" : 'Game Over!';
+        const iWon = (winner === myName);
+        this.endRound(iWon, winner === 'draw' ? "It's a Draw!" : 'Game Over!');
     }
 
     destroy() {

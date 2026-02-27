@@ -3670,13 +3670,16 @@
             // Show global game chat controls
             showGlobalGameChat();
             
+            // Remove previously injected game scripts to prevent "already declared" errors
+            document.querySelectorAll('script.dynamic-game-script').forEach(s => s.remove());
+
             // Execute scripts in injected HTML
             const innerScripts = container.querySelectorAll('script');
             innerScripts.forEach(script => {
                 const newScript = document.createElement('script');
                 newScript.textContent = script.textContent;
                 // Add class to identify dynamically injected game scripts to prevent duplicate accumulation
-                newScript.className = 'dynamic-game-script'; 
+                newScript.className = 'dynamic-game-script';
                 document.body.appendChild(newScript);
             });
             
