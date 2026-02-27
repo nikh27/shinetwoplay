@@ -1,0 +1,657 @@
+<!-- Pull The Rope - Multiplayer -->
+
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+
+<div class="ptr-game" id="ptr-game">
+
+<!-- Top bar: Exit + Voice + Round + Chat -->
+<div class="ptr-top-bar">
+    <div style="display:flex;gap:6px;align-items:center;">
+        <button class="ptr-ctrl-btn" onclick="exitGame()">✕</button>
+        <button class="ptr-ctrl-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+        <button class="ptr-ctrl-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">🔊</button>
+    </div>
+    <div class="ptr-round-badge" id="ptr-round-info">Round 1/1</div>
+    <button class="ptr-ctrl-btn" onclick="document.getElementById('globalGameChatBtn')?.click()" title="Chat">💬</button>
+</div>
+
+<!-- TOP → Opponent stats only (rotated 180°) -->
+<div id="ptr-topStrip" class="ptr-strip ptr-strip-top">
+  <div class="ptr-pinfo">
+    <div class="ptr-avatar" id="ptr-op-avatar">🐼</div>
+    <div class="ptr-nameblock">
+      <div class="ptr-nm ptr-rednm" id="ptr-op-name">OPPONENT</div>
+      <div class="ptr-cnt" id="ptr-p2cnt">0</div>
+      <div class="ptr-lbl">TAPS</div>
+    </div>
+  </div>
+</div>
+
+<canvas id="ptr-arena"></canvas>
+
+<!-- BOTTOM → Me -->
+<div id="ptr-botStrip" class="ptr-strip ptr-strip-bot">
+  <button class="ptr-tapBtn ptr-blue" id="ptr-btnP1">
+    <span style="font-size:2rem;line-height:1">🐼</span>
+    <span>PULL!</span>
+  </button>
+  <div class="ptr-pinfo">
+    <div class="ptr-avatar" id="ptr-my-avatar">🐼</div>
+    <div class="ptr-nameblock">
+      <div class="ptr-nm ptr-bluenm" id="ptr-my-name">YOU</div>
+      <div class="ptr-cnt" id="ptr-p1cnt">0</div>
+      <div class="ptr-lbl">TAPS</div>
+    </div>
+  </div>
+</div>
+
+<!-- COUNTDOWN -->
+<div class="ptr-scr" id="ptr-cdSc" style="display:none"><div id="ptr-cdN"></div></div>
+
+<!-- RESULT OVERLAY -->
+<div id="ptr-result-overlay" class="ptr-scr ptr-hidden">
+  <div class="ptr-winCard">
+    <div id="ptr-wEmoji" style="font-size:4.5rem;margin:.2rem 0"></div>
+    <div id="ptr-wTitle" class="ptr-win-title"></div>
+    <div id="ptr-wSub" style="font-size:1rem;font-weight:700;color:#e2e8f0;margin:.3rem 0;letter-spacing:1px"></div>
+    <div id="ptr-wStats" style="font-size:.82rem;color:#94a3b8;margin:.5rem 0;font-family:'Orbitron',monospace;letter-spacing:1px"></div>
+    <p id="ptr-result-subtext" style="color:rgba(255,255,255,0.6);font-size:14px;margin-top:10px;">Next round starting...</p>
+  </div>
+</div>
+
+</div>
+
+<style>
+/* ===== Pull The Rope - All scoped to .ptr- ===== */
+.ptr-game{position:relative;width:100%;max-width:480px;height:100%;margin:0 auto;overflow:hidden;font-family:'Rajdhani',system-ui,sans-serif;background:#060614;display:flex;flex-direction:column}
+.ptr-game::before{content:'';position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(180,20,20,.18) 0%,transparent 70%),radial-gradient(ellipse 80% 40% at 50% 100%,rgba(20,40,200,.18) 0%,transparent 70%),radial-gradient(ellipse 60% 30% at 0% 50%,rgba(80,0,120,.12) 0%,transparent 70%),radial-gradient(ellipse 60% 30% at 100% 50%,rgba(0,80,120,.12) 0%,transparent 70%);pointer-events:none}
+
+/* Top bar */
+.ptr-top-bar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;z-index:200}
+.ptr-ctrl-btn{width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:white;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(10px);transition:all 0.2s}
+.ptr-ctrl-btn:active{background:rgba(255,255,255,0.3)}
+.ptr-round-badge{background:rgba(255,255,255,0.15);color:white;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;backdrop-filter:blur(10px)}
+
+/* Player strips */
+.ptr-strip{flex-shrink:0;height:120px;display:flex;align-items:center;justify-content:center;gap:16px;padding:0 16px;position:relative;z-index:2}
+.ptr-strip-top{transform:rotate(180deg);background:linear-gradient(180deg,rgba(220,30,30,.22) 0%,rgba(180,10,10,.10) 60%,transparent 100%);border-bottom:1px solid rgba(255,60,60,.12);margin-top:44px}
+.ptr-strip-bot{background:linear-gradient(0deg,rgba(30,60,230,.22) 0%,rgba(10,30,180,.10) 60%,transparent 100%);border-top:1px solid rgba(60,100,255,.12)}
+
+.ptr-pinfo{display:flex;align-items:center;gap:10px}
+.ptr-avatar{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid rgba(255,255,255,.15)}
+.ptr-nameblock{text-align:center;min-width:70px;padding:6px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;backdrop-filter:blur(8px);box-shadow:0 4px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08)}
+.ptr-nm{font-family:'Orbitron',monospace;font-size:.5rem;font-weight:700;letter-spacing:2px;margin-bottom:2px}
+.ptr-rednm{color:#ff6b6b;text-shadow:0 0 12px rgba(255,80,80,.6)}
+.ptr-bluenm{color:#6baeff;text-shadow:0 0 12px rgba(80,150,255,.6)}
+.ptr-cnt{font-family:'Orbitron',monospace;font-size:2rem;font-weight:900;color:#fff;line-height:1;font-variant-numeric:tabular-nums;transition:transform .08s,color .08s;text-shadow:0 0 20px rgba(255,255,255,.3)}
+.ptr-cnt.ptr-flash{transform:scale(1.7);color:#FFD700;text-shadow:0 0 30px #FFD700}
+.ptr-lbl{font-size:.45rem;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.35);margin-top:2px}
+
+/* Tap buttons */
+.ptr-tapBtn{width:90px;height:90px;border-radius:50%;border:none;outline:none;cursor:pointer;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:'Orbitron',monospace;font-weight:700;font-size:.6rem;letter-spacing:1px;color:#fff;transition:transform .04s,box-shadow .04s;will-change:transform,box-shadow}
+.ptr-tapBtn::after{content:'';position:absolute;inset:4px;border-radius:50%;background:linear-gradient(145deg,rgba(255,255,255,.22) 0%,transparent 55%);pointer-events:none}
+.ptr-tapBtn.ptr-red{background:radial-gradient(ellipse at 35% 25%,#ff7a6a 0%,#cc1500 45%,#7a0000 100%);box-shadow:0 12px 0 0 #4a0000,0 0 0 3px rgba(255,50,30,.35),0 18px 36px -4px rgba(180,0,0,.75),inset 0 5px 8px rgba(255,180,160,.3),inset 0 -4px 8px rgba(0,0,0,.6)}
+.ptr-tapBtn.ptr-blue{background:radial-gradient(ellipse at 35% 25%,#6aadff 0%,#0930cc 45%,#001899 100%);box-shadow:0 12px 0 0 #000d55,0 0 0 3px rgba(50,100,255,.35),0 18px 36px -4px rgba(0,20,180,.75),inset 0 5px 8px rgba(160,200,255,.3),inset 0 -4px 8px rgba(0,0,0,.6)}
+.ptr-tapBtn.ptr-pressed{transform:translateY(11px) scale(.96)}
+.ptr-tapBtn.ptr-red.ptr-pressed{box-shadow:0 1px 0 0 #4a0000,0 0 0 3px rgba(255,50,30,.2),0 6px 16px -2px rgba(180,0,0,.4),inset 0 8px 16px rgba(0,0,0,.7)}
+.ptr-tapBtn.ptr-blue.ptr-pressed{box-shadow:0 1px 0 0 #000d55,0 0 0 3px rgba(50,100,255,.2),0 6px 16px -2px rgba(0,20,180,.4),inset 0 8px 16px rgba(0,0,0,.7)}
+.ptr-tapBtn:disabled{opacity:.5;cursor:default}
+.ptr-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.32);transform:scale(0);animation:ptrRpl .5s linear;pointer-events:none}
+@keyframes ptrRpl{to{transform:scale(5);opacity:0}}
+
+/* Canvas */
+#ptr-arena{display:block;width:100%;flex:1;min-height:0;position:relative;z-index:1}
+
+/* Overlays */
+.ptr-scr{position:absolute;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:rgba(4,4,20,.92);backdrop-filter:blur(12px)}
+.ptr-hidden{display:none!important}
+.ptr-winCard{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:28px;padding:32px 40px;backdrop-filter:blur(8px);box-shadow:0 24px 80px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.1);animation:ptrWinZ .65s cubic-bezier(.175,.885,.32,1.275) forwards;text-align:center;color:#fff}
+@keyframes ptrWinZ{0%{transform:scale(.15) rotate(-12deg);opacity:0}62%{transform:scale(1.08) rotate(2deg)}82%{transform:scale(.97)}100%{transform:scale(1);opacity:1}}
+.ptr-win-title{font-family:'Orbitron',monospace;font-size:2rem;font-weight:900;margin:.3rem 0;letter-spacing:3px}
+
+/* Countdown */
+#ptr-cdN{font-family:'Orbitron',monospace;font-size:9rem;font-weight:900;text-align:center;line-height:1;filter:drop-shadow(0 0 40px currentColor)}
+@keyframes ptrCdPop{0%{transform:scale(0) rotate(-20deg);opacity:0}55%{transform:scale(1.4) rotate(4deg)}80%{transform:scale(.92)}100%{transform:scale(1);opacity:1}}
+.ptr-cdp{animation:ptrCdPop .55s cubic-bezier(.22,.68,0,1.2) forwards}
+
+/* Confetti */
+@keyframes ptrCfFall{0%{transform:translateY(-110vh) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(900deg);opacity:0}}
+.ptr-cf{position:fixed;animation:ptrCfFall linear forwards;pointer-events:none;z-index:110}
+</style>
+
+<script>
+// ===== Pull The Rope - Multiplayer Game Class =====
+
+if (!window.GameClasses || !window.GameClasses['pulltherope']) {
+
+class PullTheRopeGame extends BaseGame {
+    constructor() {
+        super();
+        this.gameMode = "real_time";
+        this.PULL_FORCE = 0.088;
+        this.WIN_THR = 0.92;
+        this.GAME_SECS = 60;
+        this.gs = 'idle';
+        this.pull = 0;
+        this.p1Pose = 0; this.p2Pose = 0;
+        this.p1Shock = 0; this.p2Shock = 0;
+        this.myTaps = 0; this.opTaps = 0;
+        this.gameTimer = this.GAME_SECS;
+        this.timerInt = null;
+        this.particles = [];
+        this.raf = null;
+        this.tick = 0;
+        this.isP1 = true;
+        this.bgImg = null;
+        this.W = 0; this.H = 0;
+        this.roundEndSent = false;
+        this.currentRound = 1;
+    }
+
+    init(state) {
+        this.state = state;
+        const gp = state.players || {};
+        this.isP1 = (gp['P1'] === USER);
+        this.myRole = this.isP1 ? 'P1' : 'P2';
+        this.opRole = this.isP1 ? 'P2' : 'P1';
+
+        // Setup names
+        const myName = gp[this.myRole] || 'You';
+        const opName = gp[this.opRole] || 'Opponent';
+        const myLbl = document.getElementById('ptr-my-name');
+        const opLbl = document.getElementById('ptr-op-name');
+        if (myLbl) myLbl.textContent = myName.substring(0, 8);
+        if (opLbl) opLbl.textContent = opName.substring(0, 8);
+
+        // Set avatars from room players data
+        try {
+            const p = window.players || {};
+            const myP = p[gp[this.myRole]];
+            const opP = p[gp[this.opRole]];
+            const myAv = document.getElementById('ptr-my-avatar');
+            const opAv = document.getElementById('ptr-op-avatar');
+            if (myP && myP.gender === 'female') { if(myAv) myAv.innerHTML = '<img src="/static/games/icons/avatar_female.png" style="width:100%;height:100%;border-radius:50%">'; }
+            else { if(myAv) myAv.innerHTML = '<img src="/static/games/icons/avatar_male.png" style="width:100%;height:100%;border-radius:50%">'; }
+            if (opP && opP.gender === 'female') { if(opAv) opAv.innerHTML = '<img src="/static/games/icons/avatar_female.png" style="width:100%;height:100%;border-radius:50%">'; }
+            else { if(opAv) opAv.innerHTML = '<img src="/static/games/icons/avatar_male.png" style="width:100%;height:100%;border-radius:50%">'; }
+        } catch(e) {}
+
+        this.updateRoundInfo();
+        this.currentRound = state.current_round || 1;
+
+        // Canvas setup
+        this.cv = document.getElementById('ptr-arena');
+        this.ctx = this.cv.getContext('2d');
+        this._resizeBound = () => this.resize();
+        window.addEventListener('resize', this._resizeBound);
+        this.resize();
+
+        // Tap events — only MY button works
+        this.setupTapEvents();
+
+        // Start countdown then game
+        this.countdown(() => {
+            this.gs = 'play';
+            this.startTimer();
+        });
+
+        this.raf = requestAnimationFrame(() => this.loop());
+    }
+
+    resize() {
+        if (!this.cv) return;
+        this.W = this.cv.width = this.cv.offsetWidth;
+        this.H = this.cv.height = this.cv.offsetHeight;
+        this.renderBG();
+    }
+
+    setupTapEvents() {
+        const B1 = document.getElementById('ptr-btnP1');
+
+        const tapMe = (e) => {
+            e.preventDefault();
+            if (this.gs !== 'play') return;
+            B1.classList.add('ptr-pressed');
+            this.myTaps++;
+            // I'm always "bottom" pulling down (negative pull for P1, positive for P2 mapped)
+            this.pull = Math.max(-0.97, Math.min(0.97, this.pull + (this.isP1 ? -this.PULL_FORCE : this.PULL_FORCE)));
+            this.p1Pose = Math.min(1, this.p1Pose + 0.65);
+            this.p1Shock = Math.min(1, this.p1Shock + 0.85);
+            const sc = Math.min(this.W / 250, this.H / 500, 1.1);
+            this.spawnBurst(this.W / 2, this.H * 0.81 + this.pawYLocal(this.p1Pose) * sc, '#5599ff', 12);
+            this.flashCount('ptr-p1cnt', this.myTaps);
+            this.addRipple(e, B1);
+            this.sendInput({ type: 'tap' });
+            this.checkWin();
+        };
+
+        if (B1) {
+            B1.addEventListener('touchstart', tapMe, { passive: false });
+            B1.addEventListener('touchend', () => B1.classList.remove('ptr-pressed'));
+            B1.addEventListener('touchcancel', () => B1.classList.remove('ptr-pressed'));
+            B1.addEventListener('mousedown', tapMe);
+            B1.addEventListener('mouseup', () => B1.classList.remove('ptr-pressed'));
+            B1.addEventListener('mouseleave', () => B1.classList.remove('ptr-pressed'));
+        }
+    }
+
+    onRemoteInput(player, data) {
+        if (player === USER) return;
+        if (data.type === 'tap') {
+            this.opTaps++;
+            this.pull = Math.max(-0.97, Math.min(0.97, this.pull + (this.isP1 ? this.PULL_FORCE : -this.PULL_FORCE)));
+            this.p2Pose = Math.min(1, this.p2Pose + 0.65);
+            this.p2Shock = Math.min(1, this.p2Shock + 0.85);
+            const sc = Math.min(this.W / 250, this.H / 500, 1.1);
+            this.spawnBurst(this.W / 2, this.H * 0.19 - this.pawYLocal(this.p2Pose) * sc, '#ff6055', 12);
+            this.flashCount('ptr-p2cnt', this.opTaps);
+            this.checkWin();
+        }
+    }
+
+    checkWin() {
+        if (this.gs !== 'play' || this.roundEndSent) return;
+        // For P1: pull < -threshold means P1 wins (blue/bottom wins)
+        // For P2: pull > +threshold means P2 wins (but P2 sees themselves at bottom)
+        // Normalize: if I'm P1, I win when pull <= -WIN_THR. If I'm P2, I win when pull >= WIN_THR
+        const iWin = this.isP1 ? (this.pull <= -this.WIN_THR) : (this.pull >= this.WIN_THR);
+        const opWins = this.isP1 ? (this.pull >= this.WIN_THR) : (this.pull <= -this.WIN_THR);
+
+        if (iWin || opWins) {
+            this.roundEndSent = true;
+            const winner = iWin ? this.myRole : this.opRole;
+            this.sendMove('round_end', {
+                winner: winner,
+                p1_score: this.isP1 ? this.myTaps : this.opTaps,
+                p2_score: this.isP1 ? this.opTaps : this.myTaps
+            });
+            this.endRound(iWin, false);
+        }
+    }
+
+    startTimer() {
+        this.gameTimer = this.GAME_SECS;
+        clearInterval(this.timerInt);
+        this.timerInt = setInterval(() => {
+            if (this.gs !== 'play') return;
+            this.gameTimer--;
+            if (this.gameTimer <= 0) {
+                clearInterval(this.timerInt);
+                if (this.roundEndSent) return;
+                // Only P1 decides timer-based wins
+                if (this.isP1) {
+                    this.roundEndSent = true;
+                    let winner;
+                    if (Math.abs(this.pull) < 0.01) {
+                        winner = this.myTaps >= this.opTaps ? 'P1' : 'P2';
+                    } else {
+                        winner = this.pull < 0 ? 'P1' : 'P2';
+                    }
+                    this.sendMove('round_end', {
+                        winner: winner,
+                        p1_score: this.myTaps,
+                        p2_score: this.opTaps
+                    });
+                }
+                const iWin = this.isP1
+                    ? (Math.abs(this.pull) < 0.01 ? this.myTaps >= this.opTaps : this.pull < 0)
+                    : (Math.abs(this.pull) < 0.01 ? this.myTaps >= this.opTaps : this.pull > 0);
+                this.endRound(iWin, true);
+            }
+        }, 1000);
+    }
+
+    endRound(iWon, timeUp) {
+        this.gs = 'win';
+        clearInterval(this.timerInt);
+        const col = iWon ? '#5599ff' : '#ff5544';
+        const wEmoji = document.getElementById('ptr-wEmoji');
+        const wTitle = document.getElementById('ptr-wTitle');
+        const wSub = document.getElementById('ptr-wSub');
+        const wStats = document.getElementById('ptr-wStats');
+        if (wEmoji) wEmoji.textContent = iWon ? '🏆🐼' : '😢🐼';
+        if (wTitle) { wTitle.textContent = iWon ? 'YOU WIN!' : 'YOU LOST!'; wTitle.style.color = col; wTitle.style.textShadow = `0 0 40px ${col},0 0 80px ${col}`; }
+        if (wSub) wSub.textContent = timeUp ? '⏰ Time\'s Up!' : '💪 Rope Pulled!';
+        if (wStats) wStats.textContent = `You: ${this.myTaps} taps  ·  Opponent: ${this.opTaps} taps`;
+        setTimeout(() => {
+            document.getElementById('ptr-result-overlay')?.classList.remove('ptr-hidden');
+            this.confetti(col);
+        }, 300);
+    }
+
+    onRoundEnd(payload) {
+        if (this.gs === 'win') return; // already handled locally
+        const roundWinner = payload.round_winner;
+        const myName = this.state.players[this.myRole];
+        const iWon = (roundWinner === myName);
+        this.endRound(iWon, false);
+        const sub = document.getElementById('ptr-result-subtext');
+        if (sub) sub.textContent = 'Next round starting...';
+        setTimeout(() => {
+            document.getElementById('ptr-result-overlay')?.classList.add('ptr-hidden');
+        }, 2500);
+    }
+
+    onGameEnd(payload) {
+        const winner = payload.game_winner;
+        const myName = this.state.players[this.myRole];
+        const iWon = (winner === myName);
+        if (this.gs !== 'win') this.endRound(iWon, false);
+        const sub = document.getElementById('ptr-result-subtext');
+        if (sub) sub.textContent = winner === 'draw' ? "It's a Draw!" : 'Game Over!';
+    }
+
+    update(state) {
+        this.state = state;
+        this.updateRoundInfo();
+        const newRound = state.current_round || 1;
+        if (newRound > this.currentRound) {
+            this.currentRound = newRound;
+            this.resetRound();
+            this.countdown(() => { this.gs = 'play'; this.startTimer(); });
+        }
+    }
+
+    resetRound() {
+        this.pull = 0; this.p1Pose = this.p2Pose = 0; this.p1Shock = this.p2Shock = 0;
+        this.myTaps = this.opTaps = 0; this.particles = []; this.gameTimer = this.GAME_SECS;
+        this.roundEndSent = false; this.gs = 'idle';
+        document.getElementById('ptr-p1cnt').textContent = '0';
+        document.getElementById('ptr-p2cnt').textContent = '0';
+        document.getElementById('ptr-result-overlay')?.classList.add('ptr-hidden');
+    }
+
+    updateRoundInfo() {
+        const el = document.getElementById('ptr-round-info');
+        if (el && this.state) {
+            el.textContent = `Round ${this.state.current_round || 1}/${this.state.total_rounds || 1}`;
+        }
+    }
+
+    countdown(cb) {
+        this.gs = 'cd';
+        const sc = document.getElementById('ptr-cdSc'), tx = document.getElementById('ptr-cdN');
+        sc.style.display = 'flex';
+        const steps = [{ t: '3', c: '#ef4444' }, { t: '2', c: '#f97316' }, { t: '1', c: '#22c55e' }, { t: 'GO!', c: '#FFD700', s: '5rem' }];
+        let i = 0;
+        const next = () => {
+            if (i >= steps.length) { sc.style.display = 'none'; cb(); return; }
+            const st = steps[i++];
+            tx.textContent = st.t; tx.style.color = st.c; tx.style.fontSize = st.s || '9rem';
+            tx.style.textShadow = `0 0 80px ${st.c},0 0 120px ${st.c}`;
+            tx.classList.remove('ptr-cdp'); void tx.offsetWidth; tx.classList.add('ptr-cdp');
+            setTimeout(next, i < steps.length ? 850 : 650);
+        };
+        next();
+    }
+
+    // ===== RENDERING =====
+    pawYLocal(pose) { return 6 - 45 * Math.cos(0.48 + pose * 0.68); }
+
+    renderBG() {
+        const W = this.W, H = this.H;
+        const oc = document.createElement('canvas'); oc.width = W; oc.height = H;
+        const b = oc.getContext('2d');
+        const bg = b.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, '#0a0214'); bg.addColorStop(0.22, '#100828'); bg.addColorStop(0.45, '#0c0d1e');
+        bg.addColorStop(0.55, '#0c0d1e'); bg.addColorStop(0.78, '#080e20'); bg.addColorStop(1, '#040818');
+        b.fillStyle = bg; b.fillRect(0, 0, W, H);
+        b.save(); b.globalAlpha = .04; b.strokeStyle = '#8899ff'; b.lineWidth = 1;
+        for (let x = 0; x < W; x += 32) { b.beginPath(); b.moveTo(x, 0); b.lineTo(x, H); b.stroke(); }
+        for (let y = 0; y < H; y += 32) { b.beginPath(); b.moveTo(0, y); b.lineTo(W, y); b.stroke(); }
+        b.restore();
+        const rz = b.createLinearGradient(0, 0, 0, H * .5);
+        rz.addColorStop(0, 'rgba(220,20,20,.28)'); rz.addColorStop(1, 'rgba(220,20,20,0)');
+        b.fillStyle = rz; b.fillRect(0, 0, W, H * .5);
+        const bz = b.createLinearGradient(0, H * .5, 0, H);
+        bz.addColorStop(0, 'rgba(20,40,220,0)'); bz.addColorStop(1, 'rgba(20,40,220,.28)');
+        b.fillStyle = bz; b.fillRect(0, H * .5, W, H * .5);
+        const cg = b.createLinearGradient(0, H / 2 - 30, 0, H / 2 + 30);
+        cg.addColorStop(0, 'rgba(255,215,0,0)'); cg.addColorStop(.5, 'rgba(255,215,0,.1)'); cg.addColorStop(1, 'rgba(255,215,0,0)');
+        b.fillStyle = cg; b.fillRect(0, H / 2 - 30, W, 60);
+        b.save(); b.globalAlpha = .55;
+        const ml = b.createLinearGradient(0, H / 2 - 1.5, 0, H / 2 + 1.5);
+        ml.addColorStop(0, '#ffe566'); ml.addColorStop(.5, '#FFD700'); ml.addColorStop(1, '#e8a800');
+        b.fillStyle = ml; b.fillRect(0, H / 2 - 1.5, W, 3); b.restore();
+        const vig = b.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, H * .8);
+        vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.45)');
+        b.fillStyle = vig; b.fillRect(0, 0, W, H);
+        this.bgImg = oc;
+    }
+
+    drawPanda(c, col, pose) {
+        const jk = col === 'red' ? '#cc1800' : '#0840cc';
+        const jkL = col === 'red' ? '#ff3322' : '#2266ff';
+        const jkD = col === 'red' ? '#880000' : '#002288';
+        c.rotate(pose * 0.28);
+        c.save(); c.globalAlpha = .2; c.fillStyle = '#000'; c.beginPath(); c.ellipse(0, 80, 44, 11, 0, 0, Math.PI * 2); c.fill(); c.restore();
+        const fs = 18 + pose * 8;
+        c.fillStyle = '#111';
+        c.beginPath(); c.ellipse(-fs, 78, 16, 9, -.1, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.ellipse(fs, 78, 16, 9, .1, 0, Math.PI * 2); c.fill();
+        const lb = pose * .25;
+        c.save(); c.translate(-16, 52); c.rotate(lb); c.fillStyle = '#111'; c.beginPath(); c.ellipse(0, 12, 13, 20, .12, 0, Math.PI * 2); c.fill(); c.restore();
+        c.save(); c.translate(16, 52); c.rotate(-lb); c.fillStyle = '#111'; c.beginPath(); c.ellipse(0, 12, 13, 20, -.12, 0, Math.PI * 2); c.fill(); c.restore();
+        const bsh = c.createRadialGradient(10, 30, 2, 0, 20, 55);
+        bsh.addColorStop(0, jkD); bsh.addColorStop(1, '#000');
+        c.fillStyle = bsh; c.beginPath(); c.ellipse(3, 22, 40, 48, 0, 0, Math.PI * 2); c.fill();
+        const bjg = c.createRadialGradient(-14, -2, 4, 0, 16, 52);
+        bjg.addColorStop(0, jkL); bjg.addColorStop(.55, jk); bjg.addColorStop(1, jkD);
+        c.fillStyle = bjg; c.beginPath(); c.ellipse(0, 18, 38, 46, 0, 0, Math.PI * 2); c.fill();
+        const bel = c.createRadialGradient(-5, 18, 2, 0, 22, 28);
+        bel.addColorStop(0, '#fff'); bel.addColorStop(1, '#ddd');
+        c.fillStyle = bel; c.beginPath(); c.ellipse(0, 26, 17, 24, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = jkD;
+        c.beginPath(); c.moveTo(-6, -28); c.lineTo(-22, 5); c.lineTo(-5, 8); c.closePath(); c.fill();
+        c.beginPath(); c.moveTo(6, -28); c.lineTo(22, 5); c.lineTo(5, 8); c.closePath(); c.fill();
+        const armAng = -(0.48 + pose * 0.68);
+        const drawArm = (tx, flip) => {
+            c.save(); c.translate(tx, 6); c.rotate(flip ? -armAng : armAng);
+            c.fillStyle = '#0a0a0a'; c.beginPath(); c.ellipse(flip ? 2 : -2, -20, 12, 26, 0, 0, Math.PI * 2); c.fill();
+            c.fillStyle = '#1a1a1a'; c.beginPath(); c.ellipse(0, -36, 9, 10, 0, 0, Math.PI * 2); c.fill();
+            c.fillStyle = '#0d0d0d'; c.beginPath(); c.ellipse(0, -46, 13, 10, 0, 0, Math.PI * 2); c.fill();
+            c.fillStyle = 'rgba(210,155,155,.65)'; c.beginPath(); c.ellipse(0, -46, 7, 5, 0, 0, Math.PI * 2); c.fill();
+            c.restore();
+        };
+        drawArm(-36, false); drawArm(36, true);
+        c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(3, -18, 33, 31, 0, 0, Math.PI * 2); c.fill();
+        const hg = c.createRadialGradient(-10, -32, 5, 0, -20, 34);
+        hg.addColorStop(0, '#ffffff'); hg.addColorStop(.7, '#eeeeee'); hg.addColorStop(1, '#cccccc');
+        c.fillStyle = hg; c.beginPath(); c.ellipse(0, -22, 32, 30, 0, 0, Math.PI * 2); c.fill();
+        [[-22, -48], [22, -48]].forEach(([ex, ey]) => { c.fillStyle = '#000'; c.beginPath(); c.arc(ex, ey, 15, 0, Math.PI * 2); c.fill(); });
+        c.fillStyle = '#0a0a0a';
+        c.beginPath(); c.ellipse(-13, -25, 13, 10, -.3, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.ellipse(13, -25, 13, 10, .3, 0, Math.PI * 2); c.fill();
+        const ew1 = c.createRadialGradient(-13, -26, 1, -13, -25, 7); ew1.addColorStop(0, '#fff'); ew1.addColorStop(1, '#e8e8e8');
+        c.fillStyle = ew1; c.beginPath(); c.ellipse(-13, -25, 7, 6, 0, 0, Math.PI * 2); c.fill();
+        const ew2 = c.createRadialGradient(13, -26, 1, 13, -25, 7); ew2.addColorStop(0, '#fff'); ew2.addColorStop(1, '#e8e8e8');
+        c.fillStyle = ew2; c.beginPath(); c.ellipse(13, -25, 7, 6, 0, 0, Math.PI * 2); c.fill();
+        const ly = -24.5 - pose * 1.5, pr = 3.5 - pose * .5;
+        c.fillStyle = '#0a0a0a';
+        c.beginPath(); c.arc(-13, ly, pr, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc(13, ly, pr, 0, Math.PI * 2); c.fill();
+        c.fillStyle = 'rgba(255,255,255,.8)';
+        c.beginPath(); c.arc(-11, ly - 1.5, 1.5, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc(15, ly - 1.5, 1.5, 0, Math.PI * 2); c.fill();
+        const ng = c.createRadialGradient(-1, -14, 0, 0, -13, 6);
+        ng.addColorStop(0, '#2a2a2a'); ng.addColorStop(1, '#000');
+        c.fillStyle = ng; c.beginPath(); c.ellipse(0, -13, 6, 4, 0, 0, Math.PI * 2); c.fill();
+        c.strokeStyle = '#111'; c.lineWidth = 2; c.lineCap = 'round'; c.beginPath();
+        if (pose > 0.42) { c.moveTo(-7, -8); c.lineTo(7, -8); } else { c.moveTo(-5, -9); c.quadraticCurveTo(0, -4, 5, -9); }
+        c.stroke();
+        c.save(); c.globalAlpha = .3; c.fillStyle = '#ffaaaa';
+        c.beginPath(); c.ellipse(-22, -19, 9, 6, 0, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.ellipse(22, -19, 9, 6, 0, 0, Math.PI * 2); c.fill(); c.restore();
+    }
+
+    drawRope(topY, botY) {
+        const ctx = this.ctx, W = this.W, R = 11;
+        const cY = (topY + botY) / 2, half = (botY - topY) / 2;
+        const knotY = cY - this.pull * half * .76;
+        const shake = (this.p1Shock + this.p2Shock) * 2.8 * Math.sin(this.tick * .32);
+        const rx = W / 2 + shake;
+        ctx.save(); ctx.globalAlpha = .3; ctx.strokeStyle = '#000'; ctx.lineWidth = R * 2 + 12; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(rx + 6, topY); ctx.lineTo(rx + 6, botY); ctx.stroke(); ctx.restore();
+        ctx.strokeStyle = '#120500'; ctx.lineWidth = R * 2 + 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(rx, topY); ctx.lineTo(rx, botY); ctx.stroke();
+        const cg = ctx.createLinearGradient(rx - R, 0, rx + R, 0);
+        cg.addColorStop(0, '#120400'); cg.addColorStop(0.10, '#5a2205'); cg.addColorStop(0.28, '#a85012');
+        cg.addColorStop(0.44, '#e0a022'); cg.addColorStop(0.54, '#f0b82a'); cg.addColorStop(0.70, '#9a5015');
+        cg.addColorStop(0.88, '#4a1a05'); cg.addColorStop(1, '#080200');
+        ctx.strokeStyle = cg; ctx.lineWidth = R * 2; ctx.stroke();
+        ctx.save(); ctx.beginPath(); ctx.rect(rx - R, topY, R * 2, botY - topY); ctx.clip();
+        ctx.lineWidth = 2; ctx.lineCap = 'butt';
+        for (let y = topY; y < botY; y += 10) {
+            ctx.strokeStyle = 'rgba(20,6,0,.44)';
+            ctx.beginPath(); ctx.moveTo(rx - R, y); ctx.lineTo(rx + R, Math.min(y + 10, botY)); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(rx + R, y); ctx.lineTo(rx - R, Math.min(y + 10, botY)); ctx.stroke();
+        }
+        ctx.restore();
+        const hl = ctx.createLinearGradient(rx - R, 0, rx + R, 0);
+        hl.addColorStop(0, 'rgba(255,225,130,0)'); hl.addColorStop(.24, 'rgba(255,225,130,.28)');
+        hl.addColorStop(.40, 'rgba(255,248,180,.42)'); hl.addColorStop(.60, 'rgba(255,225,130,.1)');
+        hl.addColorStop(1, 'rgba(255,225,130,0)');
+        ctx.strokeStyle = hl; ctx.lineWidth = R * 2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(rx, topY); ctx.lineTo(rx, botY); ctx.stroke();
+        [topY, botY].forEach(ey => {
+            ctx.fillStyle = '#1e0800'; ctx.beginPath(); ctx.ellipse(rx, ey, R + 1, R * .45, 0, 0, Math.PI * 2); ctx.fill();
+            const cg2 = ctx.createRadialGradient(rx - R * .3, ey, 1, rx, ey, R);
+            cg2.addColorStop(0, '#c07020'); cg2.addColorStop(1, '#320e00');
+            ctx.fillStyle = cg2; ctx.beginPath(); ctx.ellipse(rx, ey, R, R * .42, 0, 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.save(); ctx.lineWidth = 5; ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(255,70,50,.98)'; ctx.shadowColor = 'rgba(255,50,30,1)'; ctx.shadowBlur = 16;
+        ctx.beginPath(); ctx.arc(rx, topY, R + 5, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(60,140,255,.98)'; ctx.shadowColor = 'rgba(40,110,255,1)'; ctx.shadowBlur = 16;
+        ctx.beginPath(); ctx.arc(rx, botY, R + 5, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0; ctx.restore();
+        // Knot
+        const gw = ctx.createRadialGradient(rx, knotY, 0, rx, knotY, 40);
+        gw.addColorStop(0, 'rgba(255,220,0,.8)'); gw.addColorStop(.6, 'rgba(255,180,0,.3)'); gw.addColorStop(1, 'rgba(255,215,0,0)');
+        ctx.fillStyle = gw; ctx.beginPath(); ctx.arc(rx, knotY, 40, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.arc(rx + 4, knotY + 4, 15, 0, Math.PI * 2); ctx.fill();
+        [['#1e0800', 20], ['#5a2c05', 17], ['#9a5010', 14], ['#cc8018', 11], ['#e8a828', 8], ['#f8c840', 5], ['#fff380', 2.5]].forEach(([col, r]) => {
+            ctx.fillStyle = col; ctx.beginPath(); ctx.arc(rx, knotY, r, 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.fillStyle = 'rgba(255,255,255,.65)'; ctx.beginPath(); ctx.arc(rx - 5, knotY - 5, 4, 0, Math.PI * 2); ctx.fill();
+    }
+
+    drawTimer() {
+        const ctx = this.ctx, cx = this.W / 2, cy = this.H / 2;
+        const R = 34, prog = this.gameTimer / this.GAME_SECS;
+        const col = this.gameTimer > 20 ? '#22c55e' : this.gameTimer > 10 ? '#f97316' : '#ef4444';
+        const blink = this.gameTimer <= 10 && this.tick % 30 < 15;
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.beginPath(); ctx.arc(cx, cy, R + 10, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = col; ctx.lineWidth = 7; ctx.lineCap = 'round';
+        ctx.shadowColor = col; ctx.shadowBlur = blink ? 0 : 18;
+        ctx.beginPath(); ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + prog * Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+        if (!blink) {
+            ctx.fillStyle = '#fff'; ctx.font = `900 ${this.gameTimer >= 10 ? '22' : '26'}px 'Orbitron',monospace`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(this.gameTimer, cx, cy);
+        }
+        ctx.restore();
+    }
+
+    drawProgressBar(topY, botY) {
+        const ctx = this.ctx, W = this.W;
+        const bx = W - 16, bw = 9;
+        const cY = (topY + botY) / 2, half = (botY - topY) / 2;
+        const kY = cY - this.pull * half * .76, bH = botY - topY;
+        ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.beginPath(); ctx.roundRect(bx - bw / 2, topY, bw, bH, 5); ctx.fill();
+        if (kY > topY) { ctx.fillStyle = 'rgba(220,50,50,.75)'; ctx.beginPath(); ctx.roundRect(bx - bw / 2, topY, bw, kY - topY, 5); ctx.fill(); }
+        if (kY < botY) { ctx.fillStyle = 'rgba(50,110,230,.75)'; ctx.beginPath(); ctx.roundRect(bx - bw / 2, kY, bw, botY - kY, 5); ctx.fill(); }
+        ctx.save(); ctx.shadowColor = 'rgba(255,215,0,.8)'; ctx.shadowBlur = 14; ctx.fillStyle = '#FFD700';
+        ctx.beginPath(); ctx.arc(bx, kY, 7.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+
+    spawnBurst(x, y, col, n = 12) {
+        for (let i = 0; i < n; i++) {
+            const a = (Math.PI * 2 / n) * i + Math.random() * .6, spd = 2.5 + Math.random() * 6;
+            this.particles.push({ x, y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 3, life: 1, decay: .035 + Math.random() * .04, r: 3 + Math.random() * 6, col });
+        }
+    }
+
+    tickParticles() {
+        const ctx = this.ctx;
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i]; p.x += p.vx; p.y += p.vy; p.vy += .22; p.life -= p.decay;
+            if (p.life <= 0) { this.particles.splice(i, 1); continue; }
+            ctx.save(); ctx.globalAlpha = p.life; ctx.shadowColor = p.col; ctx.shadowBlur = 8;
+            ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        }
+    }
+
+    draw() {
+        const ctx = this.ctx, W = this.W, H = this.H;
+        ctx.clearRect(0, 0, W, H);
+        if (this.bgImg) ctx.drawImage(this.bgImg, 0, 0);
+        const sc = Math.min(W / 250, H / 500, 1.1);
+        const p2CY = H * 0.19, p1CY = H * 0.81;
+        const rTopY = p2CY - this.pawYLocal(this.p2Pose) * sc;
+        const rBotY = p1CY + this.pawYLocal(this.p1Pose) * sc;
+        this.drawRope(rTopY, rBotY);
+        ctx.save(); ctx.translate(W / 2, p2CY); ctx.scale(sc, -sc); this.drawPanda(ctx, 'red', this.p2Pose); ctx.restore();
+        ctx.save(); ctx.translate(W / 2, p1CY); ctx.scale(sc, sc); this.drawPanda(ctx, 'blue', this.p1Pose); ctx.restore();
+        this.tickParticles();
+        this.drawProgressBar(rTopY, rBotY);
+        if (this.gs === 'play') this.drawTimer();
+    }
+
+    loop() {
+        this.tick++;
+        this.p1Pose = Math.max(0, this.p1Pose - 0.058);
+        this.p2Pose = Math.max(0, this.p2Pose - 0.058);
+        this.p1Shock = Math.max(0, this.p1Shock - 0.07);
+        this.p2Shock = Math.max(0, this.p2Shock - 0.07);
+        this.draw();
+        this.raf = requestAnimationFrame(() => this.loop());
+    }
+
+    flashCount(id, val) {
+        const el = document.getElementById(id); if (!el) return;
+        el.textContent = val; el.classList.remove('ptr-flash'); void el.offsetWidth; el.classList.add('ptr-flash');
+        setTimeout(() => el.classList.remove('ptr-flash'), 160);
+    }
+
+    addRipple(e, btn) {
+        const r = document.createElement('span'); r.className = 'ptr-ripple';
+        const rc = btn.getBoundingClientRect(), sz = Math.max(rc.width, rc.height);
+        let cx2 = rc.left + rc.width / 2, cy2 = rc.top + rc.height / 2;
+        if (e.touches && e.touches[0]) { cx2 = e.touches[0].clientX; cy2 = e.touches[0].clientY; }
+        r.style.cssText = `width:${sz}px;height:${sz}px;left:${cx2 - rc.left - sz / 2}px;top:${cy2 - rc.top - sz / 2}px`;
+        btn.appendChild(r); setTimeout(() => r.remove(), 600);
+    }
+
+    confetti(wc) {
+        const cols = [wc, '#FFD700', '#ffffff', '#ff88cc', '#88ffcc', '#ffaa44'];
+        const game = document.getElementById('ptr-game');
+        for (let i = 0; i < 80; i++) setTimeout(() => {
+            const el = document.createElement('div'); el.className = 'ptr-cf';
+            const c = cols[i % cols.length], w = 6 + Math.random() * 10, h = 6 + Math.random() * 10, dur = 1.5 + Math.random() * 2;
+            el.style.cssText = `left:${Math.random() * 100}vw;width:${w}px;height:${h}px;background:${c};border-radius:${Math.random() > .5 ? '50%' : '4px'};animation-duration:${dur}s;animation-delay:${Math.random() * .4}s;`;
+            if (game) game.appendChild(el); setTimeout(() => el.remove(), 4800);
+        }, i * 24);
+    }
+
+    destroy() {
+        super.destroy();
+        clearInterval(this.timerInt);
+        cancelAnimationFrame(this.raf);
+        window.removeEventListener('resize', this._resizeBound);
+    }
+}
+
+// Register
+window.GameClasses = window.GameClasses || {};
+window.GameClasses['pulltherope'] = PullTheRopeGame;
+
+} // end if (!window.GameClasses['pulltherope'])
+
+window.exitGame = window.exitGame || function () {
+    if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ event: 'game_exit' }));
+    }
+};
+</script>

@@ -75,6 +75,14 @@ GAMES = [
         'description': 'Real-time 2-player snake battle! Control your snake and outlast your opponent!',
         'min_players': 2,
         'max_players': 2,
+    },
+    {
+        'game_id': 'pulltherope',
+        'name': 'Pull The Rope',
+        'image_url': '/static/games/pulltherope.png',
+        'description': 'Tap as fast as you can! Pull the rope to your side to win!',
+        'min_players': 2,
+        'max_players': 2,
     }
 ]
 
