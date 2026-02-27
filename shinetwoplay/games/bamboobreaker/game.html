@@ -113,7 +113,7 @@
 </div>
 
 <script>
-if (!window.GameClasses || !window.GameClasses['bamboobreaker']) {
+{ // guard to prevent re-declaration errors
 
 class BambooBreakerGame extends BaseGame {
     constructor() {
@@ -708,7 +708,7 @@ class BambooBreakerGame extends BaseGame {
         }, 900);
     }
 
-    _showGameOver(winner, subText) {
+    _showGameOver(winner, subText, showLobbyBtn) {
         this.winShown = true;
         const myIdx = this.myRole==='P1' ? 0 : 1;
         const iWon = winner === myIdx;
@@ -721,14 +721,17 @@ class BambooBreakerGame extends BaseGame {
         sub.textContent = `${this.P[winner].color==='#4fc3f7'?'Blue':'Red'} Panda survives!`;
         document.getElementById('bb-next-text').textContent = subText || 'Round Over!';
         document.getElementById('bb-gameover').classList.remove('hidden');
-        /* Wire up Return to Lobby button */
-        window._bbBreakerReturnLobby = () => {
-            if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ event: 'game_exit' }));
-            }
-            const btn = document.getElementById('bb-lobby-btn');
-            if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
-        };
+        /* Show/hide lobby button */
+        const btn = document.getElementById('bb-lobby-btn');
+        if (btn) btn.style.display = showLobbyBtn ? '' : 'none';
+        if (showLobbyBtn) {
+            window._bbBreakerReturnLobby = () => {
+                if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ event: 'game_exit' }));
+                }
+                if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
+            };
+        }
     }
 
     _updateParticles() {
@@ -1269,27 +1272,44 @@ class BambooBreakerGame extends BaseGame {
             this.playing = false;
             if (this._raf) cancelAnimationFrame(this._raf);
         }
-        const cr = this.state && this.state.current_round ? this.state.current_round - 1 : '';
         const gameEnded = payload && payload.game_ended;
-        const subText = gameEnded ? 'Game Over!' : `Round ${cr} Complete!`;
-        // Show win overlay if not already shown
-        if (!this.winShown) {
-            const roundWinner = payload.round_winner;
-            const myName = this.state.players[this.myRole];
-            const iWon = (roundWinner === myName);
-            const winIdx = iWon ? (this.myRole==='P1'?0:1) : (this.myRole==='P1'?1:0);
-            this._showGameOver(winIdx, subText);
-        } else {
-            /* Already shown locally — just update sub-text and wire lobby button */
-            const sub = document.getElementById('bb-next-text');
-            if (sub) sub.textContent = subText;
-            window._bbBreakerReturnLobby = () => {
-                if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({ event: 'game_exit' }));
-                }
+        const cr = this.state && this.state.current_round ? this.state.current_round - 1 : '';
+
+        if (gameEnded) {
+            /* Game fully over — show lobby button */
+            if (!this.winShown) {
+                const roundWinner = payload.round_winner;
+                const myName = this.state.players[this.myRole];
+                const iWon = (roundWinner === myName);
+                const winIdx = iWon ? (this.myRole==='P1'?0:1) : (this.myRole==='P1'?1:0);
+                this._showGameOver(winIdx, 'Game Over!', true);
+            } else {
+                const sub = document.getElementById('bb-next-text');
+                if (sub) sub.textContent = 'Game Over!';
                 const btn = document.getElementById('bb-lobby-btn');
-                if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
-            };
+                if (btn) btn.style.display = '';
+                window._bbBreakerReturnLobby = () => {
+                    if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({ event: 'game_exit' }));
+                    }
+                    if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
+                };
+            }
+        } else {
+            /* More rounds remain — show brief result, auto-hide, next round starts via update() */
+            if (!this.winShown) {
+                const roundWinner = payload.round_winner;
+                const myName = this.state.players[this.myRole];
+                const iWon = (roundWinner === myName);
+                const winIdx = iWon ? (this.myRole==='P1'?0:1) : (this.myRole==='P1'?1:0);
+                this._showGameOver(winIdx, `Round ${cr} Complete!`, false);
+            } else {
+                const sub = document.getElementById('bb-next-text');
+                if (sub) sub.textContent = `Round ${cr} Complete!`;
+            }
+            setTimeout(() => {
+                document.getElementById('bb-gameover').classList.add('hidden');
+            }, 2500);
         }
     }
 
@@ -1304,16 +1324,16 @@ class BambooBreakerGame extends BaseGame {
         const subText = winner === 'draw' ? "It's a Draw!" : 'Game Over!';
         if (!this.winShown) {
             const winIdx = iWon ? (this.myRole==='P1'?0:1) : (this.myRole==='P1'?1:0);
-            this._showGameOver(winIdx, subText);
+            this._showGameOver(winIdx, subText, true);
         } else {
             const sub = document.getElementById('bb-next-text');
             if (sub) sub.textContent = subText;
-            /* Wire lobby button if shown locally already */
+            const btn = document.getElementById('bb-lobby-btn');
+            if (btn) btn.style.display = '';
             window._bbBreakerReturnLobby = () => {
                 if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
                     socket.send(JSON.stringify({ event: 'game_exit' }));
                 }
-                const btn = document.getElementById('bb-lobby-btn');
                 if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
             };
         }
@@ -1322,7 +1342,13 @@ class BambooBreakerGame extends BaseGame {
     update(state) {
         this.state = state;
         this._updateRoundBadge();
-        /* Auto-restart intentionally removed: players click Return to Lobby between rounds. */
+        const newRound = state.current_round || 1;
+        if (newRound > this.currentRound) {
+            this.currentRound = newRound;
+            this.roundEndSent = false;
+            this.winShown = false;
+            setTimeout(() => this._startMatch(), 500);
+        }
     }
 
     destroy() {

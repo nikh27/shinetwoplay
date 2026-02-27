@@ -134,8 +134,8 @@ class PullTheRopeGame extends BaseGame {
         this.GAME_SECS = 60;
         this.gs = 'idle';
         this.pull = 0;
-        this.p1Pose = 0; this.p2Pose = 0;
-        this.p1Shock = 0; this.p2Shock = 0;
+        this.myPose = 0; this.opPose = 0;
+        this.myShock = 0; this.opShock = 0;
         this.myTaps = 0; this.opTaps = 0;
         this.gameTimer = this.GAME_SECS;
         this.timerInt = null;
@@ -143,6 +143,8 @@ class PullTheRopeGame extends BaseGame {
         this.raf = null;
         this.tick = 0;
         this.isP1 = true;
+        this.myColor = 'blue';
+        this.opColor = 'red';
         this.bgImg = null;
         this.W = 0; this.H = 0;
         this.roundEndSent = false;
@@ -156,6 +158,31 @@ class PullTheRopeGame extends BaseGame {
         this.myRole = this.isP1 ? 'P1' : 'P2';
         this.opRole = this.isP1 ? 'P2' : 'P1';
 
+        // My color is blue for P1, red for P2
+        this.myColor = this.isP1 ? 'blue' : 'red';
+        this.opColor = this.isP1 ? 'red' : 'blue';
+
+        // Score counter IDs: bottom strip = me, top strip = opponent
+        this.myCounterId = 'ptr-p1cnt';
+        this.opCounterId = 'ptr-p2cnt';
+
+        // Color the button and bottom strip based on player role
+        const btn = document.getElementById('ptr-btnP1');
+        if (btn) {
+            btn.classList.remove('ptr-blue', 'ptr-red');
+            btn.classList.add(this.isP1 ? 'ptr-blue' : 'ptr-red');
+        }
+        // Color the bottom strip to match player
+        const botStrip = document.getElementById('ptr-botStrip');
+        if (botStrip) {
+            botStrip.style.background = this.isP1
+                ? 'linear-gradient(0deg,rgba(30,60,230,.22) 0%,rgba(10,30,180,.10) 60%,transparent 100%)'
+                : 'linear-gradient(0deg,rgba(220,30,30,.22) 0%,rgba(180,10,10,.10) 60%,transparent 100%)';
+            botStrip.style.borderTop = this.isP1
+                ? '1px solid rgba(60,100,255,.12)'
+                : '1px solid rgba(255,60,60,.12)';
+        }
+
         // Setup names
         const myName = gp[this.myRole] || 'You';
         const opName = gp[this.opRole] || 'Opponent';
@@ -163,6 +190,10 @@ class PullTheRopeGame extends BaseGame {
         const opLbl = document.getElementById('ptr-op-name');
         if (myLbl) myLbl.textContent = myName.substring(0, 8);
         if (opLbl) opLbl.textContent = opName.substring(0, 8);
+
+        // Name colors: my name is MY color, op name is OP color
+        if (myLbl) { myLbl.className = 'ptr-nm ' + (this.isP1 ? 'ptr-bluenm' : 'ptr-rednm'); }
+        if (opLbl) { opLbl.className = 'ptr-nm ' + (this.isP1 ? 'ptr-rednm' : 'ptr-bluenm'); }
 
         // Set avatars from room players data
         try {
@@ -214,13 +245,14 @@ class PullTheRopeGame extends BaseGame {
             if (this.gs !== 'play') return;
             B1.classList.add('ptr-pressed');
             this.myTaps++;
-            // I'm always "bottom" pulling down (negative pull for P1, positive for P2 mapped)
+            // Pull force: P1 pulls knot toward bottom (negative), P2 pulls toward top (positive)
             this.pull = Math.max(-0.97, Math.min(0.97, this.pull + (this.isP1 ? -this.PULL_FORCE : this.PULL_FORCE)));
-            this.p1Pose = Math.min(1, this.p1Pose + 0.65);
-            this.p1Shock = Math.min(1, this.p1Shock + 0.85);
+            this.myPose = Math.min(1, this.myPose + 0.65);
+            this.myShock = Math.min(1, this.myShock + 0.85);
             const sc = Math.min(this.W / 250, this.H / 500, 1.1);
-            this.spawnBurst(this.W / 2, this.H * 0.81 + this.pawYLocal(this.p1Pose) * sc, '#5599ff', 12);
-            this.flashCount('ptr-p1cnt', this.myTaps);
+            // Burst at my panda's paw position (always at screen bottom)
+            this.spawnBurst(this.W / 2, this.H * 0.81 + this.pawYLocal(this.myPose) * sc, this.myColor === 'blue' ? '#5599ff' : '#ff6055', 12);
+            this.flashCount(this.myCounterId, this.myTaps);
             this.addRipple(e, B1);
             this.sendInput({ type: 'tap' });
             this.checkWin();
@@ -240,12 +272,14 @@ class PullTheRopeGame extends BaseGame {
         if (player === USER) return;
         if (data.type === 'tap') {
             this.opTaps++;
+            // Opponent's tap pulls knot in the opposite direction from my taps
             this.pull = Math.max(-0.97, Math.min(0.97, this.pull + (this.isP1 ? this.PULL_FORCE : -this.PULL_FORCE)));
-            this.p2Pose = Math.min(1, this.p2Pose + 0.65);
-            this.p2Shock = Math.min(1, this.p2Shock + 0.85);
+            this.opPose = Math.min(1, this.opPose + 0.65);
+            this.opShock = Math.min(1, this.opShock + 0.85);
             const sc = Math.min(this.W / 250, this.H / 500, 1.1);
-            this.spawnBurst(this.W / 2, this.H * 0.19 - this.pawYLocal(this.p2Pose) * sc, '#ff6055', 12);
-            this.flashCount('ptr-p2cnt', this.opTaps);
+            // Burst at opponent's paw position (always at screen top)
+            this.spawnBurst(this.W / 2, this.H * 0.19 - this.pawYLocal(this.opPose) * sc, this.opColor === 'red' ? '#ff6055' : '#5599ff', 12);
+            this.flashCount(this.opCounterId, this.opTaps);
             this.checkWin();
         }
     }
@@ -302,7 +336,7 @@ class PullTheRopeGame extends BaseGame {
         }, 1000);
     }
 
-    endRound(iWon, timeUp, subText) {
+    endRound(iWon, timeUp, subText, showLobbyBtn) {
         this.gs = 'win';
         clearInterval(this.timerInt);
         const col = iWon ? '#5599ff' : '#ff5544';
@@ -316,14 +350,17 @@ class PullTheRopeGame extends BaseGame {
         if (wSub) wSub.textContent = timeUp ? '⏰ Time\'s Up!' : '💪 Rope Pulled!';
         if (wStats) wStats.textContent = `You: ${this.myTaps} taps  ·  Opponent: ${this.opTaps} taps`;
         if (wSubtext) wSubtext.textContent = subText || 'Round Over!';
-        /* Wire up Return to Lobby button */
-        window._ptrReturnLobby = () => {
-            if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ event: 'game_exit' }));
-            }
-            const btn = document.getElementById('ptr-lobby-btn');
-            if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
-        };
+        /* Show/hide lobby button */
+        const lobbyBtn = document.getElementById('ptr-lobby-btn');
+        if (lobbyBtn) lobbyBtn.style.display = showLobbyBtn ? '' : 'none';
+        if (showLobbyBtn) {
+            window._ptrReturnLobby = () => {
+                if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ event: 'game_exit' }));
+                }
+                if (lobbyBtn) { lobbyBtn.disabled = true; lobbyBtn.textContent = '⏳ Leaving...'; }
+            };
+        }
         setTimeout(() => {
             document.getElementById('ptr-result-overlay')?.classList.remove('ptr-hidden');
             this.confetti(col);
@@ -335,10 +372,19 @@ class PullTheRopeGame extends BaseGame {
         const roundWinner = payload.round_winner;
         const myName = this.state.players[this.myRole];
         const iWon = (roundWinner === myName);
-        const cr = this.state && this.state.current_round ? this.state.current_round - 1 : '';
         const gameEnded = payload && payload.game_ended;
-        const subText = gameEnded ? 'Game Over!' : `Round ${cr} Complete!`;
-        this.endRound(iWon, false, subText);
+
+        if (gameEnded) {
+            /* Game fully over — show lobby button */
+            this.endRound(iWon, false, 'Game Over!', true);
+        } else {
+            /* More rounds remain — brief result, auto-hide, next round starts via update() */
+            const cr = this.state && this.state.current_round ? this.state.current_round - 1 : '';
+            this.endRound(iWon, false, `Round ${cr} Complete!`, false);
+            setTimeout(() => {
+                document.getElementById('ptr-result-overlay')?.classList.add('ptr-hidden');
+            }, 2500);
+        }
     }
 
     onGameEnd(payload) {
@@ -346,25 +392,47 @@ class PullTheRopeGame extends BaseGame {
         const myName = this.state.players[this.myRole];
         const iWon = (winner === myName);
         const subText = winner === 'draw' ? "It's a Draw!" : 'Game Over!';
-        if (this.gs !== 'win') this.endRound(iWon, false, subText);
+        if (this.gs !== 'win') this.endRound(iWon, false, subText, true);
         else {
+            /* Already shown locally — just update text and show lobby btn */
             const sub = document.getElementById('ptr-result-subtext');
             if (sub) sub.textContent = subText;
+            const btn = document.getElementById('ptr-lobby-btn');
+            if (btn) btn.style.display = '';
+            window._ptrReturnLobby = () => {
+                if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ event: 'game_exit' }));
+                }
+                if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
+            };
         }
     }
 
     update(state) {
         this.state = state;
         this.updateRoundInfo();
-        /* Auto-restart intentionally removed: players click Return to Lobby between rounds. */
+        const newRound = state.current_round || 1;
+        if (newRound > this.currentRound) {
+            this.currentRound = newRound;
+            this.resetRound();
+            this.countdown(() => { this.gs = 'play'; this.startTimer(); });
+        }
     }
 
     resetRound() {
-        this.pull = 0; this.p1Pose = this.p2Pose = 0; this.p1Shock = this.p2Shock = 0;
-        this.myTaps = this.opTaps = 0; this.particles = []; this.gameTimer = this.GAME_SECS;
-        this.roundEndSent = false; this.gs = 'idle';
-        document.getElementById('ptr-p1cnt').textContent = '0';
-        document.getElementById('ptr-p2cnt').textContent = '0';
+        this.pull = 0;
+        this.myPose = this.opPose = 0;
+        this.myShock = this.opShock = 0;
+        this.myTaps = this.opTaps = 0;
+        this.particles = [];
+        this.gameTimer = this.GAME_SECS;
+        this.roundEndSent = false;
+        this.gs = 'idle';
+        // Reset score display
+        const myCnt = document.getElementById(this.myCounterId);
+        const opCnt = document.getElementById(this.opCounterId);
+        if (myCnt) myCnt.textContent = '0';
+        if (opCnt) opCnt.textContent = '0';
         document.getElementById('ptr-result-overlay')?.classList.add('ptr-hidden');
     }
 
@@ -544,18 +612,20 @@ class PullTheRopeGame extends BaseGame {
     }
 
     drawTimer() {
-        const ctx = this.ctx, cx = this.W / 2, cy = this.H / 2;
-        const R = 34, prog = this.gameTimer / this.GAME_SECS;
+        const ctx = this.ctx;
+        // Place timer on the LEFT side, vertically centered, off the rope
+        const cx = 38, cy = this.H / 2;
+        const R = 28, prog = this.gameTimer / this.GAME_SECS;
         const col = this.gameTimer > 20 ? '#22c55e' : this.gameTimer > 10 ? '#f97316' : '#ef4444';
         const blink = this.gameTimer <= 10 && this.tick % 30 < 15;
         ctx.save();
-        ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.beginPath(); ctx.arc(cx, cy, R + 10, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = col; ctx.lineWidth = 7; ctx.lineCap = 'round';
-        ctx.shadowColor = col; ctx.shadowBlur = blink ? 0 : 18;
+        ctx.fillStyle = 'rgba(0,0,0,.75)'; ctx.beginPath(); ctx.arc(cx, cy, R + 8, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = col; ctx.lineWidth = 6; ctx.lineCap = 'round';
+        ctx.shadowColor = col; ctx.shadowBlur = blink ? 0 : 14;
         ctx.beginPath(); ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + prog * Math.PI * 2); ctx.stroke();
         ctx.shadowBlur = 0;
         if (!blink) {
-            ctx.fillStyle = '#fff'; ctx.font = `900 ${this.gameTimer >= 10 ? '22' : '26'}px 'Orbitron',monospace`;
+            ctx.fillStyle = '#fff'; ctx.font = `900 ${this.gameTimer >= 10 ? '18' : '22'}px 'Orbitron',monospace`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(this.gameTimer, cx, cy);
         }
         ctx.restore();
@@ -595,23 +665,98 @@ class PullTheRopeGame extends BaseGame {
         ctx.clearRect(0, 0, W, H);
         if (this.bgImg) ctx.drawImage(this.bgImg, 0, 0);
         const sc = Math.min(W / 250, H / 500, 1.1);
-        const p2CY = H * 0.19, p1CY = H * 0.81;
-        const rTopY = p2CY - this.pawYLocal(this.p2Pose) * sc;
-        const rBotY = p1CY + this.pawYLocal(this.p1Pose) * sc;
-        this.drawRope(rTopY, rBotY);
-        ctx.save(); ctx.translate(W / 2, p2CY); ctx.scale(sc, -sc); this.drawPanda(ctx, 'red', this.p2Pose); ctx.restore();
-        ctx.save(); ctx.translate(W / 2, p1CY); ctx.scale(sc, sc); this.drawPanda(ctx, 'blue', this.p1Pose); ctx.restore();
+        // MY panda is always at bottom, OP panda is always at top (upside-down)
+        const opCY = H * 0.19, myCY = H * 0.81;
+        const rTopY = opCY - this.pawYLocal(this.opPose) * sc;
+        const rBotY = myCY + this.pawYLocal(this.myPose) * sc;
+        // Flip pull direction for P2 so that the knot visually moves to their favor when they're winning
+        const visualPull = this.isP1 ? this.pull : -this.pull;
+        this._drawRopeVisual(rTopY, rBotY, visualPull);
+        // Draw opponent upside-down at top (flipped with scale -1 y)
+        ctx.save(); ctx.translate(W / 2, opCY); ctx.scale(sc, -sc); this.drawPanda(ctx, this.opColor, this.opPose); ctx.restore();
+        // Draw me right-side-up at bottom
+        ctx.save(); ctx.translate(W / 2, myCY); ctx.scale(sc, sc); this.drawPanda(ctx, this.myColor, this.myPose); ctx.restore();
         this.tickParticles();
-        this.drawProgressBar(rTopY, rBotY);
+        this._drawProgressBarVisual(rTopY, rBotY, visualPull);
         if (this.gs === 'play') this.drawTimer();
+    }
+
+    _drawRopeVisual(topY, botY, pull) {
+        const ctx = this.ctx, W = this.W, R = 11;
+        const cY = (topY + botY) / 2, half = (botY - topY) / 2;
+        const knotY = cY - pull * half * .76;
+        const shake = (this.myShock + this.opShock) * 2.8 * Math.sin(this.tick * .32);
+        const rx = W / 2 + shake;
+        ctx.save(); ctx.globalAlpha = .3; ctx.strokeStyle = '#000'; ctx.lineWidth = R * 2 + 12; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(rx + 6, topY); ctx.lineTo(rx + 6, botY); ctx.stroke(); ctx.restore();
+        ctx.strokeStyle = '#120500'; ctx.lineWidth = R * 2 + 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(rx, topY); ctx.lineTo(rx, botY); ctx.stroke();
+        const cg = ctx.createLinearGradient(rx - R, 0, rx + R, 0);
+        cg.addColorStop(0, '#120400'); cg.addColorStop(0.10, '#5a2205'); cg.addColorStop(0.28, '#a85012');
+        cg.addColorStop(0.44, '#e0a022'); cg.addColorStop(0.54, '#f0b82a'); cg.addColorStop(0.70, '#9a5015');
+        cg.addColorStop(0.88, '#4a1a05'); cg.addColorStop(1, '#080200');
+        ctx.strokeStyle = cg; ctx.lineWidth = R * 2; ctx.stroke();
+        ctx.save(); ctx.beginPath(); ctx.rect(rx - R, topY, R * 2, botY - topY); ctx.clip();
+        ctx.lineWidth = 2; ctx.lineCap = 'butt';
+        for (let y = topY; y < botY; y += 10) {
+            ctx.strokeStyle = 'rgba(20,6,0,.44)';
+            ctx.beginPath(); ctx.moveTo(rx - R, y); ctx.lineTo(rx + R, Math.min(y + 10, botY)); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(rx + R, y); ctx.lineTo(rx - R, Math.min(y + 10, botY)); ctx.stroke();
+        }
+        ctx.restore();
+        const hl = ctx.createLinearGradient(rx - R, 0, rx + R, 0);
+        hl.addColorStop(0, 'rgba(255,225,130,0)'); hl.addColorStop(.24, 'rgba(255,225,130,.28)');
+        hl.addColorStop(.40, 'rgba(255,248,180,.42)'); hl.addColorStop(.60, 'rgba(255,225,130,.1)');
+        hl.addColorStop(1, 'rgba(255,225,130,0)');
+        ctx.strokeStyle = hl; ctx.lineWidth = R * 2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(rx, topY); ctx.lineTo(rx, botY); ctx.stroke();
+        [topY, botY].forEach(ey => {
+            ctx.fillStyle = '#1e0800'; ctx.beginPath(); ctx.ellipse(rx, ey, R + 1, R * .45, 0, 0, Math.PI * 2); ctx.fill();
+            const cg2 = ctx.createRadialGradient(rx - R * .3, ey, 1, rx, ey, R);
+            cg2.addColorStop(0, '#c07020'); cg2.addColorStop(1, '#320e00');
+            ctx.fillStyle = cg2; ctx.beginPath(); ctx.ellipse(rx, ey, R, R * .42, 0, 0, Math.PI * 2); ctx.fill();
+        });
+        // Top peg = opponent color, bottom peg = my color
+        ctx.save(); ctx.lineWidth = 5; ctx.lineCap = 'round';
+        const opRingCol = this.opColor === 'red' ? 'rgba(255,70,50,.98)' : 'rgba(60,140,255,.98)';
+        const myRingCol = this.myColor === 'blue' ? 'rgba(60,140,255,.98)' : 'rgba(255,70,50,.98)';
+        ctx.strokeStyle = opRingCol; ctx.shadowColor = opRingCol; ctx.shadowBlur = 16;
+        ctx.beginPath(); ctx.arc(rx, topY, R + 5, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = myRingCol; ctx.shadowColor = myRingCol; ctx.shadowBlur = 16;
+        ctx.beginPath(); ctx.arc(rx, botY, R + 5, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0; ctx.restore();
+        // Knot
+        const gw = ctx.createRadialGradient(rx, knotY, 0, rx, knotY, 40);
+        gw.addColorStop(0, 'rgba(255,220,0,.8)'); gw.addColorStop(.6, 'rgba(255,180,0,.3)'); gw.addColorStop(1, 'rgba(255,215,0,0)');
+        ctx.fillStyle = gw; ctx.beginPath(); ctx.arc(rx, knotY, 40, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.arc(rx + 4, knotY + 4, 15, 0, Math.PI * 2); ctx.fill();
+        [['#1e0800', 20], ['#5a2c05', 17], ['#9a5010', 14], ['#cc8018', 11], ['#e8a828', 8], ['#f8c840', 5], ['#fff380', 2.5]].forEach(([col, r]) => {
+            ctx.fillStyle = col; ctx.beginPath(); ctx.arc(rx, knotY, r, 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.fillStyle = 'rgba(255,255,255,.65)'; ctx.beginPath(); ctx.arc(rx - 5, knotY - 5, 4, 0, Math.PI * 2); ctx.fill();
+    }
+
+    _drawProgressBarVisual(topY, botY, pull) {
+        const ctx = this.ctx, W = this.W;
+        const bx = W - 16, bw = 9;
+        const cY = (topY + botY) / 2, half = (botY - topY) / 2;
+        const kY = cY - pull * half * .76, bH = botY - topY;
+        ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.beginPath(); ctx.roundRect(bx - bw / 2, topY, bw, bH, 5); ctx.fill();
+        // Top half = opponent color, bottom half = my color
+        const opBarCol = this.opColor === 'red' ? 'rgba(220,50,50,.75)' : 'rgba(50,110,230,.75)';
+        const myBarCol = this.myColor === 'blue' ? 'rgba(50,110,230,.75)' : 'rgba(220,50,50,.75)';
+        if (kY > topY) { ctx.fillStyle = opBarCol; ctx.beginPath(); ctx.roundRect(bx - bw / 2, topY, bw, kY - topY, 5); ctx.fill(); }
+        if (kY < botY) { ctx.fillStyle = myBarCol; ctx.beginPath(); ctx.roundRect(bx - bw / 2, kY, bw, botY - kY, 5); ctx.fill(); }
+        ctx.save(); ctx.shadowColor = 'rgba(255,215,0,.8)'; ctx.shadowBlur = 14; ctx.fillStyle = '#FFD700';
+        ctx.beginPath(); ctx.arc(bx, kY, 7.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     }
 
     loop() {
         this.tick++;
-        this.p1Pose = Math.max(0, this.p1Pose - 0.058);
-        this.p2Pose = Math.max(0, this.p2Pose - 0.058);
-        this.p1Shock = Math.max(0, this.p1Shock - 0.07);
-        this.p2Shock = Math.max(0, this.p2Shock - 0.07);
+        this.myPose = Math.max(0, this.myPose - 0.058);
+        this.opPose = Math.max(0, this.opPose - 0.058);
+        this.myShock = Math.max(0, this.myShock - 0.07);
+        this.opShock = Math.max(0, this.opShock - 0.07);
         this.draw();
         this.raf = requestAnimationFrame(() => this.loop());
     }

@@ -853,24 +853,35 @@
             this._showScore();
             this._updateRoundBadge();
 
-            /* Stop physics immediately */
-            this.playing = false;
-            this.game.running = false;
-            if (this._syncTimer) clearInterval(this._syncTimer);
-
-            /* Show point toast for whoever just scored */
-            const roundWinner = result && result.round_winner; // username of winner
+            /* Show point toast */
+            const roundWinner = result && result.round_winner;
             const iWon = roundWinner === USER;
             this._showPointToast(iWon);
 
-            /* After toast, show result screen with Return to Lobby button */
-            setTimeout(() => {
-                let w = 'draw';
-                if (this.game.roundWins[0] > this.game.roundWins[1]) w = 'P1';
-                else if (this.game.roundWins[1] > this.game.roundWins[0]) w = 'P2';
-                const subText = gameEnded ? 'Game Over!' : `Round ${this.state ? this.state.current_round - 1 : ''} Complete!`;
-                this._showGameOver(w, subText);
-            }, 1400);
+            if (gameEnded) {
+                /* Game fully over — stop everything and show lobby screen */
+                this.playing = false;
+                this.game.running = false;
+                if (this._syncTimer) clearInterval(this._syncTimer);
+                setTimeout(() => {
+                    let w = 'draw';
+                    if (this.game.roundWins[0] > this.game.roundWins[1]) w = 'P1';
+                    else if (this.game.roundWins[1] > this.game.roundWins[0]) w = 'P2';
+                    this._showGameOver(w, 'Game Over!');
+                }, 1400);
+                return;
+            }
+
+            /* More rounds remain — brief pause then auto-serve next round */
+            this._serveTimer = setTimeout(() => {
+                this._serveTimer = null;
+                this.game.scores = [0, 0];
+                this._resetBall();
+                this.game.running = true;
+                if (this.myRole === 'P1') {
+                    this.sendInput({ type: 'serve', scores: [0, 0] });
+                }
+            }, SERVE_DELAY);
         }
 
         _showPointToast(iWon) {

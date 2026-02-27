@@ -64,6 +64,9 @@
 
   <div id="tc-fx"></div>
 
+  <!-- Countdown overlay -->
+  <div id="tc-countdown" class="tc-cd tc-hidden">3</div>
+
   <!-- Result overlay -->
   <div id="tc-result-overlay" class="tc-ov tc-hidden">
       <div class="tc-ov-box">
@@ -266,7 +269,11 @@
 .tc-fall-piece{position:absolute;pointer-events:none;z-index:32;animation:tcFallDown var(--fall-dur) ease-in forwards}
 @keyframes tcFallDown{0%{opacity:1;transform:translate(0,0) rotate(0)}60%{opacity:.8}100%{opacity:0;transform:translate(var(--fx),var(--fy)) rotate(var(--fr))}}
 
-/* Overlays */
+/* Overlays & Countdown */
+.tc-cd{position:absolute;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;font-family:'Bungee Shade',cursive;font-size:80px;color:#fff;text-shadow:0 8px 16px rgba(0,0,0,0.6), 0 0 20px rgba(255,255,255,0.4);pointer-events:none;animation:tcCdPop 1s ease-in-out infinite}
+.tc-cd.tc-hidden{display:none}
+@keyframes tcCdPop{0%{transform:scale(0.5);opacity:0}20%{transform:scale(1.2);opacity:1}80%{transform:scale(1);opacity:1}100%{transform:scale(0.8);opacity:0}}
+
 .tc-ov{position:absolute;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(5,5,12,.88);backdrop-filter:blur(10px);animation:tcFadeIn .25s ease}
 .tc-ov.tc-hidden{display:none}
 @keyframes tcFadeIn{from{opacity:0}to{opacity:1}}
@@ -286,7 +293,7 @@
 </style>
 
 <script>
-// ===== Timber Chop - Multiplayer Game Class =====
+{ // guard to prevent re-declaration errors
 
 class TimberChopGame extends BaseGame {
     constructor() {
@@ -304,6 +311,8 @@ class TimberChopGame extends BaseGame {
         this.opSide = 'left';
         this.myCdEnd = 0;
         this.gameOn = false;
+        this.canChop = false;
+        this.currentRound = 1;
     }
 
     calcVis() {
@@ -322,6 +331,7 @@ class TimberChopGame extends BaseGame {
         this.myPlayer = this.isP1 ? 1 : 2;
         this.myRole = this.isP1 ? 'P1' : 'P2';
         this.opRole = this.isP1 ? 'P2' : 'P1';
+        this.currentRound = state.current_round || 1;
         this.myCut = 0;
         this.opCut = 0;
         this.mySide = 'left';
@@ -402,6 +412,7 @@ class TimberChopGame extends BaseGame {
 
     startGame() {
         this.gameOn = true;
+        this.canChop = false;
         this.myCut = 0;
         this.opCut = 0;
         this.mySide = 'left';
@@ -426,6 +437,41 @@ class TimberChopGame extends BaseGame {
         this.renderTree(2);
 
         document.getElementById('tc-result-overlay')?.classList.add('tc-hidden');
+
+        // Start countdown
+        this.doCountdown();
+    }
+
+    doCountdown() {
+        const cd = document.getElementById('tc-countdown');
+        if (!cd) { this.canChop = true; return; }
+        cd.classList.remove('tc-hidden');
+        let count = 3;
+        cd.textContent = count;
+        
+        if (this._cdInt) clearInterval(this._cdInt);
+        this._cdInt = setInterval(() => {
+            count--;
+            if (count > 0) {
+                cd.textContent = count;
+                // Re-trigger animation
+                cd.style.animation = 'none';
+                void cd.offsetWidth;
+                cd.style.animation = 'tcCdPop 1s ease-in-out infinite';
+            } else if (count === 0) {
+                cd.textContent = 'CHOP!';
+                cd.style.color = '#ffeb3b';
+                cd.style.animation = 'none';
+                void cd.offsetWidth;
+                cd.style.animation = 'tcCdPop 1s ease-in-out forwards';
+            } else {
+                clearInterval(this._cdInt);
+                this._cdInt = null;
+                cd.classList.add('tc-hidden');
+                cd.style.color = '#fff';
+                this.canChop = true;
+            }
+        }, 1000);
     }
 
     onRemoteInput(player, data) {
@@ -460,7 +506,7 @@ class TimberChopGame extends BaseGame {
     }
 
     doChop(side) {
-        if (!this.gameOn) return;
+        if (!this.gameOn || !this.canChop) return;
         const now = Date.now();
         if (now < this.myCdEnd) return;
         if (this.myCut >= this.GOAL) return;
@@ -716,7 +762,7 @@ class TimberChopGame extends BaseGame {
         }
     }
 
-    endRound(iWon, subText) {
+    endRound(iWon, subText, showLobbyBtn) {
         this.gameOn = false;
         this.renderTree(1);
         this.renderTree(2);
@@ -732,14 +778,18 @@ class TimberChopGame extends BaseGame {
         const sub = document.getElementById('tc-result-subtext');
         if (sub) sub.textContent = subText || 'Round Over!';
 
-        /* Wire up Return to Lobby button */
-        window._tcReturnLobby = () => {
-            if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ event: 'game_exit' }));
-            }
-            const btn = document.getElementById('tc-lobby-btn');
-            if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
-        };
+        /* Show/hide lobby button based on whether game is over */
+        const btn = document.getElementById('tc-lobby-btn');
+        if (btn) btn.style.display = showLobbyBtn ? '' : 'none';
+
+        if (showLobbyBtn) {
+            window._tcReturnLobby = () => {
+                if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ event: 'game_exit' }));
+                }
+                if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
+            };
+        }
 
         setTimeout(() => {
             document.getElementById('tc-result-overlay')?.classList.remove('tc-hidden');
@@ -759,18 +809,71 @@ class TimberChopGame extends BaseGame {
     update(state) {
         this.state = state;
         this.updateRoundInfo();
-        /* round_started is intentionally NOT handled here;
-           players return to lobby between rounds via the lobby button. */
+        
+        const newRound = state.current_round || 1;
+        if (newRound > this.currentRound) {
+            this.currentRound = newRound;
+            this.gameOn = true;
+            this.canChop = false;
+            this.myCut = 0;
+            this.opCut = 0;
+            this.p1Pos = 1;
+            this.p2Pos = 1;
+            this.myCdEnd = 0;
+            
+            // Hide result overlay
+            const ov = document.getElementById('tc-result-overlay');
+            if (ov) ov.classList.add('tc-hidden');
+            
+            // Update UI scores back to 0
+            const fw1 = document.getElementById('tc-fw1');
+            const fw2 = document.getElementById('tc-fw2');
+            if (fw1) fw1.textContent = '0';
+            if (fw2) fw2.textContent = '0';
+
+            // Reset player visual states completely
+            const pl1 = document.getElementById('tc-pl1');
+            const pl2 = document.getElementById('tc-pl2');
+            if(pl1) pl1.classList.remove('tc-stunned','tc-hit','tc-chop','tc-wake');
+            if(pl2) pl2.classList.remove('tc-stunned','tc-hit','tc-chop','tc-wake');
+            document.getElementById('tc-st1')?.classList.remove('tc-on');
+            document.getElementById('tc-st2')?.classList.remove('tc-on');
+            
+            this.setSide(this.getMyDom(), 'left');
+            this.setSide(this.getOpDom(), 'left');
+            this.mySide = 'left';
+            this.opSide = 'left';
+
+            if (this.isP1) {
+                this.genBranches();
+                this.sendInput({ type: 'branches', data: this.branches });
+                this.startGame();
+            } else {
+                // If P2, wait for branches from P1. But we can still cleanup UI.
+                this.renderTree(1);
+                this.renderTree(2);
+                this.updUI();
+            }
+        }
     }
 
     onRoundEnd(payload) {
         const roundWinner = payload.round_winner;
         const myName = this.state.players[this.myRole];
         const iWon = (roundWinner === myName);
-        const cr = this.state && this.state.current_round ? this.state.current_round - 1 : '';
         const gameEnded = payload && payload.game_ended;
-        const subText = gameEnded ? 'Game Over!' : `Round ${cr} Complete!`;
-        this.endRound(iWon, subText);
+
+        if (gameEnded) {
+            /* Game fully over — show lobby button */
+            this.endRound(iWon, 'Game Over!', true);
+        } else {
+            /* More rounds remain — show brief result, auto-hide, then next round starts */
+            const cr = this.state && this.state.current_round ? this.state.current_round - 1 : '';
+            this.endRound(iWon, `Round ${cr} Complete!`, false);
+            setTimeout(() => {
+                document.getElementById('tc-result-overlay')?.classList.add('tc-hidden');
+            }, 2500);
+        }
     }
 
     onGameEnd(payload) {
@@ -783,12 +886,15 @@ class TimberChopGame extends BaseGame {
     destroy() {
         super.destroy();
         this.gameOn = false;
+        if (this._cdInt) clearInterval(this._cdInt);
     }
 }
 
 // Register
 window.GameClasses = window.GameClasses || {};
 window.GameClasses['treecutter'] = TimberChopGame;
+
+} // end guard
 
 window.exitGame = window.exitGame || function() {
     if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
