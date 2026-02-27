@@ -83,6 +83,14 @@ GAMES = [
         'description': 'Tap as fast as you can! Pull the rope to your side to win!',
         'min_players': 2,
         'max_players': 2,
+    },
+    {
+        'game_id': 'bamboobreaker',
+        'name': 'Bamboo Breaker',
+        'image_url': '/static/games/bamboobreaker.png',
+        'description': 'Panda tile-breaking battle! Move across bamboo tiles that crack under you. Push your opponent into holes!',
+        'min_players': 2,
+        'max_players': 2,
     }
 ]
 

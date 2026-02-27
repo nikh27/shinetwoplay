@@ -1,0 +1,860 @@
+<!-- Bamboo Breaker - Online Multiplayer -->
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+
+<style>
+.bb-game{position:relative;width:100%;max-width:480px;height:100%;margin:0 auto;overflow:hidden;font-family:'Nunito',sans-serif;background:#0a1f12;display:flex;flex-direction:column;touch-action:none;user-select:none;-webkit-user-select:none}
+.bb-top-bar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;z-index:200}
+.bb-ctrl-btn{width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:white;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(10px);transition:all 0.2s}
+.bb-ctrl-btn:active{background:rgba(255,255,255,0.3)}
+.bb-round-badge{background:rgba(255,255,255,0.15);color:white;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;backdrop-filter:blur(10px)}
+.bb-strip{flex-shrink:0;height:56px;display:flex;align-items:center;justify-content:center;gap:12px;padding:0 12px;position:relative;z-index:2}
+.bb-strip-top{background:linear-gradient(180deg,rgba(239,83,80,.18) 0%,transparent 100%);border-bottom:1px solid rgba(239,83,80,.1);margin-top:48px}
+.bb-strip-bot{background:linear-gradient(0deg,rgba(79,195,247,.18) 0%,transparent 100%);border-top:1px solid rgba(79,195,247,.1)}
+.bb-pinfo{display:flex;align-items:center;gap:8px}
+.bb-avatar{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:1.2rem;border:2px solid rgba(255,255,255,.15);overflow:hidden}
+.bb-avatar img{width:100%;height:100%;object-fit:cover}
+.bb-nm{font-size:12px;font-weight:700;color:rgba(255,255,255,.9);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bb-tag{font-size:9px;font-weight:800;letter-spacing:1px}
+.bb-tag.you{color:#4fc3f7}.bb-tag.opp{color:#ef5350}
+.bb-arena{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;position:relative;overflow:hidden}
+.bb-arena canvas{display:block}
+.bb-joy-zone{flex-shrink:0;display:flex;align-items:center;justify-content:center;height:110px;width:100%;position:relative;background:linear-gradient(0deg,rgba(255,255,255,.02),transparent)}
+.bb-joystick{width:90px;height:90px;position:relative}
+.bb-joy-base{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.02),rgba(255,255,255,.005));border:1.5px solid rgba(255,255,255,.06)}
+.bb-joy-knob{position:absolute;width:42px;height:42px;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);transition:transform .05s ease-out;pointer-events:none;background:radial-gradient(circle at 35% 30%,#7dd3fc,#0369a1);box-shadow:0 2px 14px rgba(79,195,247,.5),inset 0 1px 2px rgba(255,255,255,.2)}
+.bb-scr{position:absolute;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:rgba(5,10,5,.92);backdrop-filter:blur(12px)}
+.bb-scr.hidden{display:none!important}
+.bb-overlay-emoji{font-size:50px;margin-bottom:8px;animation:bbBob 2.5s ease-in-out infinite}
+@keyframes bbBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.bb-overlay-title{font-family:'Fredoka One',cursive;font-size:22px;color:#fff;text-shadow:0 0 20px rgba(76,175,80,.5)}
+.bb-overlay-sub{font-size:12px;color:#a5d6a7;margin-top:4px}
+.bb-role-tag{padding:4px 12px;border-radius:14px;font-size:11px;font-weight:700;margin-top:8px;display:inline-block}
+.bb-role-tag.p1{background:rgba(79,195,247,.15);color:#4fc3f7;border:1px solid rgba(79,195,247,.25)}
+.bb-role-tag.p2{background:rgba(239,83,80,.15);color:#ef5350;border:1px solid rgba(239,83,80,.25)}
+.bb-waiting{font-size:11px;color:#6b7280;margin-top:12px;animation:bbPulse 1.4s ease-in-out infinite}
+@keyframes bbPulse{0%,100%{opacity:.4}50%{opacity:1}}
+.bb-cd{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:90;background:rgba(0,0,0,.5);backdrop-filter:blur(3px)}
+.bb-cd.hidden{display:none}
+.bb-cd-n{font-family:'Orbitron',sans-serif;font-size:4.5em;font-weight:900;color:#fff;text-shadow:0 0 40px rgba(255,255,255,.3);animation:bbCdp .5s ease-out}
+@keyframes bbCdp{0%{transform:scale(2.5);opacity:0}100%{transform:scale(1);opacity:1}}
+.bb-result-text{font-size:24px;font-weight:900;text-shadow:0 0 25px currentColor;margin-bottom:8px}
+.bb-next-round{font-size:11px;color:#9ca3af;margin-top:8px;animation:bbPulse 1s ease-in-out infinite}
+.bb-win-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:28px;padding:32px 40px;backdrop-filter:blur(8px);box-shadow:0 24px 80px rgba(0,0,0,.6);animation:bbWinZ .65s cubic-bezier(.175,.885,.32,1.275) forwards;text-align:center;color:#fff}
+@keyframes bbWinZ{0%{transform:scale(.15) rotate(-12deg);opacity:0}62%{transform:scale(1.08) rotate(2deg)}82%{transform:scale(.97)}100%{transform:scale(1);opacity:1}}
+</style>
+
+<div class="bb-game" id="bb-game">
+  <div class="bb-top-bar">
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button class="bb-ctrl-btn" onclick="exitGame()">✕</button>
+      <button class="bb-ctrl-btn" onclick="window.voiceChat&&window.voiceChat.toggleMic()" title="Mic">🎤</button>
+      <button class="bb-ctrl-btn" onclick="window.voiceChat&&window.voiceChat.toggleSpeaker()" title="Speaker">🔊</button>
+    </div>
+    <div class="bb-round-badge" id="bb-round-info">Round 1/1</div>
+    <button class="bb-ctrl-btn" onclick="document.getElementById('globalGameChatBtn')?.click()" title="Chat">💬</button>
+  </div>
+
+  <!-- Opponent strip at top -->
+  <div class="bb-strip bb-strip-top" id="bb-top-strip">
+    <div class="bb-pinfo">
+      <div class="bb-avatar" id="bb-op-avatar">👤</div>
+      <div>
+        <div class="bb-nm" id="bb-op-name">Opponent</div>
+        <div class="bb-tag opp" id="bb-op-tag">OPP</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Arena -->
+  <div class="bb-arena" id="bb-arena-wrap">
+    <canvas id="bb-canvas"></canvas>
+
+    <!-- Start overlay -->
+    <div class="bb-scr" id="bb-menu">
+      <div class="bb-overlay-emoji">🐼</div>
+      <div class="bb-overlay-title">BAMBOO BREAKER</div>
+      <div class="bb-overlay-sub">2 PLAYER PANDA BATTLE</div>
+      <div id="bb-role-text"></div>
+      <div class="bb-waiting" id="bb-wait-text">Starting game...</div>
+    </div>
+
+    <!-- Countdown -->
+    <div class="bb-cd hidden" id="bb-cd"><div class="bb-cd-n" id="bb-cd-n">3</div></div>
+
+    <!-- Game Over -->
+    <div class="bb-scr hidden" id="bb-gameover">
+      <div class="bb-win-card">
+        <div id="bb-go-emoji" style="font-size:3rem;margin-bottom:8px">🏆</div>
+        <div class="bb-result-text" id="bb-go-text">WINNER!</div>
+        <div id="bb-go-sub" style="font-size:14px;color:#e2e8f0;margin:4px 0"></div>
+        <div class="bb-next-round" id="bb-next-text"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- My strip at bottom -->
+  <div class="bb-strip bb-strip-bot" id="bb-bot-strip">
+    <div class="bb-pinfo">
+      <div class="bb-avatar" id="bb-my-avatar">👤</div>
+      <div>
+        <div class="bb-nm" id="bb-my-name">You</div>
+        <div class="bb-tag you" id="bb-my-tag">YOU</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Joystick -->
+  <div class="bb-joy-zone" id="bb-joy-zone">
+    <div class="bb-joystick" id="bb-joy">
+      <div class="bb-joy-base"></div>
+      <div class="bb-joy-knob" id="bb-knob"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+if (!window.GameClasses || !window.GameClasses['bamboobreaker']) {
+
+class BambooBreakerGame extends BaseGame {
+    constructor() {
+        super();
+        this.gameMode = 'real_time';
+        this.myRole = null;
+        this.playing = false;
+        this.totalRounds = 1;
+        this.currentRound = 1;
+        this._waitingForServer = false;
+        this.roundEndSent = false;
+
+        // Virtual fixed dimensions so both players share identical coords
+        this.VW = 375; this.VH = 500;
+        this.canvas = document.getElementById('bb-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.canvas.width = this.VW;
+        this.canvas.height = this.VH;
+
+        // Config
+        this.COLS = 8; this.ROWS = 10;
+        this.SPEED = 120; this.MAX_CRACKS = 5;
+        this.IDLE_CRACK_TIME = 0.5; this.BREAK_COUNTDOWN = 1.0;
+        this.PUSH_FORCE = 350; this.HIT_R = 0;
+
+        this.grid = []; this.particles = [];
+        this.screenShake = 0; this.gameTime = 0;
+        this.winnerIdx = -1;
+
+        this.P = [
+            { x:0,y:0,vx:0,vy:0,alive:true,dir:Math.PI/2,walkCycle:0,fallT:-1,pushVx:0,pushVy:0,
+              color:'#4fc3f7',dark:'#0288d1',light:'#b3e5fc',trailP:[],lastTileR:-1,lastTileC:-1 },
+            { x:0,y:0,vx:0,vy:0,alive:true,dir:-Math.PI/2,walkCycle:0,fallT:-1,pushVx:0,pushVy:0,
+              color:'#ef5350',dark:'#c62828',light:'#ffcdd2',trailP:[],lastTileR:-1,lastTileC:-1 }
+        ];
+
+        // Joystick state
+        this.joyDx = 0; this.joyDy = 0;
+        this.remoteJoyDx = 0; this.remoteJoyDy = 0;
+        this._joyOn = false; this._joyTid = null;
+        this._kd = {};
+
+        this._raf = null;
+        this._inputTimer = null;
+        this._syncTimer = null;
+    }
+
+    init(state) {
+        this.state = state;
+        const gp = state.players;
+        this.myRole = (gp['P1'] === USER) ? 'P1' : 'P2';
+        this.totalRounds = state.total_rounds || 1;
+        this.currentRound = state.current_round || 1;
+        this._setupUI(gp);
+        this._updateRoundBadge();
+        this._setupJoystick();
+        this._scaleCanvas();
+        window.addEventListener('resize', () => this._scaleCanvas());
+        setTimeout(() => this._startMatch(), 2000);
+    }
+
+    _setupUI(gp) {
+        const roomP = (typeof players !== 'undefined') ? players : {};
+        const myName = gp[this.myRole] || 'You';
+        const opRole = this.myRole === 'P1' ? 'P2' : 'P1';
+        const opName = gp[opRole] || 'Opponent';
+
+        document.getElementById('bb-my-name').textContent = myName;
+        document.getElementById('bb-op-name').textContent = opName;
+
+        // Avatars
+        const setAv = (id, uname) => {
+            const el = document.getElementById(id);
+            const pd = roomP[uname];
+            if (pd && pd.gender === 'female') el.innerHTML = '<img src="/static/games/icons/avatar_female.png">';
+            else if (pd && pd.gender) el.innerHTML = '<img src="/static/games/icons/avatar_male.png">';
+            else el.innerHTML = '<span style="font-size:18px">👤</span>';
+        };
+        setAv('bb-my-avatar', myName);
+        setAv('bb-op-avatar', opName);
+
+        // Role tag
+        const rt = document.getElementById('bb-role-text');
+        rt.innerHTML = `<span class="bb-role-tag ${this.myRole==='P1'?'p1':'p2'}">You are ${this.myRole==='P1'?'Blue Panda':'Red Panda'}</span>`;
+    }
+
+    _scaleCanvas() {
+        const wrap = document.getElementById('bb-arena-wrap');
+        const ww = wrap.clientWidth, wh = wrap.clientHeight;
+        const scale = Math.min(ww / this.VW, wh / this.VH);
+        this.canvas.style.width = (this.VW * scale) + 'px';
+        this.canvas.style.height = (this.VH * scale) + 'px';
+    }
+
+    _updateRoundBadge() {
+        const el = document.getElementById('bb-round-info');
+        el.textContent = `Round ${Math.min(this.currentRound, this.totalRounds)}/${this.totalRounds}`;
+    }
+
+    // ===== JOYSTICK =====
+    _setupJoystick() {
+        const el = document.getElementById('bb-joy');
+        const knob = document.getElementById('bb-knob');
+        let cx, cy, rad;
+        const self = this;
+
+        function mv(px, py) {
+            const dx = px - cx, dy = py - cy;
+            const d = Math.sqrt(dx*dx + dy*dy);
+            const mx = rad - 21;
+            let nx = dx, ny = dy;
+            if (d > mx) { nx = dx/d*mx; ny = dy/d*mx; }
+            knob.style.transform = `translate(calc(-50% + ${nx}px),calc(-50% + ${ny}px))`;
+            if (d > 8) {
+                const norm = Math.min(1, d / mx);
+                const a = Math.atan2(dy, dx);
+                self.joyDx = Math.cos(a) * norm;
+                self.joyDy = Math.sin(a) * norm;
+            } else {
+                self.joyDx = 0; self.joyDy = 0;
+            }
+        }
+        function rst() { knob.style.transform = 'translate(-50%,-50%)'; self._joyOn = false; self._joyTid = null; self.joyDx = 0; self.joyDy = 0; }
+
+        el.addEventListener('touchstart', e => {
+            e.preventDefault(); if (self._joyOn) return;
+            const t = e.changedTouches[0]; self._joyTid = t.identifier; self._joyOn = true;
+            const r = el.getBoundingClientRect(); cx = r.left+r.width/2; cy = r.top+r.height/2; rad = r.width/2;
+            mv(t.clientX, t.clientY);
+        }, {passive:false});
+        el.addEventListener('touchmove', e => {
+            e.preventDefault(); if (!self._joyOn) return;
+            for (const t of e.changedTouches) if (t.identifier===self._joyTid) { mv(t.clientX,t.clientY); break; }
+        }, {passive:false});
+        const end = e => { for (const t of e.changedTouches) if (t.identifier===self._joyTid) { rst(); break; } };
+        el.addEventListener('touchend', end);
+        el.addEventListener('touchcancel', end);
+
+        el.addEventListener('mousedown', e => {
+            self._joyOn = true;
+            const r = el.getBoundingClientRect(); cx = r.left+r.width/2; cy = r.top+r.height/2; rad = r.width/2;
+            mv(e.clientX, e.clientY);
+            const mm = ev => { if (self._joyOn) mv(ev.clientX,ev.clientY); };
+            const mu = () => { rst(); document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); };
+            document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
+        });
+
+        // Keyboard
+        this._kbH = e => { this._kd[e.key] = true; };
+        this._kuH = e => { this._kd[e.key] = false; };
+        document.addEventListener('keydown', this._kbH);
+        document.addEventListener('keyup', this._kuH);
+    }
+
+    _readKeyboard() {
+        let x=0, y=0;
+        const kd = this._kd;
+        if (this.myRole==='P1') {
+            if (kd.w||kd.W) y--; if (kd.s||kd.S) y++; if (kd.a||kd.A) x--; if (kd.d||kd.D) x++;
+        } else {
+            if (kd.ArrowUp) y--; if (kd.ArrowDown) y++; if (kd.ArrowLeft) x--; if (kd.ArrowRight) x++;
+        }
+        if (x&&y) { x*=0.707; y*=0.707; }
+        if (x||y) { this.joyDx = x; this.joyDy = y; }
+    }
+
+    // ===== LAYOUT (fixed virtual coords) =====
+    _getLayout() {
+        const W = this.VW, H = this.VH;
+        const tw = Math.floor(Math.min((W-16)/this.COLS, (H-20)/this.ROWS));
+        const gap = Math.max(2, tw*0.06);
+        const bw = this.COLS*tw + (this.COLS-1)*gap;
+        const bh = this.ROWS*tw + (this.ROWS-1)*gap;
+        const bx = (W-bw)/2;
+        const by = (H-bh)/2;
+        return {tw,gap,bw,bh,bx,by};
+    }
+
+    _pixelToTile(px,py) {
+        const L = this._getLayout();
+        return { r: Math.floor((py-L.by)/(L.tw+L.gap)), c: Math.floor((px-L.bx)/(L.tw+L.gap)) };
+    }
+
+    _tileCenter(r,c) {
+        const L = this._getLayout();
+        return { x: L.bx+c*(L.tw+L.gap)+L.tw/2, y: L.by+r*(L.tw+L.gap)+L.tw/2 };
+    }
+
+    // ===== MATCH FLOW =====
+    _startMatch() {
+        document.getElementById('bb-menu').classList.add('hidden');
+        document.getElementById('bb-gameover').classList.add('hidden');
+        this.roundEndSent = false;
+        this._initGrid();
+        this._resetPlayers();
+        this._drawFrame();
+
+        this._doCountdown(() => {
+            this.playing = true;
+            this.gameTime = 0;
+            if (this._inputTimer) clearInterval(this._inputTimer);
+            this._inputTimer = setInterval(() => this._sendJoy(), 1000/15);
+            if (this.myRole === 'P1') {
+                if (this._syncTimer) clearInterval(this._syncTimer);
+                this._syncTimer = setInterval(() => this._sendSync(), 1000/10);
+            }
+            this._loop(performance.now());
+        });
+    }
+
+    _initGrid() {
+        this.grid = [];
+        for (let r=0; r<this.ROWS; r++) {
+            this.grid[r] = [];
+            for (let c=0; c<this.COLS; c++) {
+                this.grid[r][c] = { state:0, cracks:0, dwellTimer:0, breakTimer:0, breakAnim:0,
+                    fallRot:(Math.random()-.5)*.8, shakeT:0, pattern:Math.floor(Math.random()*4) };
+            }
+        }
+        this.particles = [];
+        this.screenShake = 0;
+    }
+
+    _resetPlayers() {
+        const L = this._getLayout();
+        this.P[0].x = L.bx+1.5*(L.tw+L.gap); this.P[0].y = L.by+1.5*(L.tw+L.gap);
+        this.P[1].x = L.bx+(this.COLS-1.5)*(L.tw+L.gap); this.P[1].y = L.by+(this.ROWS-1.5)*(L.tw+L.gap);
+        for (const p of this.P) {
+            p.vx=p.vy=0; p.alive=true; p.fallT=-1; p.pushVx=p.pushVy=0;
+            p.walkCycle=0; p.trailP=[]; p.lastTileR=-1; p.lastTileC=-1;
+        }
+        this.P[0].dir = Math.PI*0.5; this.P[1].dir = -Math.PI*0.5;
+    }
+
+    _doCountdown(cb) {
+        const el = document.getElementById('bb-cd');
+        const n = document.getElementById('bb-cd-n');
+        el.classList.remove('hidden');
+        let c = 3;
+        n.textContent = c; n.style.color = '#fff';
+        const iv = setInterval(() => {
+            c--;
+            if (c > 0) {
+                n.textContent = c;
+                n.style.animation = 'none'; void n.offsetWidth; n.style.animation = 'bbCdp 0.5s ease-out';
+            } else if (c === 0) {
+                n.textContent = 'GO!'; n.style.color = '#4caf50';
+                n.style.animation = 'none'; void n.offsetWidth; n.style.animation = 'bbCdp 0.5s ease-out';
+            } else {
+                clearInterval(iv); el.classList.add('hidden'); cb();
+            }
+        }, 700);
+    }
+
+    // ===== NETWORKING =====
+    _sendJoy() {
+        if (Math.abs(this.joyDx) > 0.01 || Math.abs(this.joyDy) > 0.01) {
+            this.sendInput({ type:'j', dx: this.joyDx, dy: this.joyDy });
+        } else {
+            this.sendInput({ type:'j', dx:0, dy:0 });
+        }
+    }
+
+    _sendSync() {
+        if (this.myRole !== 'P1' || !this.playing) return;
+        // Compact grid: only send non-intact tiles
+        const sg = [];
+        for (let r=0; r<this.ROWS; r++) for (let c=0; c<this.COLS; c++) {
+            const t = this.grid[r][c];
+            if (t.state > 0) sg.push({r,c,s:t.state,cr:t.cracks,bt:Math.round(t.breakTimer*100)/100,ba:Math.round(t.breakAnim*100)/100});
+        }
+        this.sendInput({
+            type:'sync',
+            p: this.P.map(p => ({x:Math.round(p.x),y:Math.round(p.y),vx:Math.round(p.vx),vy:Math.round(p.vy),
+                alive:p.alive,dir:Math.round(p.dir*100)/100,ft:Math.round(p.fallT*100)/100})),
+            g: sg, gt: Math.round(this.gameTime*100)/100
+        });
+    }
+
+    onRemoteInput(player, d) {
+        if (player === USER) return;
+        if (d.type === 'j') {
+            this.remoteJoyDx = d.dx; this.remoteJoyDy = d.dy;
+        } else if (d.type === 'sync' && this.myRole === 'P2') {
+            // Apply full state from P1
+            if (d.p) {
+                for (let i=0; i<2; i++) {
+                    this.P[i].x=d.p[i].x; this.P[i].y=d.p[i].y;
+                    this.P[i].vx=d.p[i].vx; this.P[i].vy=d.p[i].vy;
+                    this.P[i].alive=d.p[i].alive; this.P[i].dir=d.p[i].dir;
+                    this.P[i].fallT=d.p[i].ft;
+                }
+            }
+            if (d.g) {
+                // Reset all to intact, then apply changes
+                for (let r=0;r<this.ROWS;r++) for (let c=0;c<this.COLS;c++) {
+                    this.grid[r][c].state=0; this.grid[r][c].cracks=0;
+                    this.grid[r][c].breakTimer=0; this.grid[r][c].breakAnim=0;
+                }
+                for (const t of d.g) {
+                    if (t.r>=0&&t.r<this.ROWS&&t.c>=0&&t.c<this.COLS) {
+                        this.grid[t.r][t.c].state=t.s;
+                        this.grid[t.r][t.c].cracks=t.cr;
+                        this.grid[t.r][t.c].breakTimer=t.bt;
+                        this.grid[t.r][t.c].breakAnim=t.ba;
+                    }
+                }
+            }
+            if (d.gt !== undefined) this.gameTime = d.gt;
+        } else if (d.type === 'round_result') {
+            if (this.myRole === 'P2' && this.playing) {
+                this.playing = false;
+                if (this._raf) cancelAnimationFrame(this._raf);
+                this.winnerIdx = d.winner;
+                this._showGameOver(d.winner);
+            }
+        }
+    }
+
+    // ===== GAME PHYSICS (P1 only) =====
+    _loop(ts) {
+        if (!this.playing) return;
+        const dt = 1/60;
+        if (this.myRole === 'P1') {
+            this._update(dt);
+        } else {
+            this._readKeyboard();
+            // P2 updates particles & shakeT locally for visual only
+            for (let r=0;r<this.ROWS;r++) for (let c=0;c<this.COLS;c++) {
+                if (this.grid[r][c].shakeT>0) this.grid[r][c].shakeT=Math.max(0,this.grid[r][c].shakeT-dt*4);
+            }
+            for (const p of this.P) { if (p.fallT>=0) p.fallT+=dt*1.8; }
+        }
+        this._updateParticles();
+        if (this.screenShake>0) this.screenShake=Math.max(0,this.screenShake-dt*3);
+        this._drawFrame();
+        this._raf = requestAnimationFrame(t => this._loop(t));
+    }
+
+    _update(dt) {
+        this.gameTime += dt;
+        this._readKeyboard();
+        const L = this._getLayout();
+
+        // Get inputs: P1 uses local joy [idx 0], remote joy controls P2 [idx 1]
+        const inputs = [
+            { dx: this.joyDx, dy: this.joyDy },
+            { dx: this.remoteJoyDx, dy: this.remoteJoyDy }
+        ];
+
+        for (let i=0; i<2; i++) {
+            const p = this.P[i];
+            if (!p.alive) continue;
+            let ix = inputs[i].dx, iy = inputs[i].dy;
+            const mag = Math.sqrt(ix*ix+iy*iy);
+            if (mag > 1) { ix/=mag; iy/=mag; }
+            p.vx = ix*this.SPEED + p.pushVx;
+            p.vy = iy*this.SPEED + p.pushVy;
+            p.pushVx *= 0.9; p.pushVy *= 0.9;
+            if (Math.abs(p.pushVx)<1) p.pushVx=0;
+            if (Math.abs(p.pushVy)<1) p.pushVy=0;
+            p.x += p.vx*dt; p.y += p.vy*dt;
+
+            // Boundary check
+            const margin = L.tw*0.3;
+            if (p.x<L.bx-margin||p.x>L.bx+L.bw+margin||p.y<L.by-margin||p.y>L.by+L.bh+margin) {
+                this._playerFall(i); continue;
+            }
+            const tc = this._pixelToTile(p.x,p.y);
+            if (tc.r>=0&&tc.r<this.ROWS&&tc.c>=0&&tc.c<this.COLS) {
+                if (this.grid[tc.r][tc.c].state===3) { this._playerFall(i); continue; }
+            } else { this._playerFall(i); continue; }
+
+            if (Math.abs(p.vx)>10||Math.abs(p.vy)>10) {
+                p.dir = Math.atan2(p.vy,p.vx); p.walkCycle += dt;
+            }
+        }
+
+        // Player collision
+        if (this.P[0].alive && this.P[1].alive) {
+            const dx=this.P[1].x-this.P[0].x, dy=this.P[1].y-this.P[0].y;
+            const dist=Math.sqrt(dx*dx+dy*dy);
+            const minDist=L.tw*0.55;
+            if (dist<minDist&&dist>0) {
+                const nx=dx/dist, ny=dy/dist, overlap=minDist-dist;
+                this.P[0].x-=nx*overlap*0.5; this.P[0].y-=ny*overlap*0.5;
+                this.P[1].x+=nx*overlap*0.5; this.P[1].y+=ny*overlap*0.5;
+                const v0=Math.sqrt(this.P[0].vx**2+this.P[0].vy**2);
+                const v1=Math.sqrt(this.P[1].vx**2+this.P[1].vy**2);
+                if (v0>30||v1>30) this.screenShake=0.3;
+                if (v0>v1) { this.P[1].pushVx+=nx*this.PUSH_FORCE*dt*3; this.P[1].pushVy+=ny*this.PUSH_FORCE*dt*3; }
+                else { this.P[0].pushVx-=nx*this.PUSH_FORCE*dt*3; this.P[0].pushVy-=ny*this.PUSH_FORCE*dt*3; }
+            }
+        }
+
+        // Tile cracking
+        for (let i=0; i<2; i++) {
+            if (!this.P[i].alive) continue;
+            const tc = this._pixelToTile(this.P[i].x,this.P[i].y);
+            if (tc.r<0||tc.r>=this.ROWS||tc.c<0||tc.c>=this.COLS) continue;
+            if (tc.r!==this.P[i].lastTileR||tc.c!==this.P[i].lastTileC) {
+                this.P[i].lastTileR=tc.r; this.P[i].lastTileC=tc.c;
+                const tile=this.grid[tc.r][tc.c];
+                if (tile.state<=1) {
+                    if (tile.state===0) tile.state=1;
+                    tile.cracks++; tile.shakeT=0.8;
+                    if (tile.cracks>=this.MAX_CRACKS) {
+                        tile.state=2; tile.breakTimer=0; tile.breakAnim=0;
+                        tile.fallRot=(Math.random()-.5)*1.2;
+                        this.screenShake=0.6;
+                    }
+                }
+            } else {
+                const tile=this.grid[tc.r][tc.c];
+                if (tile.state===1&&tile.cracks<this.MAX_CRACKS) {
+                    const isIdle=Math.abs(this.P[i].vx)<10&&Math.abs(this.P[i].vy)<10;
+                    if (isIdle) {
+                        tile.dwellTimer+=dt;
+                        if (tile.dwellTimer>=this.IDLE_CRACK_TIME) {
+                            tile.dwellTimer-=this.IDLE_CRACK_TIME;
+                            tile.cracks++; tile.shakeT=0.8;
+                            if (tile.cracks>=this.MAX_CRACKS) {
+                                tile.state=2; tile.breakTimer=0; tile.breakAnim=0;
+                                this.screenShake=0.6;
+                            }
+                        }
+                    } else { tile.dwellTimer=0; }
+                }
+            }
+        }
+
+        // Update tiles
+        const playerTiles = this.P.map(p => p.alive ? this._pixelToTile(p.x,p.y) : {r:-1,c:-1});
+        for (let r=0;r<this.ROWS;r++) for (let c=0;c<this.COLS;c++) {
+            const t = this.grid[r][c];
+            if (t.shakeT>0) t.shakeT=Math.max(0,t.shakeT-dt*4);
+            if (t.state===2) {
+                t.breakTimer+=dt;
+                t.breakAnim=Math.min(1,t.breakTimer/this.BREAK_COUNTDOWN);
+                t.shakeT=Math.max(t.shakeT,(1-t.breakTimer/this.BREAK_COUNTDOWN)*0.6);
+                if (t.breakTimer>=this.BREAK_COUNTDOWN) {
+                    t.state=3; this.screenShake=0.5;
+                    for (let i=0;i<2;i++) {
+                        if (!this.P[i].alive) continue;
+                        const pc=this._pixelToTile(this.P[i].x,this.P[i].y);
+                        if (pc.r===r&&pc.c===c) this._playerFall(i);
+                    }
+                }
+            }
+            if (t.state===3) {
+                const playerOn = playerTiles.some(tc=>tc.r===r&&tc.c===c);
+                if (playerOn) {
+                    for (let i=0;i<2;i++) {
+                        if (!this.P[i].alive) continue;
+                        if (playerTiles[i].r===r&&playerTiles[i].c===c) this._playerFall(i);
+                    }
+                }
+            }
+        }
+
+        // Fall anim
+        for (const p of this.P) { if (p.fallT>=0) p.fallT+=dt*1.8; }
+    }
+
+    _playerFall(idx) {
+        const p = this.P[idx];
+        if (!p.alive) return;
+        p.alive = false; p.fallT = 0;
+        this.screenShake = 1;
+        const winner = 1 - idx;
+
+        if (!this.roundEndSent) {
+            this.roundEndSent = true;
+            // Notify P2
+            this.sendInput({ type:'round_result', winner });
+            // Notify server
+            this.sendMove('round_end', { winner: winner===0?'P1':'P2' });
+        }
+
+        setTimeout(() => {
+            this.playing = false;
+            if (this._raf) cancelAnimationFrame(this._raf);
+            this.winnerIdx = winner;
+            this._showGameOver(winner);
+        }, 900);
+    }
+
+    _showGameOver(winner) {
+        const myIdx = this.myRole==='P1' ? 0 : 1;
+        const iWon = winner === myIdx;
+        const emoji = document.getElementById('bb-go-emoji');
+        const text = document.getElementById('bb-go-text');
+        const sub = document.getElementById('bb-go-sub');
+        emoji.textContent = iWon ? '🏆🐼' : '😢🐼';
+        text.textContent = iWon ? 'YOU WIN!' : 'YOU LOST!';
+        text.style.color = iWon ? '#4caf50' : '#ef5350';
+        sub.textContent = `${this.P[winner].color==='#4fc3f7'?'Blue':'Red'} Panda survives!`;
+        document.getElementById('bb-next-text').textContent = 'Next round starting...';
+        document.getElementById('bb-gameover').classList.remove('hidden');
+    }
+
+    _updateParticles() {
+        for (let i=this.particles.length-1;i>=0;i--) {
+            const p=this.particles[i];
+            p.x+=p.vx; p.y+=p.vy; p.vy+=0.12; p.life-=p.decay;
+            if (p.life<=0) this.particles.splice(i,1);
+        }
+    }
+
+    // ===== DRAWING =====
+    _drawFrame() {
+        const ctx=this.ctx, W=this.VW, H=this.VH;
+        // BG
+        const bg=ctx.createLinearGradient(0,0,0,H);
+        bg.addColorStop(0,'#1a472a'); bg.addColorStop(0.5,'#10301a'); bg.addColorStop(1,'#0a1f12');
+        ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+        ctx.save();
+        if (this.screenShake>0) ctx.translate((Math.random()-.5)*10*this.screenShake,(Math.random()-.5)*10*this.screenShake);
+
+        const L=this._getLayout();
+        // Board bg
+        ctx.fillStyle='rgba(10,20,10,.5)';
+        this._roundRect(L.bx-8,L.by-8,L.bw+16,L.bh+16,14); ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.lineWidth=1.5;
+        this._roundRect(L.bx-8,L.by-8,L.bw+16,L.bh+16,14); ctx.stroke();
+
+        // Tiles
+        for (let r=0;r<this.ROWS;r++) for (let c=0;c<this.COLS;c++) this._drawTile(r,c);
+
+        // Players (Y-sorted)
+        const order=[0,1].sort((a,b)=>this.P[a].y-this.P[b].y);
+        order.forEach(i => this._drawPanda(this.P[i],i));
+
+        // Particles
+        this.particles.forEach(p => {
+            ctx.save(); ctx.translate(p.x,p.y); ctx.globalAlpha=p.life;
+            ctx.fillStyle=p.color||'#fff';
+            ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+            ctx.restore();
+        });
+
+        ctx.restore();
+    }
+
+    _roundRect(x,y,w,h,r) {
+        const ctx=this.ctx;
+        ctx.beginPath();
+        ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+        ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+        ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+        ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+        ctx.closePath();
+    }
+
+    _drawTile(r,c) {
+        const t=this.grid[r][c], ctx=this.ctx, L=this._getLayout();
+        const x=L.bx+c*(L.tw+L.gap), y=L.by+r*(L.tw+L.gap), w=L.tw, h=L.tw;
+        ctx.save();
+        if (t.shakeT>0) ctx.translate((Math.random()-.5)*5*t.shakeT,(Math.random()-.5)*5*t.shakeT);
+
+        if (t.state===3) {
+            // Broken hole
+            ctx.globalAlpha=0.9;
+            this._roundRect(x+1,y+1,w-2,h-2,4);
+            const hg=ctx.createRadialGradient(x+w/2,y+h/2,0,x+w/2,y+h/2,w*0.7);
+            hg.addColorStop(0,'#020208'); hg.addColorStop(1,'#15152a');
+            ctx.fillStyle=hg; ctx.fill();
+            ctx.restore(); return;
+        }
+
+        if (t.state===2) {
+            // Breaking
+            const bp=t.breakAnim;
+            const breakG=ctx.createLinearGradient(x,y,x+w,y+h);
+            breakG.addColorStop(0,`rgb(${120+bp*60|0},${80-bp*70|0},10)`);
+            breakG.addColorStop(1,`rgb(${80+bp*40|0},${50-bp*45|0},5)`);
+            this._roundRect(x,y,w,h,5); ctx.fillStyle=breakG; ctx.fill();
+            // Red pulse
+            const pulse=Math.sin(this.gameTime*12)*0.5+0.5;
+            ctx.globalAlpha=0.25+bp*0.35+pulse*0.12;
+            this._roundRect(x,y,w,h,5); ctx.fillStyle='#ff1100'; ctx.fill();
+            ctx.globalAlpha=1;
+            // Countdown bar
+            const barH=Math.max(3,h*0.1), barY=y+h-barH-1, prog=1-bp;
+            ctx.fillStyle='rgba(0,0,0,.5)'; this._roundRect(x+2,barY,w-4,barH,2); ctx.fill();
+            ctx.fillStyle=prog>0.5?'#ffcc00':prog>0.25?'#ff8800':'#ff1100';
+            this._roundRect(x+2,barY,(w-4)*prog,barH,2); ctx.fill();
+            ctx.restore(); return;
+        }
+
+        // Intact/cracked
+        const cracking=t.state===1, cp=cracking&&t.cracks>0?(t.cracks-1)/(this.MAX_CRACKS-1):0;
+        const g1=cracking?`rgb(${124+cp*60|0},${179-cp*80|0},${66-cp*50|0})`:'#7cb342';
+        const g2=cracking?`rgb(${85+cp*40|0},${139-cp*60|0},${47-cp*35|0})`:'#558b2f';
+        const tg=ctx.createLinearGradient(x,y,x+w,y+h);
+        tg.addColorStop(0,g1); tg.addColorStop(1,g2);
+        this._roundRect(x,y,w,h,5); ctx.fillStyle=tg; ctx.fill();
+
+        // Border
+        this._roundRect(x,y,w,h,5);
+        ctx.strokeStyle=cracking?`rgba(180,80,0,${0.3+cp*0.5})`:'rgba(255,255,255,.08)';
+        ctx.lineWidth=1.2; ctx.stroke();
+
+        // Crack indicators
+        if (cracking&&t.cracks>0) {
+            for (let ci=0;ci<t.cracks;ci++) {
+                const dotX=x+3+ci*(w*0.14), dotY=y+3, dotR=Math.max(1.5,w*0.04);
+                ctx.fillStyle=ci<3?'#ffcc00':ci<4?'#ff8800':'#ff1100';
+                ctx.globalAlpha=0.85;
+                ctx.beginPath(); ctx.arc(dotX,dotY,dotR,0,Math.PI*2); ctx.fill();
+            }
+            ctx.globalAlpha=1;
+        }
+        ctx.restore();
+    }
+
+    _drawPanda(p,idx) {
+        const ctx=this.ctx, L=this._getLayout();
+        const size=L.tw*1.2, hs=size/2;
+        ctx.save(); ctx.translate(p.x,p.y);
+        if (p.fallT>=0) {
+            const ft=Math.min(1,p.fallT);
+            ctx.rotate(ft*Math.PI*3); ctx.scale(1-ft*.9,1-ft*.9); ctx.globalAlpha=1-ft;
+        }
+        const bob=Math.sin(this.gameTime*2.5)*1.5;
+        ctx.translate(0,bob);
+        const mc=p.color, dc=p.dark;
+        // Body
+        const bodyG=ctx.createRadialGradient(0,hs*.1,hs*.1,0,hs*.2,hs*.5);
+        bodyG.addColorStop(0,'#2a2a2a'); bodyG.addColorStop(1,'#111');
+        ctx.fillStyle=bodyG;
+        ctx.beginPath(); ctx.ellipse(0,hs*.2,hs*.5,hs*.45,0,0,Math.PI*2); ctx.fill();
+        // Belly
+        const belG=ctx.createRadialGradient(0,hs*.25,0,0,hs*.28,hs*.28);
+        belG.addColorStop(0,'#fafaf5'); belG.addColorStop(1,'#e8e6dd');
+        ctx.fillStyle=belG;
+        ctx.beginPath(); ctx.ellipse(0,hs*.28,hs*.25,hs*.24,0,0,Math.PI*2); ctx.fill();
+        // Scarf
+        const scG=ctx.createLinearGradient(-hs*.4,-hs*.12,hs*.4,-hs*.02);
+        scG.addColorStop(0,dc); scG.addColorStop(0.5,mc); scG.addColorStop(1,dc);
+        ctx.fillStyle=scG;
+        ctx.beginPath(); ctx.ellipse(0,-hs*.08,hs*.44,hs*.09,0,0,Math.PI*2); ctx.fill();
+        // Head
+        const hG=ctx.createRadialGradient(-hs*.08,-hs*.43,0,0,-hs*.35,hs*.42);
+        hG.addColorStop(0,'#fff'); hG.addColorStop(1,'#e0ddd0');
+        ctx.fillStyle=hG;
+        ctx.beginPath(); ctx.ellipse(0,-hs*.35,hs*.4,hs*.36,0,0,Math.PI*2); ctx.fill();
+        // Ears
+        for (let s=-1;s<=1;s+=2) {
+            ctx.fillStyle='#111';
+            ctx.beginPath(); ctx.arc(s*hs*.32,-hs*.66,hs*.14,0,Math.PI*2); ctx.fill();
+            const iG=ctx.createRadialGradient(s*hs*.32,-hs*.66,0,s*hs*.32,-hs*.66,hs*.08);
+            iG.addColorStop(0,mc); iG.addColorStop(1,dc);
+            ctx.fillStyle=iG;
+            ctx.beginPath(); ctx.arc(s*hs*.32,-hs*.66,hs*.08,0,Math.PI*2); ctx.fill();
+        }
+        // Eye patches
+        ctx.fillStyle='#111';
+        ctx.beginPath(); ctx.ellipse(-hs*.15,-hs*.38,hs*.12,hs*.1,-.2,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(hs*.15,-hs*.38,hs*.12,hs*.1,.2,0,Math.PI*2); ctx.fill();
+        // Eyes
+        ctx.fillStyle='#fff';
+        ctx.beginPath(); ctx.arc(-hs*.15,-hs*.38,hs*.07,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(hs*.15,-hs*.38,hs*.07,0,Math.PI*2); ctx.fill();
+        const irisC=idx===0?'#2196f3':'#d32f2f';
+        ctx.fillStyle=irisC;
+        ctx.beginPath(); ctx.arc(-hs*.15,-hs*.38,hs*.04,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(hs*.15,-hs*.38,hs*.04,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#050505';
+        ctx.beginPath(); ctx.arc(-hs*.15,-hs*.38,hs*.025,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(hs*.15,-hs*.38,hs*.025,0,Math.PI*2); ctx.fill();
+        // Eye shine
+        ctx.fillStyle='rgba(255,255,255,.9)';
+        ctx.beginPath(); ctx.arc(-hs*.13,-hs*.4,hs*.015,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(hs*.17,-hs*.4,hs*.015,0,Math.PI*2); ctx.fill();
+        // Nose
+        ctx.fillStyle='#222';
+        ctx.beginPath(); ctx.ellipse(0,-hs*.26,hs*.04,hs*.03,0,0,Math.PI*2); ctx.fill();
+        // Glow ring
+        ctx.strokeStyle=mc; ctx.lineWidth=2; ctx.globalAlpha=0.6;
+        ctx.shadowColor=mc; ctx.shadowBlur=10;
+        ctx.beginPath(); ctx.ellipse(0,hs*.7-bob,hs*.45,hs*.12,0,0,Math.PI*2); ctx.stroke();
+        ctx.shadowBlur=0; ctx.globalAlpha=1;
+        // Tag
+        ctx.fillStyle=mc; ctx.font=`bold ${hs*.2}px 'Nunito',sans-serif`;
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(idx===0?'BLUE':'RED',0,-hs*.85);
+        ctx.restore();
+    }
+
+    // ===== ROUND/GAME END HANDLERS =====
+    onRoundEnd(payload) {
+        if (this.playing) {
+            this.playing = false;
+            if (this._raf) cancelAnimationFrame(this._raf);
+        }
+        const sub = document.getElementById('bb-next-text');
+        if (sub) sub.textContent = 'Next round starting...';
+        setTimeout(() => {
+            document.getElementById('bb-gameover').classList.add('hidden');
+        }, 2500);
+    }
+
+    onGameEnd(payload) {
+        const winner = payload.game_winner;
+        const myName = this.state.players[this.myRole];
+        const iWon = winner === myName;
+        const sub = document.getElementById('bb-next-text');
+        if (sub) sub.textContent = winner === 'draw' ? "It's a Draw!" : (iWon ? 'You won the game!' : 'Game Over!');
+    }
+
+    update(state) {
+        this.state = state;
+        this._updateRoundBadge();
+        const newRound = state.current_round || 1;
+        if (newRound > this.currentRound) {
+            this.currentRound = newRound;
+            this.roundEndSent = false;
+            this._startMatch();
+        }
+    }
+
+    destroy() {
+        super.destroy();
+        if (this._raf) cancelAnimationFrame(this._raf);
+        if (this._inputTimer) clearInterval(this._inputTimer);
+        if (this._syncTimer) clearInterval(this._syncTimer);
+        document.removeEventListener('keydown', this._kbH);
+        document.removeEventListener('keyup', this._kuH);
+    }
+}
+
+window.GameClasses = window.GameClasses || {};
+window.GameClasses['bamboobreaker'] = BambooBreakerGame;
+
+} // end guard
+
+window.exitGame = window.exitGame || function() {
+    if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ event: 'game_exit' }));
+    }
+};
+</script>

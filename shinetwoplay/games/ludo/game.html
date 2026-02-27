@@ -1245,6 +1245,11 @@ function _ludoRollBtnClick() {
     if (btn) {
         btn.onclick = _ludoRollBtnClick;
     }
+    const dice = document.getElementById('ludo-dice-scene-wrapper');
+    if (dice) {
+        dice.style.cursor = 'pointer';
+        dice.onclick = _ludoRollBtnClick;
+    }
 })();
 
 // Exit game
