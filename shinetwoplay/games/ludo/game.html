@@ -211,9 +211,14 @@
     transform: rotate(180deg);
 }
 
-/* Only trophy needs counter-rotation to stay upright */
+/* Trophy counter-rotation: We need to counter the board's 180deg rotation */
 .ludo-board-rotated .ludo-trophy-overlay {
     transform: rotate(180deg);
+}
+
+.ludo-trophy-emoji {
+    display: inline-block;
+    font-size: clamp(16px, 4vw, 32px);
 }
 
 .ludo-board-grid {
@@ -558,12 +563,24 @@ class LudoGame extends BaseGame {
 
     init(state) {
         this.state = state;
+        // Apply rotation FIRST and INSTANTLY before building anything
+        const wrapper = document.getElementById('ludo-board-wrapper-inner');
+        if (wrapper) {
+            wrapper.style.transition = 'none';
+            const myColor = this._myColor();
+            if (myColor === 'red') wrapper.classList.add('ludo-board-rotated');
+            else wrapper.classList.remove('ludo-board-rotated');
+            void wrapper.offsetHeight;
+        }
+
         this._buildBoard();
         this._buildPieces();
         this._updateAvatars();
         this._updateRound();
         this._updateUI();
-        this._applyBoardRotation();
+        
+        // Restore transition for smooth gameplay later (like dice)
+        if (wrapper) setTimeout(() => wrapper.style.transition = '', 500);
     }
 
     update(state) {
@@ -594,7 +611,9 @@ class LudoGame extends BaseGame {
             if (rollHappened && diceValueToAnimate !== null) {
                 const rollingPlayer = (prevState && nextState.turn !== prevState.turn) ? prevState.turn : nextState.turn;
                 await new Promise(resolve => this._animateDice(diceValueToAnimate, rollingPlayer, resolve));
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Minimal delay after result settles (50ms) so user can move instantly
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
 
             // Apply state
@@ -622,23 +641,7 @@ class LudoGame extends BaseGame {
     }
 
     _applyBoardRotation() {
-        const myColor = this._myColor();
-        const wrapper = document.getElementById('ludo-board-wrapper-inner');
-        if (!wrapper) return;
-
-        // Disable transition during setup so user doesn't see it rotating
-        const originalTransition = wrapper.style.transition;
-        wrapper.style.transition = 'none';
-
-        if (myColor === 'red') {
-            wrapper.classList.add('ludo-board-rotated');
-        } else {
-            wrapper.classList.remove('ludo-board-rotated');
-        }
-
-        // Force reflow and restore transition after a small delay
-        void wrapper.offsetHeight;
-        setTimeout(() => wrapper.style.transition = originalTransition, 100);
+        // Handled in init()
     }
 
     _detectMovedPiece(prevState, state) {
@@ -670,25 +673,46 @@ class LudoGame extends BaseGame {
     _animateKills(killedList, callback) {
         if (!killedList || killedList.length === 0) { callback && callback(); return; }
         
-        let done = 0;
+        let finishedCount = 0;
+        const totalPieces = killedList.length;
+        const pct = 100 / 15;
+        const FAST_TICK = 40; // 40ms per step for fast return
+
         killedList.forEach(k => {
             const el = document.getElementById(`ludo-piece-${k.player}-${k.id}`);
-            if (!el) { done++; if (done === killedList.length) callback(); return; }
-            
-            // Fast back-to-yard animation
-            const cfg = LUDO_PLAYERS_CFG[k.player];
-            const yard = cfg.yardBases[k.id];
-            const pct = 100/15;
-            
-            el.style.transition = 'left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.4s';
-            el.style.left = `calc(${(yard.c-1)*pct}% + 2px)`;
-            el.style.top  = `calc(${(yard.r-1)*pct}% + 2px)`;
-            
-            setTimeout(() => {
-                el.style.transition = ''; // reset
-                done++;
-                if (done === killedList.length) callback && callback();
-            }, 450);
+            if (!el) {
+                finishedCount++;
+                if (finishedCount === totalPieces) callback && callback();
+                return;
+            }
+
+            // Path back to 0 then to -1
+            const steps = [];
+            for (let p = k.fromPos; p >= 0; p--) {
+                steps.push(p);
+            }
+            steps.push(-1);
+
+            let i = 0;
+            const tick = () => {
+                if (i >= steps.length) {
+                    finishedCount++;
+                    if (finishedCount === totalPieces) callback && callback();
+                    return;
+                }
+
+                const coord = this._getCoord({ player: k.player, id: k.id, pos: steps[i] });
+                const bL = (coord.c - 1) * pct;
+                const bT = (coord.r - 1) * pct;
+                
+                el.style.left = `calc(${bL}% + 2px)`;
+                el.style.top  = `calc(${bT}% + 2px)`;
+                el.style.transform = ''; 
+                
+                i++;
+                setTimeout(tick, FAST_TICK);
+            };
+            tick();
         });
     }
 
@@ -749,7 +773,7 @@ class LudoGame extends BaseGame {
         const ov = document.createElement('div');
         ov.className = 'ludo-trophy-overlay';
         ov.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:5;left:40%;top:40%;width:20%;height:20%;';
-        ov.innerHTML = `<div style="transform:rotate(45deg);font-size:clamp(14px,3vw,24px);color:#fbbf24;display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><span style="transform:rotate(-45deg);">🏆</span></div>`;
+        ov.innerHTML = `<span class="ludo-trophy-emoji">🏆</span>`;
         document.getElementById('ludo-board').appendChild(ov);
 
         // White inner yard boxes
