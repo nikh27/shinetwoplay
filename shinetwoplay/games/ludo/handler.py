@@ -148,7 +148,7 @@ class LudoHandler(BaseGameHandler):
             # No valid moves — switch turn
             state['phase'] = 'ROLL'
             state['turn'] = 'blue' if player_color == 'red' else 'red'
-            state['dice_value'] = None
+            # Do NOT clear dice_value yet, let client see what was rolled
 
         set_game_state(room_code, state)
         return {'state': state, 'rolled': dice_value, 'no_moves': state['phase'] == 'ROLL' and state['turn'] != player_color}
