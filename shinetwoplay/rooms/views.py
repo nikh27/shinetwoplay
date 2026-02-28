@@ -18,6 +18,8 @@ import json
 import os
 import time
 
+from django_ratelimit.decorators import ratelimit
+
 from .games_list import get_all_games, get_game_by_id
 from .utils import (
     success_response, error_response, generate_room_code, 
@@ -35,6 +37,7 @@ from .redis_client import (
 
 # ============= Template Views =============
 
+@ratelimit(key='ip', rate='60/m', block=True)
 def home(request):
     """Home page"""
     return render(request, "home.html")
@@ -68,6 +71,7 @@ def room_page(request, room_code):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+@ratelimit(key='ip', rate='30/m', block=True)
 def api_create_room(request):
     """
     POST /api/rooms/create/
@@ -115,6 +119,7 @@ def api_create_room(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+@ratelimit(key='ip', rate='30/m', block=True)
 def api_join_room(request):
     """
     POST /api/rooms/join/
@@ -229,6 +234,7 @@ def api_get_room(request, room_code):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+@ratelimit(key='ip', rate='10/m', block=True)
 def api_upload_voice(request):
     """
     POST /api/upload/voice/
@@ -286,6 +292,7 @@ def api_upload_voice(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+@ratelimit(key='ip', rate='10/m', block=True)
 def api_upload_image(request):
     """
     POST /api/upload/image/

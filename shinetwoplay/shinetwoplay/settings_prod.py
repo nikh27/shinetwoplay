@@ -11,9 +11,6 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'CHANGE-ME-to-a-random-64-char-
 ALLOWED_HOSTS = [
     'shinetwoplay.online',
     'www.shinetwoplay.online',
-    '13.235.50.170',  # EC2 IP
-    '_',              # Catch-all Nginx proxy host
-    'localhost',      # Local connections
 ]
 
 # ──── CSRF / HTTPS ────
@@ -27,6 +24,8 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Remove SecurityMiddleware and CorsMiddleware — Nginx handles these.
 # These cause 'coroutine' object errors under Django ASGI + Channels.
 MIDDLEWARE = [
+    # Bot Blocker
+    'middleware.bot_blocker.BotBlockMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
