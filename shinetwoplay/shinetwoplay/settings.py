@@ -31,8 +31,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # Bot Blocker - Put early to block bad traffic before processing
-    'middleware.bot_blocker.BotBlockMiddleware',
     # AnalyticsMiddleware is ONLY active in production (settings_prod.py)
 ]
 

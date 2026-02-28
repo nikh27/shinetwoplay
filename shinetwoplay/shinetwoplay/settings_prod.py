@@ -21,11 +21,7 @@ CSRF_TRUSTED_ORIGINS = [
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ──── Middleware (override for ASGI compatibility) ────
-# Remove SecurityMiddleware and CorsMiddleware — Nginx handles these.
-# These cause 'coroutine' object errors under Django ASGI + Channels.
 MIDDLEWARE = [
-    # Bot Blocker
-    'middleware.bot_blocker.BotBlockMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
