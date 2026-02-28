@@ -286,20 +286,22 @@ class PullTheRopeGame extends BaseGame {
 
     checkWin() {
         if (this.gs !== 'play' || this.roundEndSent) return;
-        // For P1: pull < -threshold means P1 wins (blue/bottom wins)
-        // For P2: pull > +threshold means P2 wins (but P2 sees themselves at bottom)
-        // Normalize: if I'm P1, I win when pull <= -WIN_THR. If I'm P2, I win when pull >= WIN_THR
+        // P1: wins when pull <= -WIN_THR. P2: wins when pull >= WIN_THR
         const iWin = this.isP1 ? (this.pull <= -this.WIN_THR) : (this.pull >= this.WIN_THR);
         const opWins = this.isP1 ? (this.pull >= this.WIN_THR) : (this.pull <= -this.WIN_THR);
 
         if (iWin || opWins) {
             this.roundEndSent = true;
-            const winner = iWin ? this.myRole : this.opRole;
-            this.sendMove('round_end', {
-                winner: winner,
-                p1_score: this.isP1 ? this.myTaps : this.opTaps,
-                p2_score: this.isP1 ? this.opTaps : this.myTaps
-            });
+            // Only P1 sends round_end to server to avoid double-processing
+            // (both P1 and P2 detect the win locally, but only P1 officiates it)
+            if (this.isP1) {
+                const winner = iWin ? 'P1' : 'P2';
+                this.sendMove('round_end', {
+                    winner: winner,
+                    p1_score: this.myTaps,
+                    p2_score: this.opTaps
+                });
+            }
             this.endRound(iWin, false);
         }
     }
@@ -337,6 +339,9 @@ class PullTheRopeGame extends BaseGame {
     }
 
     endRound(iWon, timeUp, subText, showLobbyBtn) {
+        // Capture tap counts NOW before any reset can overwrite them
+        const myFinalTaps = this.myTaps;
+        const opFinalTaps = this.opTaps;
         this.gs = 'win';
         clearInterval(this.timerInt);
         const col = iWon ? '#5599ff' : '#ff5544';
@@ -348,7 +353,7 @@ class PullTheRopeGame extends BaseGame {
         if (wEmoji) wEmoji.textContent = iWon ? '🏆🐼' : '😢🐼';
         if (wTitle) { wTitle.textContent = iWon ? 'YOU WIN!' : 'YOU LOST!'; wTitle.style.color = col; wTitle.style.textShadow = `0 0 40px ${col},0 0 80px ${col}`; }
         if (wSub) wSub.textContent = timeUp ? '⏰ Time\'s Up!' : '💪 Rope Pulled!';
-        if (wStats) wStats.textContent = `You: ${this.myTaps} taps  ·  Opponent: ${this.opTaps} taps`;
+        if (wStats) wStats.textContent = `You: ${myFinalTaps} taps  ·  Opponent: ${opFinalTaps} taps`;
         if (wSubtext) wSubtext.textContent = subText || 'Round Over!';
         /* Show/hide lobby button */
         const lobbyBtn = document.getElementById('ptr-lobby-btn');
@@ -412,10 +417,19 @@ class PullTheRopeGame extends BaseGame {
         this.state = state;
         this.updateRoundInfo();
         const newRound = state.current_round || 1;
-        if (newRound > this.currentRound) {
+        // Fire when a genuinely new round starts, OR when server resends round 1 right after game_loaded
+        // (in that case gs is still 'play' from init countdown, so we guard against double-start)
+        const isNewRound = newRound > this.currentRound;
+        if (isNewRound) {
             this.currentRound = newRound;
-            this.resetRound();
-            this.countdown(() => { this.gs = 'play'; this.startTimer(); });
+            // Cancel any pending round-start
+            if (this._nextRoundTimeout) clearTimeout(this._nextRoundTimeout);
+            // Delay 2.5s so result screen is readable; no delay for unexpected early triggers
+            this._nextRoundTimeout = setTimeout(() => {
+                this._nextRoundTimeout = null;
+                this.resetRound();
+                this.countdown(() => { this.gs = 'play'; this.startTimer(); });
+            }, 2500);
         }
     }
 
