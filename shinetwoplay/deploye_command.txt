@@ -10,6 +10,8 @@ ssh -i shinetwoplay.pem ubuntu@13.235.50.170 (its dummy)
 ----------------------------------------------------
 cd /opt/shinetwoplay && git pull && cd shinetwoplay && sudo systemctl restart shinetwoplay
 
+cd /opt/shinetwoplay && git pull && cd shinetwoplay && venv/bin/pip install -r requirements.txt && sudo systemctl restart shinetwoplay
+
 3. VIEW VISITOR ANALYTICS LOGS (LIVE)
 ----------------------------------------------------
 # Watch people visiting the Home Page live:

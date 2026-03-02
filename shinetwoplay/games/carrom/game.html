@@ -723,6 +723,7 @@
             } else {
                 // ========== Normal turn (no striker foul) ==========
                 let ownColorPocketed = false;
+                let anyCoinPocketed = false; // any non-queen coin pocketed
                 let queenPocketedThisTurn = false;
                 const ownCoins = [];
                 const oppCoins = [];
@@ -732,8 +733,10 @@
                         queenPocketedThisTurn = true;
                     } else if (piece.type === currentColor) {
                         ownColorPocketed = true;
+                        anyCoinPocketed = true;
                         ownCoins.push(piece);
                     } else {
+                        anyCoinPocketed = true;
                         oppCoins.push(piece);
                     }
                 });
@@ -748,33 +751,40 @@
                     if (!keepTurn) gs.currentPlayer = cp === 1 ? 2 : 1;
                 } else {
                     // ===== LONG MODE: all coins count for whoever pockets them =====
+                    // In long mode, pocketing ANY coin (own or opponent) covers the queen
                     ownCoins.forEach(piece => myStack.push(piece));
                     oppCoins.forEach(piece => myStack.push(piece));
 
                     // Handle queen pocketed THIS turn
                     if (queenPocketedThisTurn) {
-                        if (ownColorPocketed) {
+                        if (anyCoinPocketed) {
+                            // Queen pocketed with a covering coin in the same shot — queen is secured
                             gs.queenPending = false; gs.queenPendingFor = null; gs.queenCovered = true;
-                            myStack.push(gs.pieces.find(p => p.type === 'queen'));
+                            const queenPiece = gs.pieces.find(p => p.type === 'queen');
+                            if (queenPiece && !myStack.includes(queenPiece)) myStack.push(queenPiece);
                         } else {
+                            // Queen pocketed alone — player must cover on next shot
                             gs.queenPending = true; gs.queenPendingFor = cp;
                         }
                     }
 
-                    // Handle queen PENDING from previous turn
+                    // Handle queen PENDING from a previous turn
                     if (gs.queenPending && gs.queenPendingFor === cp && !queenPocketedThisTurn) {
-                        if (ownColorPocketed) {
+                        if (anyCoinPocketed) {
+                            // Any coin pocketed counts as covering the queen in long mode
                             gs.queenCovered = true;
-                            myStack.push(gs.pieces.find(p => p.type === 'queen'));
+                            const queenPiece = gs.pieces.find(p => p.type === 'queen');
+                            if (queenPiece && !myStack.includes(queenPiece)) myStack.push(queenPiece);
                             gs.queenPending = false; gs.queenPendingFor = null;
                         } else {
-                            const queen = gs.pieces.find(p => p.type === 'queen');
-                            if (queen) { this._returnToCenter(queen); }
+                            // Failed to cover — queen returns to board
+                            const queenPiece = gs.pieces.find(p => p.type === 'queen');
+                            if (queenPiece) { this._returnToCenter(queenPiece); }
                             gs.queenPending = false; gs.queenPendingFor = null;
                         }
                     }
 
-                    // Keep turn if pocketed ANY coin
+                    // Keep turn if pocketed ANY coin (including queen)
                     if (pocketed.length > 0) keepTurn = true;
                     if (!keepTurn) gs.currentPlayer = cp === 1 ? 2 : 1;
                 }
