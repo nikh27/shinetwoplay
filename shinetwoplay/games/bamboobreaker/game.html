@@ -136,9 +136,9 @@ class BambooBreakerGame extends BaseGame {
 
         // Config
         this.COLS = 8; this.ROWS = 10;
-        this.SPEED = 150; this.MAX_CRACKS = 5;
-        this.IDLE_CRACK_TIME = 0.5; this.BREAK_COUNTDOWN = 0.5;
-        this.PUSH_FORCE = 350; this.HIT_R = 0;
+        this.SPEED = 350; this.MAX_CRACKS = 5;
+        this.IDLE_CRACK_TIME = 0.3; this.BREAK_COUNTDOWN = 0.3;
+        this.PUSH_FORCE = 550; this.HIT_R = 0;
 
         this.grid = []; this.particles = [];
         this.screenShake = 0; this.gameTime = 0;
@@ -513,9 +513,16 @@ class BambooBreakerGame extends BaseGame {
             this._update(dt);
         } else {
             this._readKeyboard();
-            // P2 updates particles & shakeT locally for visual only
+            this.gameTime += dt;
+            // P2 updates particles, shakeT and breakAnim locally for smooth visuals
             for (let r=0;r<this.ROWS;r++) for (let c=0;c<this.COLS;c++) {
-                if (this.grid[r][c].shakeT>0) this.grid[r][c].shakeT=Math.max(0,this.grid[r][c].shakeT-dt*4);
+                const t=this.grid[r][c];
+                if (t.shakeT>0) t.shakeT=Math.max(0,t.shakeT-dt*4);
+                if (t.state===2) {
+                    t.breakTimer+=dt;
+                    t.breakAnim=Math.min(1,t.breakTimer/this.BREAK_COUNTDOWN);
+                    t.shakeT=Math.max(t.shakeT,(1-t.breakTimer/this.BREAK_COUNTDOWN)*0.6);
+                }
             }
             for (const p of this.P) { if (p.fallT>=0) p.fallT+=dt*1.8; }
         }
@@ -593,6 +600,11 @@ class BambooBreakerGame extends BaseGame {
             const tc = this._pixelToTile(this.P[i].x,this.P[i].y);
             if (tc.r<0||tc.r>=this.ROWS||tc.c<0||tc.c>=this.COLS) continue;
             if (tc.r!==this.P[i].lastTileR||tc.c!==this.P[i].lastTileC) {
+                // Reset dwellTimer on the old tile when player leaves it
+                const oldR=this.P[i].lastTileR, oldC=this.P[i].lastTileC;
+                if (oldR>=0&&oldR<this.ROWS&&oldC>=0&&oldC<this.COLS) {
+                    this.grid[oldR][oldC].dwellTimer=0;
+                }
                 this.P[i].lastTileR=tc.r; this.P[i].lastTileC=tc.c;
                 const tile=this.grid[tc.r][tc.c];
                 if (tile.state<=1) {
@@ -613,15 +625,20 @@ class BambooBreakerGame extends BaseGame {
                 }
             } else {
                 const tile=this.grid[tc.r][tc.c];
-                if (tile.state===1&&tile.cracks<this.MAX_CRACKS) {
+                if (tile.state<=1&&tile.cracks<this.MAX_CRACKS) {
                     const isIdle=Math.abs(this.P[i].vx)<10&&Math.abs(this.P[i].vy)<10;
                     if (isIdle) {
                         tile.dwellTimer+=dt;
                         if (tile.dwellTimer>=this.IDLE_CRACK_TIME) {
                             tile.dwellTimer-=this.IDLE_CRACK_TIME;
+                            if (tile.state===0) tile.state=1;
                             tile.cracks++; tile.shakeT=0.8;
+                            const cc2=this._tileCenter(tc.r,tc.c);
+                            this._spawnParticles(cc2.x,cc2.y,['#8d6e63','#a5d6a7','#fff9c4','#7cb342'],5,
+                                {minSpd:0.5,maxSpd:2,upForce:1,minSize:1,maxSize:4,gravity:0.1});
                             if (tile.cracks>=this.MAX_CRACKS) {
                                 tile.state=2; tile.breakTimer=0; tile.breakAnim=0;
+                                tile.fallRot=(Math.random()-.5)*1.2;
                                 this.screenShake=0.6;
                             }
                         }
@@ -715,15 +732,16 @@ class BambooBreakerGame extends BaseGame {
         const emoji = document.getElementById('bb-go-emoji');
         const text = document.getElementById('bb-go-text');
         const sub = document.getElementById('bb-go-sub');
+        const btn = document.getElementById('bb-lobby-btn');
         emoji.textContent = iWon ? '🏆🐼' : '😢🐼';
         text.textContent = iWon ? 'YOU WIN!' : 'YOU LOST!';
         text.style.color = iWon ? '#4caf50' : '#ef5350';
         sub.textContent = `${this.P[winner].color==='#4fc3f7'?'Blue':'Red'} Panda survives!`;
         document.getElementById('bb-next-text').textContent = subText || 'Round Over!';
+        /* Always hide lobby button initially, show winner first */
+        if (btn) { btn.style.display = 'none'; btn.style.opacity = '0'; }
         document.getElementById('bb-gameover').classList.remove('hidden');
-        /* Show/hide lobby button */
-        const btn = document.getElementById('bb-lobby-btn');
-        if (btn) btn.style.display = showLobbyBtn ? '' : 'none';
+        /* After a short delay, fade in lobby button */
         if (showLobbyBtn) {
             window._bbBreakerReturnLobby = () => {
                 if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
@@ -731,6 +749,13 @@ class BambooBreakerGame extends BaseGame {
                 }
                 if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
             };
+            setTimeout(() => {
+                if (btn) {
+                    btn.style.display = '';
+                    btn.style.transition = 'opacity 0.4s ease';
+                    requestAnimationFrame(() => { btn.style.opacity = '1'; });
+                }
+            }, 1800);
         }
     }
 
@@ -1287,7 +1312,14 @@ class BambooBreakerGame extends BaseGame {
                 const sub = document.getElementById('bb-next-text');
                 if (sub) sub.textContent = 'Game Over!';
                 const btn = document.getElementById('bb-lobby-btn');
-                if (btn) btn.style.display = '';
+                if (btn) {
+                    btn.style.display = 'none'; btn.style.opacity = '0';
+                    setTimeout(() => {
+                        btn.style.display = '';
+                        btn.style.transition = 'opacity 0.4s ease';
+                        requestAnimationFrame(() => { btn.style.opacity = '1'; });
+                    }, 1800);
+                }
                 window._bbBreakerReturnLobby = () => {
                     if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
                         socket.send(JSON.stringify({ event: 'game_exit' }));
@@ -1296,20 +1328,32 @@ class BambooBreakerGame extends BaseGame {
                 };
             }
         } else {
-            /* More rounds remain — show brief result, auto-hide, next round starts via update() */
+            /* More rounds remain — show result with lobby button */
             if (!this.winShown) {
                 const roundWinner = payload.round_winner;
                 const myName = this.state.players[this.myRole];
                 const iWon = (roundWinner === myName);
                 const winIdx = iWon ? (this.myRole==='P1'?0:1) : (this.myRole==='P1'?1:0);
-                this._showGameOver(winIdx, `Round ${cr} Complete!`, false);
+                this._showGameOver(winIdx, `Round ${cr} Complete!`, true);
             } else {
                 const sub = document.getElementById('bb-next-text');
                 if (sub) sub.textContent = `Round ${cr} Complete!`;
+                const btn = document.getElementById('bb-lobby-btn');
+                if (btn) {
+                    btn.style.display = 'none'; btn.style.opacity = '0';
+                    setTimeout(() => {
+                        btn.style.display = '';
+                        btn.style.transition = 'opacity 0.4s ease';
+                        requestAnimationFrame(() => { btn.style.opacity = '1'; });
+                    }, 1800);
+                }
+                window._bbBreakerReturnLobby = () => {
+                    if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({ event: 'game_exit' }));
+                    }
+                    if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
+                };
             }
-            setTimeout(() => {
-                document.getElementById('bb-gameover').classList.add('hidden');
-            }, 2500);
         }
     }
 
@@ -1329,7 +1373,14 @@ class BambooBreakerGame extends BaseGame {
             const sub = document.getElementById('bb-next-text');
             if (sub) sub.textContent = subText;
             const btn = document.getElementById('bb-lobby-btn');
-            if (btn) btn.style.display = '';
+            if (btn) {
+                btn.style.display = 'none'; btn.style.opacity = '0';
+                setTimeout(() => {
+                    btn.style.display = '';
+                    btn.style.transition = 'opacity 0.4s ease';
+                    requestAnimationFrame(() => { btn.style.opacity = '1'; });
+                }, 1800);
+            }
             window._bbBreakerReturnLobby = () => {
                 if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
                     socket.send(JSON.stringify({ event: 'game_exit' }));

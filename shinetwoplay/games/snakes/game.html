@@ -475,6 +475,9 @@
 
             this.jA = null;
             this.remoteJA = null;
+            // Reset sync targets so P2 snaps to correct positions on first sync of each round
+            this.targetS1 = null;
+            this.targetS2 = null;
         }
 
         _doCountdown(cb) {
@@ -528,16 +531,17 @@
             else if (d.type === 'sync' && this.myRole === 'P2') {
                 // Reconstruct full snake from sparse data into TARGET arrays for lerping
                 this.a1 = d.a1; this.a2 = d.a2;
+                const firstSync = !this.targetS1 && !this.targetS2;
                 if (!this.targetS1) this.targetS1 = [];
                 if (!this.targetS2) this.targetS2 = [];
-                
+
                 this._interpolateSnake(this.targetS1, d.s1, d.l1);
                 this._interpolateSnake(this.targetS2, d.s2, d.l2);
-                
-                // If local arrays empty or dramatically different length, snap instantly
-                if(this.s1.length === 0 || Math.abs(this.s1.length - d.l1) > 2) this.s1 = JSON.parse(JSON.stringify(this.targetS1));
-                if(this.s2.length === 0 || Math.abs(this.s2.length - d.l2) > 2) this.s2 = JSON.parse(JSON.stringify(this.targetS2));
-                
+
+                // Snap on first sync or when length diverges — ensures blue snake spawns correctly
+                if(firstSync || this.s1.length === 0 || Math.abs(this.s1.length - d.l1) > 2) this.s1 = JSON.parse(JSON.stringify(this.targetS1));
+                if(firstSync || this.s2.length === 0 || Math.abs(this.s2.length - d.l2) > 2) this.s2 = JSON.parse(JSON.stringify(this.targetS2));
+
                 if (d.sc) { this.score = d.sc; this._showScore(); }
             }
             else if (d.type === 'round_result') {

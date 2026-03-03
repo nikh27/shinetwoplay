@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sea Battle – 2 Player Battleship</title>
+<meta name="description" content="A premium 2-player Sea Battle (Battleship) game with drag-and-drop ship placement, explosion animations, and modern navy-themed design.">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET & GLOBALS ─── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:16px;-webkit-tap-highlight-color:transparent;}
+body{
+  font-family:'Outfit',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+  background:linear-gradient(160deg,#0a1628 0%,#0d2137 30%,#122a4a 60%,#183252 100%);
+  color:#e0e8f0;
+  display:flex;flex-direction:column;align-items:center;
+  user-select:none;-webkit-user-select:none;
+}
+
+/* ─── BACKGROUND WAVES (pure CSS) ─── */
+body::before,body::after{
+  content:'';position:fixed;left:0;width:200%;height:180px;
+  background:rgba(30,100,180,.07);border-radius:45%;z-index:0;
+  animation:wave 8s ease-in-out infinite alternate;
+}
+body::before{bottom:-60px;}
+body::after{bottom:-100px;animation-delay:-4s;background:rgba(30,100,180,.05);}
+@keyframes wave{0%{transform:translateX(0) rotate(-1deg)}100%{transform:translateX(-25%) rotate(1deg)}}
+
+/* ─── UTILITY ─── */
+.hidden{display:none!important;}
+
+/* ─── HEADER ─── */
+.game-header{
+  text-align:center;padding:18px 12px 8px;position:relative;z-index:1;width:100%;
+}
+.game-header h1{
+  font-size:1.6rem;font-weight:800;
+  background:linear-gradient(135deg,#4fc3f7,#00e5ff,#29b6f6);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:1.5px;text-transform:uppercase;
+}
+.game-header .subtitle{font-size:.78rem;color:#7aa3c5;margin-top:2px;letter-spacing:.5px;}
+
+/* ─── TURN BANNER ─── */
+.turn-banner{
+  width:92%;max-width:420px;margin:6px auto 10px;
+  padding:10px 16px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(25,118,210,.35),rgba(13,71,161,.45));
+  border:1px solid rgba(100,180,255,.18);
+  backdrop-filter:blur(6px);
+  text-align:center;font-weight:700;font-size:1rem;letter-spacing:.3px;
+  box-shadow:0 4px 20px rgba(0,0,0,.25);
+  position:relative;z-index:1;
+  transition:all .35s;
+}
+.turn-banner.hit-turn{background:linear-gradient(135deg,rgba(230,74,25,.4),rgba(191,54,12,.5));border-color:rgba(255,120,60,.3);}
+
+/* ─── PHASE SCREEN WRAPPER ─── */
+.screen{
+  width:100%;max-width:460px;padding:0 8px;position:relative;z-index:1;
+  display:flex;flex-direction:column;align-items:center;
+}
+
+/* ─── PRIVACY SCREEN ─── */
+.privacy-screen{
+  position:fixed;inset:0;z-index:100;
+  background:linear-gradient(160deg,#0a1628,#122a4a);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:24px;
+}
+.privacy-screen h2{font-size:1.5rem;margin-bottom:10px;color:#4fc3f7;}
+.privacy-screen p{color:#7aa3c5;margin-bottom:24px;font-size:.9rem;max-width:300px;}
+
+/* ─── GRID ─── */
+.grid-wrapper{
+  background:linear-gradient(145deg,rgba(20,60,100,.5),rgba(10,30,60,.6));
+  border-radius:16px;padding:10px;
+  border:1px solid rgba(80,160,240,.15);
+  box-shadow:0 8px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04);
+  margin-bottom:10px;
+}
+.grid-label{
+  font-size:.75rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+  color:#5a9cc5;margin-bottom:6px;text-align:center;
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(10,1fr);
+  gap:2px;
+}
+.cell{
+  width:100%;aspect-ratio:1;border-radius:4px;
+  background:linear-gradient(145deg,rgba(20,80,140,.55),rgba(12,50,100,.7));
+  border:1px solid rgba(60,140,220,.12);
+  cursor:pointer;position:relative;
+  transition:background .15s,transform .1s,box-shadow .15s;
+}
+.cell:hover{background:rgba(30,100,180,.6);transform:scale(1.08);box-shadow:0 0 8px rgba(100,200,255,.25);}
+.cell:active{transform:scale(.95);}
+
+/* Cell states */
+.cell.ship-preview{background:rgba(100,180,255,.3);border-color:rgba(100,180,255,.4);}
+.cell.ship-placed{
+  background:linear-gradient(145deg,#37474f,#455a64);
+  border-color:rgba(120,144,156,.5);
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.3),0 1px 2px rgba(255,255,255,.05);
+}
+.cell.cell-hit{
+  background:radial-gradient(circle,#ff5722,#d84315);
+  border-color:#ff7043;
+  box-shadow:0 0 12px rgba(255,87,34,.5);
+  animation:hitPulse .5s ease-out;
+}
+.cell.cell-miss{
+  background:radial-gradient(circle,rgba(30,100,170,.6),rgba(20,60,110,.7));
+  border-color:rgba(60,140,220,.25);
+}
+.cell.cell-miss::after{
+  content:'';position:absolute;inset:30%;border-radius:50%;
+  background:rgba(180,220,255,.2);
+}
+.cell.cell-sunk{
+  background:radial-gradient(circle,#b71c1c,#880e4f);
+  border-color:#e53935;
+  box-shadow:0 0 14px rgba(229,57,53,.5);
+}
+.cell.invalid-preview{background:rgba(255,50,50,.35);border-color:rgba(255,80,80,.5);}
+
+@keyframes hitPulse{
+  0%{transform:scale(1.3);box-shadow:0 0 24px rgba(255,87,34,.8)}
+  100%{transform:scale(1);box-shadow:0 0 12px rgba(255,87,34,.5)}
+}
+@keyframes missSplash{
+  0%{transform:scale(0);opacity:1}
+  100%{transform:scale(1.6);opacity:0}
+}
+@keyframes sunkFlash{
+  0%,100%{opacity:1}50%{opacity:.5}
+}
+
+/* Hit marker (×) */
+.cell.cell-hit::after{
+  content:'✕';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(10px,3vw,18px);font-weight:800;color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,.5);
+}
+/* Miss marker (·) */
+.cell.cell-miss::after{
+  content:'';border-radius:50%;
+  background:rgba(180,220,255,.35);
+  inset:32%;
+}
+/* Sunk marker */
+.cell.cell-sunk::after{
+  content:'✕';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(10px,3vw,18px);font-weight:800;color:#ffcdd2;
+  text-shadow:0 1px 3px rgba(0,0,0,.5);
+  animation:sunkFlash .6s ease-in-out 2;
+}
+
+/* ─── SHIP DOCK (placement phase) ─── */
+.ship-dock{
+  width:100%;max-width:420px;margin:8px auto;
+  background:linear-gradient(145deg,rgba(20,60,100,.4),rgba(10,30,60,.5));
+  border-radius:14px;padding:10px 12px;
+  border:1px solid rgba(80,160,240,.12);
+}
+.dock-title{font-size:.72rem;font-weight:600;color:#5a9cc5;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.dock-ships{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.dock-ship{
+  display:flex;gap:2px;cursor:grab;padding:3px;border-radius:6px;
+  border:2px solid transparent;transition:border-color .2s,transform .15s;
+}
+.dock-ship:active{cursor:grabbing;}
+.dock-ship.selected{border-color:#4fc3f7;transform:scale(1.05);}
+.dock-ship.placed{opacity:.35;pointer-events:none;}
+.dock-ship-cell{
+  width:26px;height:26px;border-radius:3px;
+  background:linear-gradient(145deg,#37474f,#546e7a);
+  border:1px solid rgba(120,144,156,.5);
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.3),0 1px 2px rgba(255,255,255,.05);
+}
+
+/* ─── CONTROLS ─── */
+.controls{
+  display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+  margin:8px 0 14px;width:100%;max-width:420px;
+}
+.btn{
+  padding:10px 20px;border-radius:12px;border:none;
+  font-family:'Outfit',sans-serif;font-weight:700;font-size:.85rem;
+  cursor:pointer;letter-spacing:.5px;
+  transition:all .2s;position:relative;overflow:hidden;
+}
+.btn:active{transform:scale(.96);}
+.btn-primary{
+  background:linear-gradient(135deg,#1976d2,#1565c0);color:#fff;
+  box-shadow:0 4px 14px rgba(25,118,210,.35);
+}
+.btn-primary:hover{box-shadow:0 6px 20px rgba(25,118,210,.5);}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;}
+.btn-secondary{
+  background:rgba(255,255,255,.08);color:#90caf9;
+  border:1px solid rgba(100,180,255,.2);
+}
+.btn-secondary:hover{background:rgba(255,255,255,.14);}
+.btn-danger{
+  background:linear-gradient(135deg,#c62828,#b71c1c);color:#fff;
+  box-shadow:0 4px 14px rgba(198,40,40,.35);
+}
+.btn-danger:hover{box-shadow:0 6px 20px rgba(198,40,40,.5);}
+.btn-success{
+  background:linear-gradient(135deg,#2e7d32,#1b5e20);color:#fff;
+  box-shadow:0 4px 14px rgba(46,125,50,.35);
+}
+
+/* ─── NOTIFICATION TOAST ─── */
+.toast{
+  position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-120%);
+  padding:10px 22px;border-radius:12px;z-index:200;
+  font-weight:700;font-size:.85rem;letter-spacing:.3px;
+  box-shadow:0 6px 24px rgba(0,0,0,.4);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
+}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.toast-hit{background:linear-gradient(135deg,#e65100,#bf360c);color:#fff;}
+.toast.toast-miss{background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff;}
+.toast.toast-sunk{background:linear-gradient(135deg,#b71c1c,#880e4f);color:#fff;}
+.toast.toast-info{background:linear-gradient(135deg,#00838f,#006064);color:#fff;}
+
+/* ─── VICTORY MODAL ─── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:300;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .4s;
+}
+.modal-overlay.show{opacity:1;pointer-events:all;}
+.modal{
+  background:linear-gradient(160deg,#1a2e4a,#0f1f35);
+  border:1px solid rgba(80,160,240,.2);
+  border-radius:20px;padding:32px 28px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+  max-width:340px;width:90%;
+  transform:scale(.85);transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+}
+.modal-overlay.show .modal{transform:scale(1);}
+.modal h2{
+  font-size:1.6rem;font-weight:800;
+  background:linear-gradient(135deg,#ffd54f,#ffb300);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:6px;
+}
+.modal .trophy{font-size:3rem;margin-bottom:8px;}
+.modal p{color:#7aa3c5;margin-bottom:20px;font-size:.9rem;}
+.modal .stats{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;
+}
+.modal .stat{
+  background:rgba(255,255,255,.05);border-radius:10px;padding:10px 8px;
+}
+.modal .stat-val{font-size:1.2rem;font-weight:800;color:#4fc3f7;}
+.modal .stat-label{font-size:.65rem;color:#7aa3c5;text-transform:uppercase;letter-spacing:.8px;margin-top:2px;}
+
+/* ─── SCORE STRIP ─── */
+.score-strip{
+  display:flex;gap:12px;justify-content:center;margin:4px 0 6px;width:100%;max-width:420px;
+}
+.score-item{
+  flex:1;text-align:center;
+  background:rgba(255,255,255,.04);border-radius:10px;padding:6px 8px;
+}
+.score-item .label{font-size:.6rem;color:#5a9cc5;text-transform:uppercase;letter-spacing:.8px;}
+.score-item .value{font-size:1rem;font-weight:800;color:#4fc3f7;}
+
+/* ─── EXPLOSION PARTICLES ─── */
+.explosion{
+  position:absolute;inset:0;pointer-events:none;z-index:10;
+}
+.particle{
+  position:absolute;width:6px;height:6px;border-radius:50%;
+  animation:particleBurst .6s ease-out forwards;
+}
+@keyframes particleBurst{
+  0%{transform:translate(0,0) scale(1);opacity:1}
+  100%{opacity:0}
+}
+.splash-ring{
+  position:absolute;inset:0;border-radius:50%;
+  border:2px solid rgba(100,200,255,.5);
+  animation:splashRing .5s ease-out forwards;
+}
+@keyframes splashRing{
+  0%{transform:scale(.3);opacity:1}
+  100%{transform:scale(2);opacity:0}
+}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:400px){
+  .game-header h1{font-size:1.25rem;}
+  .dock-ship-cell{width:22px;height:22px;}
+  .controls{gap:6px;}
+  .btn{padding:9px 14px;font-size:.78rem;}
+}
+@media(min-width:500px){
+  .grid-wrapper{padding:14px;}
+  .cell{border-radius:5px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ──────── HEADER ──────── -->
+<header class="game-header">
+  <h1>⚓ Sea Battle</h1>
+  <p class="subtitle">2-Player Battleship</p>
+</header>
+
+<!-- ──────── TURN BANNER ──────── -->
+<div class="turn-banner" id="turnBanner">Player 1 — Place Your Ships</div>
+
+<!-- ──────── SCORE STRIP ──────── -->
+<div class="score-strip" id="scoreStrip">
+  <div class="score-item"><div class="label">P1 Ships</div><div class="value" id="p1Ships">5</div></div>
+  <div class="score-item"><div class="label">P1 Hits</div><div class="value" id="p1Hits">0</div></div>
+  <div class="score-item"><div class="label">P2 Ships</div><div class="value" id="p2Ships">5</div></div>
+  <div class="score-item"><div class="label">P2 Hits</div><div class="value" id="p2Hits">0</div></div>
+</div>
+
+<!-- ──────── MAIN SCREEN ──────── -->
+<main class="screen" id="mainScreen">
+  <!-- GRID -->
+  <div class="grid-wrapper">
+    <div class="grid-label" id="gridLabel">Your Fleet</div>
+    <div class="grid" id="gameGrid"></div>
+  </div>
+
+  <!-- SHIP DOCK (placement phase) -->
+  <div class="ship-dock" id="shipDock">
+    <div class="dock-title">Ships to Place</div>
+    <div class="dock-ships" id="dockShips"></div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls" id="controls"></div>
+</main>
+
+<!-- ──────── PRIVACY SCREEN ──────── -->
+<div class="privacy-screen hidden" id="privacyScreen">
+  <h2 id="privacyTitle">Pass to Player 2</h2>
+  <p id="privacyMsg">Hand the device to your opponent. Don't peek!</p>
+  <button class="btn btn-primary" id="privacyBtn">I'm Ready</button>
+</div>
+
+<!-- ──────── VICTORY MODAL ──────── -->
+<div class="modal-overlay" id="victoryOverlay">
+  <div class="modal">
+    <div class="trophy">🏆</div>
+    <h2 id="victoryTitle">Player 1 Wins!</h2>
+    <p id="victoryMsg">All enemy ships destroyed</p>
+    <div class="stats" id="victoryStats"></div>
+    <button class="btn btn-primary" id="restartBtn" style="width:100%">Play Again</button>
+  </div>
+</div>
+
+<!-- ──────── TOAST ──────── -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════
+   SEA BATTLE – COMPLETE GAME LOGIC
+   ════════════════════════════════════════════ */
+
+// ─── ENUMS / CONSTANTS ───
+const GameState  = { PLACEMENT: 'PLACEMENT', BATTLE: 'BATTLE', GAME_OVER: 'GAME_OVER' };
+const CellState  = { EMPTY: 0, SHIP: 1, HIT: 2, MISS: 3, SUNK: 4 };
+const GRID_SIZE  = 10;
+const SHIP_SIZES = [5, 4, 3, 3, 2];
+const SHIP_NAMES = ['Carrier','Battleship','Cruiser','Submarine','Destroyer'];
+
+// ─── SHIP CLASS ───
+class Ship {
+  constructor(size, name) {
+    this.size  = size;
+    this.name  = name;
+    this.cells = [];          // [{r,c}, ...]
+    this.hits  = new Set();   // indices hit
+    this.sunk  = false;
+  }
+  addCell(r, c) { this.cells.push({r, c}); }
+  hit(r, c) {
+    const idx = this.cells.findIndex(p => p.r === r && p.c === c);
+    if (idx !== -1) this.hits.add(idx);
+    if (this.hits.size === this.size) this.sunk = true;
+    return this.sunk;
+  }
+  isSunk() { return this.sunk; }
+}
+
+// ─── BOARD CLASS ───
+class Board {
+  constructor() {
+    this.grid  = Array.from({length: GRID_SIZE}, () => Array(GRID_SIZE).fill(CellState.EMPTY));
+    this.ships = [];
+  }
+  canPlace(r, c, size, vertical) {
+    for (let i = 0; i < size; i++) {
+      const rr = vertical ? r + i : r;
+      const cc = vertical ? c : c + i;
+      if (rr < 0 || rr >= GRID_SIZE || cc < 0 || cc >= GRID_SIZE) return false;
+      if (this.grid[rr][cc] !== CellState.EMPTY) return false;
+    }
+    return true;
+  }
+  placeShip(r, c, size, vertical, name) {
+    if (!this.canPlace(r, c, size, vertical)) return null;
+    const ship = new Ship(size, name);
+    for (let i = 0; i < size; i++) {
+      const rr = vertical ? r + i : r;
+      const cc = vertical ? c : c + i;
+      this.grid[rr][cc] = CellState.SHIP;
+      ship.addCell(rr, cc);
+    }
+    this.ships.push(ship);
+    return ship;
+  }
+  removeShip(ship) {
+    ship.cells.forEach(({r, c}) => { this.grid[r][c] = CellState.EMPTY; });
+    this.ships = this.ships.filter(s => s !== ship);
+  }
+  attack(r, c) {
+    const cell = this.grid[r][c];
+    if (cell === CellState.HIT || cell === CellState.MISS || cell === CellState.SUNK) return null; // already
+    if (cell === CellState.SHIP) {
+      this.grid[r][c] = CellState.HIT;
+      const ship = this.ships.find(s => s.cells.some(p => p.r === r && p.c === c));
+      const sunk = ship.hit(r, c);
+      if (sunk) {
+        ship.cells.forEach(({r: sr, c: sc}) => { this.grid[sr][sc] = CellState.SUNK; });
+      }
+      return { hit: true, sunk, ship };
+    }
+    this.grid[r][c] = CellState.MISS;
+    return { hit: false, sunk: false, ship: null };
+  }
+  allSunk() { return this.ships.length > 0 && this.ships.every(s => s.isSunk()); }
+}
+
+// ─── PLAYER CLASS ───
+class Player {
+  constructor(id) {
+    this.id       = id;
+    this.name     = `Player ${id}`;
+    this.board    = new Board();
+    this.hits     = 0;
+    this.misses   = 0;
+    this.shipsAlive = SHIP_SIZES.length;
+  }
+}
+
+// ─── GAME CLASS ───
+class Game {
+  constructor() {
+    this.state        = GameState.PLACEMENT;
+    this.players      = [new Player(1), new Player(2)];
+    this.currentIdx   = 0;   // whose turn
+    this.placingIdx   = 0;   // who is placing
+    this.selectedShip = null; // {dockIdx, size, name}
+    this.vertical     = false;
+    this.placedCount  = [0, 0];
+    this.init();
+  }
+
+  get current() { return this.players[this.currentIdx]; }
+  get opponent() { return this.players[1 - this.currentIdx]; }
+
+  init() {
+    this.buildGrid();
+    this.buildDock(0);
+    this.buildControls();
+    this.updateBanner();
+    this.updateScores();
+  }
+
+  // ── DOM HELPERS ──
+  $(id) { return document.getElementById(id); }
+
+  buildGrid() {
+    const grid = this.$('gameGrid');
+    grid.innerHTML = '';
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.r = r;
+        cell.dataset.c = c;
+        cell.addEventListener('click', () => this.onCellClick(r, c));
+        cell.addEventListener('mouseenter', () => this.onCellHover(r, c));
+        cell.addEventListener('mouseleave', () => this.clearPreview());
+        // Touch support
+        cell.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          this.onCellHover(r, c);
+        }, { passive: false });
+        cell.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          this.onCellClick(r, c);
+          this.clearPreview();
+        }, { passive: false });
+        grid.appendChild(cell);
+      }
+    }
+  }
+
+  getCell(r, c) {
+    return this.$('gameGrid').children[r * GRID_SIZE + c];
+  }
+
+  buildDock(playerIdx) {
+    const dock = this.$('dockShips');
+    dock.innerHTML = '';
+    SHIP_SIZES.forEach((size, i) => {
+      const div = document.createElement('div');
+      div.className = 'dock-ship';
+      if (this.placedCount[playerIdx] > i) div.classList.add('placed');
+      div.dataset.idx = i;
+      for (let j = 0; j < size; j++) {
+        const c = document.createElement('div');
+        c.className = 'dock-ship-cell';
+        div.appendChild(c);
+      }
+      div.addEventListener('click', () => this.selectShip(i));
+      dock.appendChild(div);
+    });
+    // Auto-select first unplaced
+    const firstUnplaced = this.placedCount[playerIdx];
+    if (firstUnplaced < SHIP_SIZES.length) this.selectShip(firstUnplaced);
+  }
+
+  selectShip(idx) {
+    if (idx >= SHIP_SIZES.length) return;
+    const playerIdx = this.placingIdx;
+    // Check if already placed
+    if (this.players[playerIdx].board.ships.length > idx) return;
+    this.selectedShip = { dockIdx: idx, size: SHIP_SIZES[idx], name: SHIP_NAMES[idx] };
+    // Highlight in dock
+    const dockItems = this.$('dockShips').children;
+    Array.from(dockItems).forEach(d => d.classList.remove('selected'));
+    if (dockItems[idx]) dockItems[idx].classList.add('selected');
+    this.clearPreview();
+  }
+
+  buildControls() {
+    const ctrl = this.$('controls');
+    ctrl.innerHTML = '';
+    if (this.state === GameState.PLACEMENT) {
+      const rotBtn = document.createElement('button');
+      rotBtn.className = 'btn btn-secondary';
+      rotBtn.textContent = '🔄 Rotate';
+      rotBtn.id = 'rotateBtn';
+      rotBtn.addEventListener('click', () => this.toggleRotation());
+      ctrl.appendChild(rotBtn);
+
+      const clearBtn = document.createElement('button');
+      clearBtn.className = 'btn btn-danger';
+      clearBtn.textContent = '🗑 Clear';
+      clearBtn.id = 'clearBtn';
+      clearBtn.addEventListener('click', () => this.clearPlacement());
+      ctrl.appendChild(clearBtn);
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'btn btn-primary';
+      confirmBtn.textContent = '✓ Confirm';
+      confirmBtn.id = 'confirmBtn';
+      confirmBtn.disabled = true;
+      confirmBtn.addEventListener('click', () => this.confirmPlacement());
+      ctrl.appendChild(confirmBtn);
+
+      const randomBtn = document.createElement('button');
+      randomBtn.className = 'btn btn-success';
+      randomBtn.textContent = '🎲 Random';
+      randomBtn.id = 'randomBtn';
+      randomBtn.addEventListener('click', () => this.randomPlacement());
+      ctrl.appendChild(randomBtn);
+    }
+  }
+
+  toggleRotation() {
+    this.vertical = !this.vertical;
+    const btn = this.$('rotateBtn');
+    if (btn) btn.textContent = this.vertical ? '🔄 Vertical' : '🔄 Horizontal';
+    this.clearPreview();
+  }
+
+  clearPlacement() {
+    const player = this.players[this.placingIdx];
+    // Remove all ships
+    while (player.board.ships.length) {
+      player.board.removeShip(player.board.ships[0]);
+    }
+    this.placedCount[this.placingIdx] = 0;
+    this.selectedShip = null;
+    this.vertical = false;
+    this.buildDock(this.placingIdx);
+    this.renderBoard(player.board, true);
+    const confirmBtn = this.$('confirmBtn');
+    if (confirmBtn) confirmBtn.disabled = true;
+  }
+
+  randomPlacement() {
+    this.clearPlacement();
+    const player = this.players[this.placingIdx];
+    SHIP_SIZES.forEach((size, i) => {
+      let placed = false;
+      while (!placed) {
+        const v = Math.random() > .5;
+        const r = Math.floor(Math.random() * GRID_SIZE);
+        const c = Math.floor(Math.random() * GRID_SIZE);
+        if (player.board.canPlace(r, c, size, v)) {
+          player.board.placeShip(r, c, size, v, SHIP_NAMES[i]);
+          this.placedCount[this.placingIdx] = i + 1;
+          placed = true;
+        }
+      }
+    });
+    this.buildDock(this.placingIdx);
+    this.renderBoard(player.board, true);
+    const confirmBtn = this.$('confirmBtn');
+    if (confirmBtn) confirmBtn.disabled = false;
+    this.selectedShip = null;
+  }
+
+  confirmPlacement() {
+    if (this.placedCount[this.placingIdx] < SHIP_SIZES.length) return;
+    if (this.placingIdx === 0) {
+      // Player 1 done, switch to Player 2 placement
+      this.placingIdx = 1;
+      this.selectedShip = null;
+      this.vertical = false;
+      this.showPrivacyScreen('Pass to Player 2', 'Hand the device to Player 2 for ship placement.', () => {
+        this.buildDock(1);
+        this.buildControls();
+        this.renderBoard(this.players[1].board, true);
+        this.updateBanner();
+        this.$('gridLabel').textContent = 'Your Fleet';
+      });
+    } else {
+      // Both placed, start battle!
+      this.state = GameState.BATTLE;
+      this.currentIdx = 0;
+      this.showPrivacyScreen("Player 1's Turn", 'Hand the device to Player 1 to start attacking.', () => {
+        this.$('shipDock').classList.add('hidden');
+        this.buildControls();
+        this.renderBattleView();
+        this.updateBanner();
+        this.updateScores();
+      });
+    }
+  }
+
+  // ── CELL INTERACTIONS ──
+  onCellClick(r, c) {
+    if (this.state === GameState.PLACEMENT) {
+      this.placementClick(r, c);
+    } else if (this.state === GameState.BATTLE) {
+      this.battleClick(r, c);
+    }
+  }
+
+  onCellHover(r, c) {
+    if (this.state !== GameState.PLACEMENT || !this.selectedShip) return;
+    this.clearPreview();
+    const { size } = this.selectedShip;
+    const board = this.players[this.placingIdx].board;
+    const valid = board.canPlace(r, c, size, this.vertical);
+    for (let i = 0; i < size; i++) {
+      const rr = this.vertical ? r + i : r;
+      const cc = this.vertical ? c : c + i;
+      if (rr >= 0 && rr < GRID_SIZE && cc >= 0 && cc < GRID_SIZE) {
+        const cell = this.getCell(rr, cc);
+        cell.classList.add(valid ? 'ship-preview' : 'invalid-preview');
+      }
+    }
+  }
+
+  clearPreview() {
+    const cells = this.$('gameGrid').querySelectorAll('.ship-preview,.invalid-preview');
+    cells.forEach(c => { c.classList.remove('ship-preview', 'invalid-preview'); });
+  }
+
+  placementClick(r, c) {
+    if (!this.selectedShip) return;
+    const playerIdx = this.placingIdx;
+    const player = this.players[playerIdx];
+    const { size, name, dockIdx } = this.selectedShip;
+    const ship = player.board.placeShip(r, c, size, this.vertical, name);
+    if (!ship) {
+      this.showToast('Invalid placement!', 'info');
+      return;
+    }
+    this.placedCount[playerIdx] = dockIdx + 1;
+    this.buildDock(playerIdx);
+    this.renderBoard(player.board, true);
+    // Next ship
+    const nextIdx = dockIdx + 1;
+    if (nextIdx < SHIP_SIZES.length) {
+      this.selectShip(nextIdx);
+    } else {
+      this.selectedShip = null;
+      const confirmBtn = this.$('confirmBtn');
+      if (confirmBtn) confirmBtn.disabled = false;
+      this.showToast('All ships placed! Hit Confirm.', 'info');
+    }
+  }
+
+  battleClick(r, c) {
+    const target = this.opponent.board;
+    const result = target.attack(r, c);
+    if (!result) return; // already attacked
+
+    if (result.hit) {
+      this.current.hits++;
+      this.spawnExplosion(r, c);
+      if (result.sunk) {
+        this.opponent.shipsAlive--;
+        this.showToast(`💥 ${result.ship.name} sunk!`, 'sunk');
+        // Animate sunk cells
+        setTimeout(() => {
+          result.ship.cells.forEach(({r: sr, c: sc}) => {
+            const cell = this.getCell(sr, sc);
+            cell.classList.remove('cell-hit');
+            cell.classList.add('cell-sunk');
+          });
+        }, 300);
+      } else {
+        this.showToast('🔥 HIT! Fire again!', 'hit');
+      }
+      this.$('turnBanner').classList.add('hit-turn');
+    } else {
+      this.current.misses++;
+      this.spawnSplash(r, c);
+      this.showToast('💨 Miss!', 'miss');
+      this.$('turnBanner').classList.remove('hit-turn');
+    }
+
+    this.renderBattleView();
+    this.updateScores();
+
+    // Check win
+    if (target.allSunk()) {
+      this.state = GameState.GAME_OVER;
+      setTimeout(() => this.showVictory(), 600);
+      return;
+    }
+
+    // If miss, switch turn
+    if (!result.hit) {
+      setTimeout(() => {
+        this.showPrivacyScreen(
+          `Player ${this.opponent.id}'s Turn`,
+          `Hand the device to Player ${this.opponent.id}.`,
+          () => {
+            this.currentIdx = 1 - this.currentIdx;
+            this.renderBattleView();
+            this.updateBanner();
+            this.updateScores();
+            this.$('turnBanner').classList.remove('hit-turn');
+          }
+        );
+      }, 900);
+    }
+  }
+
+  // ── RENDERING ──
+  renderBoard(board, showShips) {
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        const cell = this.getCell(r, c);
+        cell.className = 'cell';
+        const val = board.grid[r][c];
+        if (val === CellState.SHIP && showShips) cell.classList.add('ship-placed');
+        else if (val === CellState.HIT) cell.classList.add('cell-hit');
+        else if (val === CellState.MISS) cell.classList.add('cell-miss');
+        else if (val === CellState.SUNK) cell.classList.add('cell-sunk');
+      }
+    }
+  }
+
+  renderBattleView() {
+    // Show opponent's board (hide ships, show hits/misses)
+    const target = this.opponent.board;
+    this.$('gridLabel').textContent = `Attack Player ${this.opponent.id}'s Grid`;
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        const cell = this.getCell(r, c);
+        cell.className = 'cell';
+        const val = target.grid[r][c];
+        if (val === CellState.HIT) cell.classList.add('cell-hit');
+        else if (val === CellState.MISS) cell.classList.add('cell-miss');
+        else if (val === CellState.SUNK) cell.classList.add('cell-sunk');
+        // SHIP and EMPTY look the same to attacker (fog of war)
+      }
+    }
+  }
+
+  updateBanner() {
+    const banner = this.$('turnBanner');
+    if (this.state === GameState.PLACEMENT) {
+      banner.textContent = `Player ${this.placingIdx + 1} — Place Your Ships`;
+    } else if (this.state === GameState.BATTLE) {
+      banner.textContent = `Player ${this.current.id}'s Turn — Attack!`;
+    }
+  }
+
+  updateScores() {
+    const p1 = this.players[0], p2 = this.players[1];
+    this.$('p1Ships').textContent = p1.shipsAlive;
+    this.$('p1Hits').textContent  = p1.hits;
+    this.$('p2Ships').textContent = p2.shipsAlive;
+    this.$('p2Hits').textContent  = p2.hits;
+  }
+
+  // ── PRIVACY SCREEN ──
+  showPrivacyScreen(title, msg, onReady) {
+    const ps = this.$('privacyScreen');
+    this.$('privacyTitle').textContent = title;
+    this.$('privacyMsg').textContent   = msg;
+    ps.classList.remove('hidden');
+
+    const handler = () => {
+      ps.classList.add('hidden');
+      this.$('privacyBtn').removeEventListener('click', handler);
+      onReady();
+    };
+    this.$('privacyBtn').addEventListener('click', handler);
+  }
+
+  // ── ANIMATIONS ──
+  spawnExplosion(r, c) {
+    const cell = this.getCell(r, c);
+    const container = document.createElement('div');
+    container.className = 'explosion';
+    const colors = ['#ff5722','#ff9800','#ffeb3b','#ff7043','#fff'];
+    for (let i = 0; i < 10; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.background = colors[Math.floor(Math.random() * colors.length)];
+      const angle = (Math.PI * 2 * i) / 10;
+      const dist  = 12 + Math.random() * 16;
+      p.style.left = '50%';
+      p.style.top  = '50%';
+      p.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
+      p.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
+      p.style.animation = `particleBurst .5s ease-out forwards`;
+      p.style.transform = `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px)`;
+      container.appendChild(p);
+    }
+    cell.appendChild(container);
+    setTimeout(() => container.remove(), 600);
+  }
+
+  spawnSplash(r, c) {
+    const cell = this.getCell(r, c);
+    const ring = document.createElement('div');
+    ring.className = 'splash-ring';
+    cell.appendChild(ring);
+    setTimeout(() => ring.remove(), 500);
+  }
+
+  // ── TOAST ──
+  showToast(msg, type) {
+    const t = this.$('toast');
+    t.textContent = msg;
+    t.className = `toast toast-${type} show`;
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => { t.classList.remove('show'); }, 1800);
+  }
+
+  // ── VICTORY ──
+  showVictory() {
+    const winner = this.current;
+    const loser  = this.opponent;
+    this.$('victoryTitle').textContent = `${winner.name} Wins!`;
+    this.$('victoryMsg').textContent   = 'All enemy ships destroyed!';
+    const stats = this.$('victoryStats');
+    stats.innerHTML = `
+      <div class="stat"><div class="stat-val">${winner.hits}</div><div class="stat-label">Hits</div></div>
+      <div class="stat"><div class="stat-val">${winner.misses}</div><div class="stat-label">Misses</div></div>
+      <div class="stat"><div class="stat-val">${winner.hits + winner.misses}</div><div class="stat-label">Total Shots</div></div>
+      <div class="stat"><div class="stat-val">${Math.round(winner.hits / (winner.hits + winner.misses) * 100)}%</div><div class="stat-label">Accuracy</div></div>
+    `;
+    this.$('victoryOverlay').classList.add('show');
+  }
+
+  restart() {
+    this.$('victoryOverlay').classList.remove('show');
+    this.$('shipDock').classList.remove('hidden');
+    this.$('turnBanner').classList.remove('hit-turn');
+    // Create fresh game
+    Object.assign(this, {
+      state: GameState.PLACEMENT,
+      players: [new Player(1), new Player(2)],
+      currentIdx: 0,
+      placingIdx: 0,
+      selectedShip: null,
+      vertical: false,
+      placedCount: [0, 0],
+    });
+    this.init();
+  }
+}
+
+// ─── START ───
+const game = new Game();
+document.getElementById('restartBtn').addEventListener('click', () => game.restart());
+</script>
+</body>
+</html>
