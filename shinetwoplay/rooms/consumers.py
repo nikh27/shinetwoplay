@@ -691,9 +691,11 @@ class RoomConsumer(AsyncWebsocketConsumer):
                     'round_winner': result.get('round_winner'),
                     'scores': new_state.get('scores', {}),
                     'game_state': new_state,
+                    'game_ended': result.get('game_ended', False),
+                    'game_winner': result.get('game_winner'),
                     'timestamp': current_time,
-                    'reveal_at': reveal_at,     # <--- When to show overlay
-                    'display_ms': 3000          # Show result for 3 seconds
+                    'reveal_at': reveal_at,
+                    'display_ms': 3000
                 }
             )
             
@@ -1276,6 +1278,8 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 'round_winner': event['round_winner'],
                 'scores': event['scores'],
                 'game_state': event['game_state'],
+                'game_ended': event.get('game_ended', False),
+                'game_winner': event.get('game_winner'),
                 'timestamp': event.get('timestamp'),
                 'display_ms': event.get('display_ms', 2000)
             }

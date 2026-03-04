@@ -397,7 +397,7 @@ class BambooBreakerGame extends BaseGame {
         for (let r=0; r<this.ROWS; r++) {
             this.grid[r] = [];
             for (let c=0; c<this.COLS; c++) {
-                this.grid[r][c] = { state:0, cracks:0, dwellTimer:0, breakTimer:0, breakAnim:0,
+                this.grid[r][c] = { state:0, cracks:0, breakTimer:0, breakAnim:0,
                     fallRot:(Math.random()-.5)*.8, shakeT:0, pattern:Math.floor(Math.random()*4),
                     glowPhase:Math.random()*Math.PI*2 };
             }
@@ -508,7 +508,9 @@ class BambooBreakerGame extends BaseGame {
     // ===== GAME PHYSICS (P1 only) =====
     _loop(ts) {
         if (!this.playing) return;
-        const dt = 1/60;
+        const raw = (ts - (this._lastTs || ts)) / 1000;
+        this._lastTs = ts;
+        const dt = Math.min(raw, 1/20); // cap at 50ms to avoid spiral on tab switch
         if (this.myRole === 'P1') {
             this._update(dt);
         } else {
@@ -596,21 +598,18 @@ class BambooBreakerGame extends BaseGame {
 
         // Tile cracking
         for (let i=0; i<2; i++) {
-            if (!this.P[i].alive) continue;
-            const tc = this._pixelToTile(this.P[i].x,this.P[i].y);
+            const p = this.P[i];
+            if (!p.alive) continue;
+            const tc = this._pixelToTile(p.x,p.y);
             if (tc.r<0||tc.r>=this.ROWS||tc.c<0||tc.c>=this.COLS) continue;
-            if (tc.r!==this.P[i].lastTileR||tc.c!==this.P[i].lastTileC) {
-                // Reset dwellTimer on the old tile when player leaves it
-                const oldR=this.P[i].lastTileR, oldC=this.P[i].lastTileC;
-                if (oldR>=0&&oldR<this.ROWS&&oldC>=0&&oldC<this.COLS) {
-                    this.grid[oldR][oldC].dwellTimer=0;
-                }
-                this.P[i].lastTileR=tc.r; this.P[i].lastTileC=tc.c;
+            if (tc.r!==p.lastTileR||tc.c!==p.lastTileC) {
+                // Moved to a new tile — reset this player's idle timer
+                p.dwellTimer = 0;
+                p.lastTileR=tc.r; p.lastTileC=tc.c;
                 const tile=this.grid[tc.r][tc.c];
                 if (tile.state<=1) {
                     if (tile.state===0) tile.state=1;
                     tile.cracks++; tile.shakeT=0.8;
-                    // Crack particles
                     const cc=this._tileCenter(tc.r,tc.c);
                     this._spawnParticles(cc.x,cc.y,['#8d6e63','#a5d6a7','#fff9c4','#7cb342'],8,
                         {minSpd:1,maxSpd:3,upForce:2,minSize:1,maxSize:5,gravity:0.1});
@@ -618,19 +617,19 @@ class BambooBreakerGame extends BaseGame {
                         tile.state=2; tile.breakTimer=0; tile.breakAnim=0;
                         tile.fallRot=(Math.random()-.5)*1.2;
                         this.screenShake=0.6;
-                        // Break particles
                         this._spawnParticles(cc.x,cc.y,['#7cb342','#558b2f','#8d6e63','#a5d6a7','#6d4c41','#fff9c4'],20,
                             {minSpd:1,maxSpd:4,upForce:2,minSize:2,maxSize:7,gravity:0.12});
                     }
                 }
             } else {
+                // Staying on same tile — use this player's own idle timer
                 const tile=this.grid[tc.r][tc.c];
                 if (tile.state<=1&&tile.cracks<this.MAX_CRACKS) {
-                    const isIdle=Math.abs(this.P[i].vx)<10&&Math.abs(this.P[i].vy)<10;
+                    const isIdle=Math.abs(p.vx)<10&&Math.abs(p.vy)<10;
                     if (isIdle) {
-                        tile.dwellTimer+=dt;
-                        if (tile.dwellTimer>=this.IDLE_CRACK_TIME) {
-                            tile.dwellTimer-=this.IDLE_CRACK_TIME;
+                        p.dwellTimer+=dt;
+                        if (p.dwellTimer>=this.IDLE_CRACK_TIME) {
+                            p.dwellTimer=0;
                             if (tile.state===0) tile.state=1;
                             tile.cracks++; tile.shakeT=0.8;
                             const cc2=this._tileCenter(tc.r,tc.c);
@@ -642,8 +641,8 @@ class BambooBreakerGame extends BaseGame {
                                 this.screenShake=0.6;
                             }
                         }
-                    } else { tile.dwellTimer=0; }
-                }
+                    } else { p.dwellTimer=0; }
+                } else { p.dwellTimer=0; }
             }
         }
 
