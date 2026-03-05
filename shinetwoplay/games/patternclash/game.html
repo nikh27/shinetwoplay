@@ -65,18 +65,8 @@
     <div class="pc-wait-modal">
       <div style="font-size:36px">⏳</div>
       <div class="pc-wait-txt" id="pc-wait-title">SUBMITTED!</div>
-      <div class="pc-wait-sub" id="pc-wait-sub">Waiting for opponent...</div>
+      <div class="pc-wait-sub" id="pc-wait-sub">Calculating scores...</div>
       <div class="pc-wait-dots"><span></span><span></span><span></span></div>
-    </div>
-  </div>
-
-  <!-- ===== CALCULATING OVERLAY (opponent submitted first, you still have time) ===== -->
-  <div class="pc-calc-overlay" id="pc-calc-overlay" style="display:none">
-    <div class="pc-wait-modal">
-      <div style="font-size:36px">🔢</div>
-      <div class="pc-wait-txt" style="color:#ff2d95">OPPONENT SUBMITTED!</div>
-      <div class="pc-wait-sub">Finish your grid or wait for result...</div>
-      <div class="pc-wait-dots"><span style="background:#ff2d95"></span><span style="background:#ff2d95"></span><span style="background:#ff2d95"></span></div>
     </div>
   </div>
 
@@ -384,12 +374,11 @@
 }
 
 /* ===== OVERLAYS (generic) ===== */
-.pc-wait-overlay,.pc-calc-overlay,.pc-pause-overlay,.pc-result-overlay,.pc-end-overlay{
+.pc-wait-overlay,.pc-pause-overlay,.pc-result-overlay,.pc-end-overlay{
   position:absolute;inset:0;z-index:80;
   display:flex;align-items:center;justify-content:center;
   background:rgba(4,4,16,.88);backdrop-filter:blur(16px);
 }
-.pc-calc-overlay{z-index:70!important} /* below wait overlay so submit cancels it */
 .pc-wait-modal,.pc-pause-modal,.pc-result-modal,.pc-end-modal{
   text-align:center;padding:24px 20px;animation:pcPopIn .4s cubic-bezier(.22,.68,0,1.2);
 }
@@ -491,21 +480,6 @@ class PatternClashGame extends BaseGame {
     if(isNewRound){
       this._doMemorize();
     }
-  }
-
-  onOpponentSubmitted(player){
-    // If WE already submitted, just update the wait text
-    if(this._submitted){
-      const sub = document.getElementById('pc-wait-sub');
-      if(sub) sub.textContent = `${player} submitted! Calculating...`;
-      return;
-    }
-    // We haven't submitted yet — show the "opponent submitted" notification overlay
-    // but keep the grid interactive so player can still finish
-    const calcOv = document.getElementById('pc-calc-overlay');
-    if(calcOv) calcOv.style.display='flex';
-    // Auto-hide after 2s so they can still see their grid
-    setTimeout(()=>{ if(calcOv) calcOv.style.display='none'; }, 2000);
   }
 
   onRoundEnd(result){
@@ -624,7 +598,7 @@ class PatternClashGame extends BaseGame {
     this._submitted   = false;
 
     // Close any stale overlays/popups
-    const toHide = ['pc-wait-overlay','pc-calc-overlay','pc-result-overlay'];
+    const toHide = ['pc-wait-overlay','pc-result-overlay'];
     toHide.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
 
     const pattern = this.state ? this.state.pattern || [] : [];
@@ -816,10 +790,9 @@ class PatternClashGame extends BaseGame {
     const sub = document.getElementById('pc-res-sub');
     if(sub) sub.textContent = result.game_ended ? 'Final result coming up...' : 'Next round in 4s...';
 
-    // Hide wait + calc overlays, show result
-    ['pc-wait-overlay','pc-calc-overlay'].forEach(id=>{
-      const el = document.getElementById(id); if(el) el.style.display='none';
-    });
+    // Hide wait overlay, show result
+    const waitOv2 = document.getElementById('pc-wait-overlay');
+    if(waitOv2) waitOv2.style.display='none';
 
     const ov = document.getElementById('pc-result-overlay');
     if(ov) ov.style.display='flex';

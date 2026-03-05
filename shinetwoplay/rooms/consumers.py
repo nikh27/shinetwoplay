@@ -675,16 +675,6 @@ class RoomConsumer(AsyncWebsocketConsumer):
             }
         )
 
-        # If only one player submitted so far, notify everyone
-        if result.get('waiting'):
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'broadcast_player_submitted',
-                    'player': self.username,
-                }
-            )
-
         # Check for round end
         if result.get('round_ended'):
             # Don't sleep here - send immediately so it reaches everyone
