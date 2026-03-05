@@ -674,7 +674,17 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 'game_state': new_state
             }
         )
-        
+
+        # If only one player submitted so far, notify everyone
+        if result.get('waiting'):
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'broadcast_player_submitted',
+                    'player': self.username,
+                }
+            )
+
         # Check for round end
         if result.get('round_ended'):
             # Don't sleep here - send immediately so it reaches everyone
@@ -695,7 +705,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
                     'game_winner': result.get('game_winner'),
                     'timestamp': current_time,
                     'reveal_at': reveal_at,
-                    'display_ms': 3000
+                    'display_ms': 5000
                 }
             )
             
@@ -768,8 +778,8 @@ class RoomConsumer(AsyncWebsocketConsumer):
             import asyncio
             # Check for game end
             if result.get('game_ended'):
-                # Wait for Reveal (1s) + Display (3s) = 4s total
-                await asyncio.sleep(4)
+                # Wait for Reveal (1s) + Display (5s) = 6s total
+                await asyncio.sleep(6)
                 
                 # Game completely ended
                 await self.channel_layer.group_send(
@@ -809,8 +819,8 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 )
             else:
                 # Start next round after delay
-                # Wait for Reveal (1s) + Display (3s) = 4s total
-                await asyncio.sleep(4)
+                # Wait for Reveal (1s) + Display (5s) = 6s total
+                await asyncio.sleep(6)
                 
                 next_result = handler.start_next_round(self.room_code)
                 next_state = next_result.get('state')
@@ -1268,6 +1278,13 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 'player': event['player'],
                 'input': event['input'],
             }
+        }))
+
+    async def broadcast_player_submitted(self, event):
+        """Notify all players that one player submitted their grid"""
+        await self.send(text_data=json.dumps({
+            'event': 'player_submitted',
+            'data': {'player': event['player']}
         }))
 
     async def broadcast_round_ended(self, event):

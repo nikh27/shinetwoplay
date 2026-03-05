@@ -99,6 +99,22 @@ GAMES = [
         'description': 'Memory battle! Extend the color sequence and repeat it perfectly. One wrong tap costs a life!',
         'min_players': 2,
         'max_players': 2,
+    },
+    {
+        'game_id': 'patternclash',
+        'name': 'Pattern Clash',
+        'image_url': '/static/games/patternclash.png',
+        'description': 'Both players see the same pattern for 3 seconds. Recreate it best to win the round!',
+        'min_players': 2,
+        'max_players': 2,
+    },
+    {
+        'game_id': 'memory',
+        'name': 'Memory',
+        'image_url': '/static/games/memory.png',
+        'description': 'Duel of Minds! Flip cards and find matching pairs. Match a pair and keep your turn — most pairs wins!',
+        'min_players': 2,
+        'max_players': 2,
     }
 ]
 

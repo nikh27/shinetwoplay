@@ -1,0 +1,923 @@
+<!-- Pattern Clash — Online Multiplayer -->
+
+<div class="pc-wrap" id="pc-wrap">
+
+  <!-- ===== SLIM TOP BAR ===== -->
+  <div class="pc-topbar">
+    <div class="pc-topbar-left">
+      <button class="pc-tb-btn" onclick="exitGame()" title="Back">✕</button>
+      <button class="pc-tb-btn" id="pc-mic-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+      <button class="pc-tb-btn" id="pc-spk-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Spk">🔊</button>
+    </div>
+    <div class="pc-topbar-mid">
+      <!-- P1 mini card -->
+      <div class="pc-mini-card pc-mc-p1" id="pc-mc-p1">
+        <div class="pc-mini-av" id="pc-mc-av1"></div>
+        <div class="pc-mini-info">
+          <div class="pc-mini-name" id="pc-mc-name1">P1</div>
+          <div class="pc-mini-score" id="pc-mc-score1">0</div>
+        </div>
+        <div class="pc-mini-wins" id="pc-mc-wins1">●</div>
+      </div>
+
+      <div class="pc-round-badge" id="pc-round-badge">R 1/3</div>
+
+      <!-- P2 mini card -->
+      <div class="pc-mini-card pc-mc-p2" id="pc-mc-p2">
+        <div class="pc-mini-wins pc-wins-r" id="pc-mc-wins2">●</div>
+        <div class="pc-mini-info" style="text-align:right">
+          <div class="pc-mini-name" id="pc-mc-name2">P2</div>
+          <div class="pc-mini-score" id="pc-mc-score2">0</div>
+        </div>
+        <div class="pc-mini-av" id="pc-mc-av2"></div>
+      </div>
+    </div>
+    <div class="pc-topbar-right">
+      <div class="pc-phase-lbl" id="pc-phase-lbl">PATTERN</div>
+    </div>
+  </div><!-- /topbar -->
+
+  <!-- ===== TIMER BAR ===== -->
+  <div class="pc-timer-wrap">
+    <div class="pc-timer-fill" id="pc-timer-fill"></div>
+  </div>
+
+  <!-- ===== PHASE STATUS / GUIDE ===== -->
+  <div class="pc-status" id="pc-status">
+    <div class="pc-status-icon" id="pc-status-icon">👁</div>
+    <div class="pc-status-msg" id="pc-status-msg">Memorize the pattern!</div>
+    <div class="pc-status-hint" id="pc-status-hint">You have 3 seconds...</div>
+  </div>
+
+  <!-- ===== MAIN BOARD ===== -->
+  <div class="pc-board-area">
+    <div class="pc-grid" id="pc-grid"></div>
+  </div>
+
+  <!-- ===== BOTTOM BUTTONS ===== -->
+  <div class="pc-bottom-bar" id="pc-bottom-bar">
+    <button class="pc-btn pc-btn-clear" id="pc-btn-clear" onclick="currentGame && currentGame.clearGrid()" disabled>CLEAR</button>
+    <button class="pc-btn pc-btn-done" id="pc-btn-done" onclick="currentGame && currentGame.submitGrid()" disabled>✓ DONE</button>
+  </div>
+
+  <!-- ===== WAITING OVERLAY (you submitted, waiting for opponent) ===== -->
+  <div class="pc-wait-overlay" id="pc-wait-overlay" style="display:none">
+    <div class="pc-wait-modal">
+      <div style="font-size:36px">⏳</div>
+      <div class="pc-wait-txt" id="pc-wait-title">SUBMITTED!</div>
+      <div class="pc-wait-sub" id="pc-wait-sub">Waiting for opponent...</div>
+      <div class="pc-wait-dots"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+  <!-- ===== CALCULATING OVERLAY (opponent submitted first, you still have time) ===== -->
+  <div class="pc-calc-overlay" id="pc-calc-overlay" style="display:none">
+    <div class="pc-wait-modal">
+      <div style="font-size:36px">🔢</div>
+      <div class="pc-wait-txt" style="color:#ff2d95">OPPONENT SUBMITTED!</div>
+      <div class="pc-wait-sub">Finish your grid or wait for result...</div>
+      <div class="pc-wait-dots"><span style="background:#ff2d95"></span><span style="background:#ff2d95"></span><span style="background:#ff2d95"></span></div>
+    </div>
+  </div>
+
+  <!-- ===== PAUSE OVERLAY ===== -->
+  <div class="pc-pause-overlay" id="pc-pause-overlay" style="display:none">
+    <div class="pc-pause-modal">
+      <div style="font-size:40px">⏸️</div>
+      <h2>Game Paused</h2>
+      <p><span id="pc-disconnected">Player</span> disconnected</p>
+      <p>Waiting... <span id="pc-countdown">30</span>s</p>
+    </div>
+  </div>
+
+  <!-- ===== ROUND RESULT OVERLAY ===== -->
+  <div class="pc-result-overlay" id="pc-result-overlay" style="display:none">
+    <div class="pc-result-modal">
+      <div class="pc-result-title">ROUND RESULT</div>
+
+      <!-- Winner banner -->
+      <div class="pc-res-winner" id="pc-res-winner"></div>
+
+      <!-- Dual grid comparison -->
+      <div class="pc-dual-grids">
+        <!-- P1 side -->
+        <div class="pc-dual-side" id="pc-dual-p1">
+          <div class="pc-dual-name" id="pc-dual-name1">P1</div>
+          <div class="pc-dual-grid" id="pc-dual-grid1"></div>
+          <div class="pc-dual-pts" id="pc-dual-pts1">+0</div>
+          <div class="pc-dual-detail" id="pc-dual-detail1">✓0 ✗0 ○0</div>
+        </div>
+
+        <div class="pc-dual-divider">VS</div>
+
+        <!-- P2 side -->
+        <div class="pc-dual-side" id="pc-dual-p2">
+          <div class="pc-dual-name" id="pc-dual-name2">P2</div>
+          <div class="pc-dual-grid" id="pc-dual-grid2"></div>
+          <div class="pc-dual-pts" id="pc-dual-pts2">+0</div>
+          <div class="pc-dual-detail" id="pc-dual-detail2">✓0 ✗0 ○0</div>
+        </div>
+      </div>
+
+      <div class="pc-res-sub" id="pc-res-sub">Next round starting in 5s...</div>
+      <button class="pc-lobby-btn" onclick="exitGame()">↩ LOBBY</button>
+    </div>
+  </div>
+
+  <!-- ===== GAME END OVERLAY ===== -->
+  <div class="pc-end-overlay" id="pc-end-overlay" style="display:none">
+    <div class="pc-end-modal">
+      <div class="pc-end-icon" id="pc-end-icon">🏆</div>
+      <div class="pc-end-title" id="pc-end-title">YOU WIN!</div>
+      <div class="pc-end-sub" id="pc-end-sub">Returning to lobby...</div>
+    </div>
+  </div>
+
+</div><!-- /pc-wrap -->
+
+
+<!-- ============================================================ CSS -->
+<style>
+.pc-wrap *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.pc-wrap{
+  position:relative;display:flex;flex-direction:column;align-items:center;
+  width:100%;height:100%;
+  background:#070715;color:#fff;
+  font-family:'Orbitron','Segoe UI',sans-serif;
+  overflow:hidden;user-select:none;
+  padding:0;gap:0;
+}
+
+/* — grid lines bg — */
+.pc-wrap::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    linear-gradient(rgba(0,240,255,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,240,255,.025) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+.pc-wrap::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse at 20% 20%,rgba(0,240,255,.07),transparent 55%),
+    radial-gradient(ellipse at 80% 80%,rgba(255,45,149,.05),transparent 55%);
+}
+.pc-wrap > *{position:relative;z-index:1;}
+
+/* ===== TOP BAR ===== */
+.pc-topbar{
+  width:100%;display:flex;align-items:center;
+  padding:5px 8px 4px;gap:6px;flex-shrink:0;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  background:rgba(7,7,21,.85);backdrop-filter:blur(12px);
+  position:relative;z-index:95; /* always above all overlays */
+}
+.pc-topbar-left{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.pc-tb-btn{
+  width:28px;height:28px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.1);color:#fff;font-size:12px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .2s;flex-shrink:0;
+}
+.pc-tb-btn:hover{background:rgba(255,255,255,.22)}
+.pc-topbar-mid{flex:1;display:flex;align-items:center;justify-content:center;gap:6px}
+.pc-topbar-right{flex-shrink:0;min-width:60px;display:flex;justify-content:flex-end}
+
+/* Round badge */
+.pc-round-badge{
+  font-size:9px;font-weight:700;letter-spacing:3px;
+  color:#b026ff;background:#b026ff14;
+  padding:3px 10px;border-radius:20px;border:1px solid #b026ff30;
+  white-space:nowrap;
+}
+
+/* Phase label */
+.pc-phase-lbl{
+  font-size:8px;letter-spacing:3px;font-weight:700;
+  color:#ffe600;padding:3px 8px;border-radius:8px;
+  background:#ffe60014;border:1px solid #ffe60030;
+  white-space:nowrap;
+}
+
+/* Mini player cards */
+.pc-mini-card{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.05);
+  border-radius:10px;padding:4px 6px;
+  border:1px solid transparent;transition:all .3s;
+}
+.pc-mc-p1.pc-active{border-color:#00f0ff44;box-shadow:0 0 14px rgba(0,240,255,.15)}
+.pc-mc-p2.pc-active{border-color:#ff2d9544;box-shadow:0 0 14px rgba(255,45,149,.15)}
+.pc-mini-av{
+  width:24px;height:24px;border-radius:50%;
+  background:rgba(255,255,255,.07);
+  border:1.5px solid rgba(255,255,255,.15);overflow:hidden;flex-shrink:0;
+}
+.pc-mini-av img{width:100%;height:100%;object-fit:cover}
+.pc-mini-info{line-height:1.15}
+.pc-mini-name{font-size:7px;letter-spacing:2px;font-weight:700;opacity:.7;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-mc-p1 .pc-mini-name{color:#00f0ff}
+.pc-mc-p2 .pc-mini-name{color:#ff2d95}
+.pc-mini-score{font-size:14px;font-weight:900;color:#fff;line-height:1}
+.pc-mini-wins{font-size:7px;letter-spacing:1px;color:rgba(255,255,255,.3);flex-shrink:0}
+.pc-wins-r{text-align:right}
+.pc-mini-wins .pw-dot{display:inline-block;width:5px;height:5px;border-radius:50%;margin:0 1px}
+.pc-mc-p1 .pw-dot.pw-won{background:#00f0ff;box-shadow:0 0 4px #00f0ff}
+.pc-mc-p2 .pw-dot.pw-won{background:#ff2d95;box-shadow:0 0 4px #ff2d95}
+.pw-dot.pw-empty{background:rgba(255,255,255,.12)}
+
+/* ===== TIMER ===== */
+.pc-timer-wrap{
+  width:100%;height:3px;background:rgba(255,255,255,.07);
+  flex-shrink:0;position:relative;
+}
+.pc-timer-fill{
+  height:100%;
+  background:linear-gradient(90deg,#00f0ff,#ff2d95);
+  border-radius:2px;
+  transition:width .15s linear;
+  width:100%;
+}
+
+/* ===== STATUS ===== */
+.pc-status{
+  text-align:center;padding:5px 8px 3px;flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+}
+.pc-status-icon{font-size:20px;line-height:1}
+.pc-status-msg{
+  font-size:11px;font-weight:700;letter-spacing:3px;color:#fff;
+  transition:color .3s;
+}
+.pc-status-msg.ps-mem{color:#ffe600}
+.pc-status-msg.ps-go{color:#39ff14}
+.pc-status-msg.ps-wait{color:#00f0ff}
+.pc-status-msg.ps-done{color:#ff2d95}
+.pc-status-hint{font-size:8px;color:rgba(255,255,255,.3);letter-spacing:1px}
+
+/* ===== BOARD ===== */
+.pc-board-area{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  width:100%;padding:4px 8px;min-height:0;
+}
+.pc-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:clamp(4px,1.5vw,8px);
+  width:min(90vw,360px);
+  aspect-ratio:1;
+}
+.pc-cell{
+  background:#13132e;
+  border:1.5px solid rgba(255,255,255,.06);
+  border-radius:clamp(6px,2vw,10px);
+  cursor:pointer;position:relative;overflow:hidden;
+  aspect-ratio:1;
+  transition:all .12s ease;
+}
+.pc-cell::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background:radial-gradient(circle,rgba(255,255,255,.12) 0%,transparent 70%);
+  opacity:0;transition:opacity .15s;
+}
+.pc-cell:active::after{opacity:1}
+/* LIT — pattern shown */
+.pc-cell.pc-lit{
+  background:#00f0ff;
+  border-color:#00f0ffaa;
+  box-shadow:0 0 12px #00f0ff55,inset 0 0 8px rgba(255,255,255,.3);
+  animation:pcCellAppear .25s ease;
+}
+/* SELECTED — user picked this */
+.pc-cell.pc-selected{
+  background:rgba(0,240,255,.22);
+  border-color:#00f0ff66;
+  box-shadow:0 0 8px #00f0ff33;
+}
+/* RESULT states */
+.pc-cell.pc-correct{
+  background:#39ff14!important;border-color:#39ff1488!important;
+  box-shadow:0 0 14px #39ff1455!important;
+}
+.pc-cell.pc-wrong{
+  background:#ff2d95!important;border-color:#ff2d9588!important;
+  box-shadow:0 0 14px #ff2d9555!important;
+}
+.pc-cell.pc-missed{
+  background:#ff6e27!important;border-color:#ff6e2788!important;
+  box-shadow:0 0 10px #ff6e2744!important;
+  opacity:.7;
+}
+.pc-cell.pc-off{pointer-events:none}
+@keyframes pcCellAppear{
+  0%{transform:scale(0);opacity:0}
+  60%{transform:scale(1.1)}
+  100%{transform:scale(1);opacity:1}
+}
+
+/* ===== BOTTOM BUTTONS ===== */
+.pc-bottom-bar{
+  width:100%;display:flex;gap:8px;
+  padding:5px 8px 8px;flex-shrink:0;
+}
+.pc-btn{
+  flex:1;padding:clamp(10px,2.8vw,14px);
+  font-family:'Orbitron',sans-serif;font-size:clamp(.68rem,2.5vw,.82rem);
+  font-weight:700;letter-spacing:2px;border-radius:10px;border:none;
+  cursor:pointer;transition:all .2s;
+}
+.pc-btn-clear{
+  background:rgba(255,255,255,.06);color:rgba(255,255,255,.45);
+  border:1.5px solid rgba(255,255,255,.1);
+}
+.pc-btn-clear:hover:not(:disabled){background:rgba(255,255,255,.12);color:#aaa}
+.pc-btn-done{
+  background:linear-gradient(135deg,#00f0ff18,#b026ff18);
+  color:#00f0ff;border:1.5px solid #00f0ff44;
+}
+.pc-btn-done:hover:not(:disabled){background:#00f0ff22;box-shadow:0 0 20px #00f0ff33}
+.pc-btn-done:active:not(:disabled){transform:scale(.96)}
+.pc-btn:disabled{opacity:.3;pointer-events:none}
+
+/* ===== DUAL GRID RESULT ===== */
+.pc-dual-grids{
+  display:flex;align-items:flex-start;justify-content:center;
+  gap:10px;margin:10px 0;
+}
+.pc-dual-side{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  max-width:140px;
+  border-radius:12px;padding:8px 6px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+  transition:all .3s;
+}
+.pc-dual-side.pc-winner-side{
+  border-color:#39ff1466;box-shadow:0 0 18px rgba(57,255,20,.2);
+}
+.pc-dual-name{
+  font-size:8px;letter-spacing:2px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;
+}
+#pc-dual-p1 .pc-dual-name{color:#00f0ff}
+#pc-dual-p2 .pc-dual-name{color:#ff2d95}
+.pc-dual-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  gap:2px;width:100%;aspect-ratio:1;
+}
+.pc-dual-cell{
+  border-radius:3px;aspect-ratio:1;background:#1a1a38;
+}
+.pc-dual-cell.pk-correct{background:#39ff14;box-shadow:0 0 4px #39ff1466}
+.pc-dual-cell.pk-wrong{background:#ff2d95;box-shadow:0 0 4px #ff2d9566}
+.pc-dual-cell.pk-missed{background:#ff6e27;opacity:.6}
+.pc-dual-pts{
+  font-size:22px;font-weight:900;color:#fff;line-height:1;
+}
+.pc-dual-pts.pc-pts-pos{color:#39ff14}
+.pc-dual-pts.pc-pts-neg{color:#ff2d95}
+.pc-dual-detail{font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px}
+.pc-dual-divider{
+  font-size:11px;letter-spacing:2px;color:rgba(255,255,255,.2);
+  align-self:center;flex-shrink:0;
+}
+
+/* ===== OVERLAYS (generic) ===== */
+.pc-wait-overlay,.pc-calc-overlay,.pc-pause-overlay,.pc-result-overlay,.pc-end-overlay{
+  position:absolute;inset:0;z-index:80;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(4,4,16,.88);backdrop-filter:blur(16px);
+}
+.pc-calc-overlay{z-index:70!important} /* below wait overlay so submit cancels it */
+.pc-wait-modal,.pc-pause-modal,.pc-result-modal,.pc-end-modal{
+  text-align:center;padding:24px 20px;animation:pcPopIn .4s cubic-bezier(.22,.68,0,1.2);
+}
+@keyframes pcPopIn{from{transform:scale(.78) translateY(18px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+
+/* Timer turns yellow during memorize */
+.pc-timer-fill.mem-mode{
+  background:linear-gradient(90deg,#ffe600,#ff6e27);
+}
+
+/* Wait overlay */
+.pc-wait-txt{font-size:18px;font-weight:900;letter-spacing:3px;color:#00f0ff;margin:10px 0 4px}
+.pc-wait-sub{font-size:10px;color:rgba(255,255,255,.4);letter-spacing:2px}
+.pc-wait-dots{display:flex;justify-content:center;gap:6px;margin-top:14px}
+.pc-wait-dots span{
+  width:8px;height:8px;border-radius:50%;background:#00f0ff;
+  animation:pcDotPulse 1.2s ease-in-out infinite;
+}
+.pc-wait-dots span:nth-child(2){animation-delay:.2s}
+.pc-wait-dots span:nth-child(3){animation-delay:.4s}
+@keyframes pcDotPulse{0%,100%{transform:scale(1);opacity:.3}50%{transform:scale(1.4);opacity:1}}
+
+/* Pause overlay */
+.pc-pause-modal h2{font-size:16px;font-weight:900;letter-spacing:3px;margin:8px 0 4px}
+.pc-pause-modal p{font-size:11px;color:rgba(255,255,255,.4);margin:2px 0}
+
+/* Round result overlay */
+.pc-result-modal{max-width:340px;width:96%;text-align:center;padding:18px 14px}
+.pc-result-title{
+  font-size:10px;letter-spacing:5px;color:#b026ff;margin-bottom:6px;font-weight:700;
+}
+.pc-res-winner{
+  font-size:11px;font-weight:700;letter-spacing:3px;
+  color:#39ff14;text-shadow:0 0 14px #39ff1455;margin-bottom:4px;
+}
+.pc-res-sub{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:2px;margin-top:8px}
+.pc-lobby-btn{
+  margin-top:10px;padding:8px 20px;border-radius:8px;border:none;
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.55);
+  font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:2px;font-weight:700;
+  cursor:pointer;border:1px solid rgba(255,255,255,.12);
+  transition:all .2s;
+}
+.pc-lobby-btn:hover{background:rgba(255,255,255,.15);color:#fff}
+
+/* Game end overlay */
+.pc-end-icon{font-size:56px;animation:pcCrownBounce 1s ease infinite}
+@keyframes pcCrownBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.pc-end-title{
+  font-size:22px;font-weight:900;letter-spacing:4px;
+  background:linear-gradient(135deg,#00f0ff,#b026ff);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  margin:10px 0 6px;
+}
+.pc-end-sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:2px}
+</style>
+
+<script>
+// ===================================================================
+// Pattern Clash — Game Class
+// ===================================================================
+const PC_GRID_COLS   = 5;
+const PC_MEMORIZE_MS = 3000;            // 3 seconds to memorize
+const PC_INPUT_MS    = 60 * 60 * 1000; // 60 minutes to fill the pattern
+
+class PatternClashGame extends BaseGame {
+  constructor(){
+    super();
+    this.gameMode = 'turn_based';
+    this.state    = null;
+    this._cells   = [];
+    this._timerInterval = null;
+    this._mySelection   = [];
+    this._submitted     = false;
+  }
+
+  // ── called once on game load ───────────────────────────────────
+  init(state){
+    this.state = state;
+    this._buildGrid();
+    this._buildDualGrids();
+    this._renderAll();
+    // Always start with the memorize phase (client-side) regardless of server phase
+    this._doMemorize();
+  }
+
+  // ── called on every server state broadcast ─────────────────────
+  update(state){
+    const prev = this.state;
+    // Detect new round: current_round incremented
+    const isNewRound = prev && prev.current_round !== state.current_round;
+    this.state = state;
+
+    if(state.paused){ this._showPause(); return; }
+    this._hidePause();
+    this._renderAll();
+
+    // New round started — always run memorize first
+    if(isNewRound){
+      this._doMemorize();
+    }
+  }
+
+  onOpponentSubmitted(player){
+    // If WE already submitted, just update the wait text
+    if(this._submitted){
+      const sub = document.getElementById('pc-wait-sub');
+      if(sub) sub.textContent = `${player} submitted! Calculating...`;
+      return;
+    }
+    // We haven't submitted yet — show the "opponent submitted" notification overlay
+    // but keep the grid interactive so player can still finish
+    const calcOv = document.getElementById('pc-calc-overlay');
+    if(calcOv) calcOv.style.display='flex';
+    // Auto-hide after 2s so they can still see their grid
+    setTimeout(()=>{ if(calcOv) calcOv.style.display='none'; }, 2000);
+  }
+
+  onRoundEnd(result){
+    this._stopTimer();
+    // Show my grid result colors, then open the dual-grid overlay
+    this._showGridResult(result.game_state);
+    setTimeout(()=> this._showRoundResult(result), 600);
+  }
+
+  onGameEnd(result){
+    this._stopTimer();
+    const isWin  = result.game_winner === USER;
+    const isDraw = result.game_winner === 'draw';
+    const icon  = document.getElementById('pc-end-icon');
+    const title = document.getElementById('pc-end-title');
+    const sub   = document.getElementById('pc-end-sub');
+    if(isDraw){icon.textContent='🤝';title.textContent="IT'S A DRAW!";}
+    else if(isWin){icon.textContent='🏆';title.textContent='YOU WIN!';this._confetti();}
+    else{icon.textContent='😞';title.textContent='YOU LOST';}
+    if(sub) sub.textContent='Returning to lobby...';
+    const ov = document.getElementById('pc-end-overlay');
+    if(ov) ov.style.display='flex';
+  }
+
+  // ── Build the 5×5 grid ─────────────────────────────────────────
+  _buildGrid(){
+    const grid = document.getElementById('pc-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    this._cells = [];
+    for(let i=0; i < PC_GRID_COLS*PC_GRID_COLS; i++){
+      const c = document.createElement('div');
+      c.className = 'pc-cell pc-off';
+      c.dataset.idx = i;
+      c.addEventListener('pointerdown',(e)=>{ e.preventDefault(); this._toggleCell(i); });
+      grid.appendChild(c);
+      this._cells.push(c);
+    }
+  }
+
+  _buildDualGrids(){
+    ['pc-dual-grid1','pc-dual-grid2'].forEach(id=>{
+      const g = document.getElementById(id);
+      if(!g) return;
+      g.innerHTML='';
+      for(let i=0;i<25;i++){
+        const c = document.createElement('div');
+        c.className='pc-dual-cell';
+        g.appendChild(c);
+      }
+    });
+  }
+
+  // ── Full render sync ───────────────────────────────────────────
+  _renderAll(){
+    if(!this.state) return;
+    this._updateTopBar();
+    this._updatePhaseLabel();
+  }
+
+  _updateTopBar(){
+    const {players, scores, round_wins, current_round, total_rounds} = this.state;
+    const p1 = players['P1'], p2 = players['P2'];
+
+    // Names
+    this._setText('pc-mc-name1', p1);
+    this._setText('pc-mc-name2', p2);
+    // Scores (cumulative)
+    this._setText('pc-mc-score1', scores[p1] ?? 0);
+    this._setText('pc-mc-score2', scores[p2] ?? 0);
+    // Round badge
+    this._setText('pc-round-badge', `R ${current_round}/${total_rounds}`);
+    // Win dots
+    this._setWinDots('pc-mc-wins1', round_wins[p1]||0, total_rounds, 'pc-mc-p1');
+    this._setWinDots('pc-mc-wins2', round_wins[p2]||0, total_rounds, 'pc-mc-p2');
+    // Avatars
+    this._setAvatar('pc-mc-av1', p1);
+    this._setAvatar('pc-mc-av2', p2);
+  }
+
+  _setWinDots(elId, wins, total, colorClass){
+    const el = document.getElementById(elId);
+    if(!el) return;
+    const isPink = colorClass === 'pc-mc-p2';
+    el.innerHTML = '';
+    for(let i=0;i<total;i++){
+      const s = document.createElement('span');
+      s.className = 'pw-dot ' + (i<wins ? 'pw-won' : 'pw-empty');
+      el.appendChild(s);
+    }
+  }
+
+  _setAvatar(elId, username){
+    const el = document.getElementById(elId);
+    if(!el || el.querySelector('img')) return;
+    if(typeof window.players !== 'undefined'){
+      const pd = window.players[username];
+      if(pd && pd.gender){
+        const src = pd.gender==='female' ? '/static/games/icons/avatar_female.png' : '/static/games/icons/avatar_male.png';
+        el.innerHTML = `<img src="${src}" alt="av">`;
+      }
+    }
+  }
+
+  _updatePhaseLabel(){
+    const {phase} = this.state;
+    const lbl = document.getElementById('pc-phase-lbl');
+    if(!lbl) return;
+    const map = {memorize:'MEMORIZE', input:'YOUR TURN', result:'RESULT', idle:'READY'};
+    lbl.textContent = map[phase] || phase.toUpperCase();
+  }
+
+  // ── MEMORIZE phase — cells light up directly on the grid ──────
+  _doMemorize(){
+    this._mySelection = [];
+    this._submitted   = false;
+
+    // Close any stale overlays/popups
+    const toHide = ['pc-wait-overlay','pc-calc-overlay','pc-result-overlay'];
+    toHide.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+
+    const pattern = this.state ? this.state.pattern || [] : [];
+
+    // Reset grid — visible but not interactive
+    this._cells.forEach(c=>{ c.className='pc-cell pc-off'; });
+    this._setButtons(false);
+
+    // Show MEMORIZE status in the status bar (no overlay)
+    this._statusMsg('👁  MEMORIZE!',
+      `Remember ${pattern.length} glowing cell${pattern.length!==1?'s':''} — 3 seconds!`,
+      'ps-mem', '👁');
+    this._setText('pc-phase-lbl','MEMORIZE');
+
+    // Light cells with a fast stagger so they all appear in ~0.5s
+    pattern.forEach((idx, i)=>{
+      setTimeout(()=>{
+        if(this._cells[idx]) this._cells[idx].classList.add('pc-lit');
+      }, 20 + i * 40);
+    });
+
+    // Timer bar turns YELLOW for 3s countdown
+    this._stopTimer();
+    const fill = document.getElementById('pc-timer-fill');
+    if(fill){
+      fill.classList.add('mem-mode');
+      fill.style.width = '100%';
+    }
+    const memStart = Date.now();
+    this._timerInterval = setInterval(()=>{
+      const pct = Math.max(0, 1-(Date.now()-memStart)/PC_MEMORIZE_MS)*100;
+      if(fill) fill.style.width = pct+'%';
+      if(pct <= 0){ clearInterval(this._timerInterval); this._timerInterval = null; }
+    }, 80);
+
+    // After 3s: remove lit cells → start input
+    setTimeout(()=>{
+      this._stopTimer();
+      if(fill){
+        fill.classList.remove('mem-mode'); // back to cyan-pink gradient
+        fill.style.width = '100%';
+      }
+      this._cells.forEach(c=>c.classList.remove('pc-lit'));
+      this._startInput();
+    }, PC_MEMORIZE_MS);
+  }
+
+  // ── INPUT phase ────────────────────────────────────────────────
+  _startInput(){
+    this._mySelection = [];
+    this._submitted   = false;
+
+    // Close any overlays
+    const memOv = document.getElementById('pc-mem-overlay');
+    if(memOv) memOv.style.display='none';
+    document.getElementById('pc-wait-overlay').style.display='none';
+
+    // Enable cells for clicking
+    this._cells.forEach(c=>{ c.className='pc-cell'; });
+    this._setButtons(true);
+
+    // Update status
+    this._statusMsg('🧠  RECREATE THE PATTERN', 'Tap the cells you remember!', 'ps-go', '🧠');
+    this._setText('pc-phase-lbl','YOUR TURN');
+
+    // Timer — 60 minutes (effectively unlimited)
+    this._stopTimer();
+    this._startTimer(PC_INPUT_MS, ()=>{ if(!this._submitted) this.submitGrid(); });
+  }
+
+  _toggleCell(idx){
+    if(this._submitted) return;
+    if(!this._cells[idx] || this._cells[idx].classList.contains('pc-off')) return;
+    const pos = this._mySelection.indexOf(idx);
+    if(pos >= 0){
+      this._mySelection.splice(pos,1);
+      this._cells[idx].classList.remove('pc-selected');
+    } else {
+      this._mySelection.push(idx);
+      this._cells[idx].classList.add('pc-selected');
+    }
+  }
+
+  clearGrid(){
+    if(this._submitted) return;
+    this._mySelection = [];
+    this._cells.forEach(c=>c.classList.remove('pc-selected'));
+  }
+
+  submitGrid(){
+    if(this._submitted) return;
+    this._submitted = true;
+    this._stopTimer();
+    this._setButtons(false);
+    // Disable cell interaction
+    this._cells.forEach(c=>c.classList.add('pc-off'));
+    // Show waiting overlay
+    document.getElementById('pc-wait-overlay').style.display='flex';
+    // Update status
+    this._statusMsg('⏳  SUBMITTED!','Waiting for opponent...','ps-wait','⏳');
+    // Send to server
+    this.sendMove('submit', {selection: this._mySelection});
+  }
+
+  // ── Show grid result colors ────────────────────────────────────
+  _showGridResult(state){
+    if(!state) return;
+    const pattern = state.pattern || [];
+    const myName  = USER;
+    const mySel   = (state.submissions || {})[myName] || [];
+
+    this._cells.forEach((c,i)=>{
+      c.className = 'pc-cell pc-off';
+      const inPattern = pattern.includes(i);
+      const inSel     = mySel.includes(i);
+      if(inPattern && inSel)   c.classList.add('pc-correct');
+      else if(!inPattern && inSel) c.classList.add('pc-wrong');
+      else if(inPattern && !inSel) c.classList.add('pc-missed');
+    });
+  }
+
+  _getOpponentName(state){
+    if(!state) return '';
+    const p1 = state.players['P1'], p2 = state.players['P2'];
+    return p1 === USER ? p2 : p1;
+  }
+
+  // ── Fill dual-grid result ──────────────────────────────────────
+  _fillDualGrid(gridId, selection, pattern){
+    const grid = document.getElementById(gridId);
+    if(!grid) return;
+    const cells = grid.querySelectorAll('.pc-dual-cell');
+    cells.forEach((c,i)=>{
+      c.className='pc-dual-cell';
+      const inPat = pattern.includes(i);
+      const inSel = selection.includes(i);
+      if(inPat && inSel)     c.classList.add('pk-correct');
+      else if(!inPat && inSel) c.classList.add('pk-wrong');
+      else if(inPat && !inSel) c.classList.add('pk-missed');
+    });
+  }
+
+  // ── Round result overlay (dual-grid) ──────────────────────────
+  _showRoundResult(result){
+    const state = result.game_state || this.state;
+    if(!state) return;
+
+    const p1n     = state.players['P1'], p2n = state.players['P2'];
+    const rs      = state.round_scores || {};
+    const s1      = rs[p1n] || {correct:0,wrong:0,missed:0,total:0};
+    const s2      = rs[p2n] || {correct:0,wrong:0,missed:0,total:0};
+    const rw      = result.round_winner;
+    const pattern = state.pattern || [];
+    const subs    = state.submissions || {};
+
+    // Names
+    this._setText('pc-dual-name1', p1n);
+    this._setText('pc-dual-name2', p2n);
+
+    // Fill grids
+    this._fillDualGrid('pc-dual-grid1', subs[p1n] || [], pattern);
+    this._fillDualGrid('pc-dual-grid2', subs[p2n] || [], pattern);
+
+    // Points
+    const pts1 = document.getElementById('pc-dual-pts1');
+    const pts2 = document.getElementById('pc-dual-pts2');
+    if(pts1){ pts1.textContent=(s1.total>=0?'+':'')+s1.total; pts1.className='pc-dual-pts '+(s1.total>=0?'pc-pts-pos':'pc-pts-neg'); }
+    if(pts2){ pts2.textContent=(s2.total>=0?'+':'')+s2.total; pts2.className='pc-dual-pts '+(s2.total>=0?'pc-pts-pos':'pc-pts-neg'); }
+
+    // Detail
+    this._setText('pc-dual-detail1', `✓${s1.correct} ✗${s1.wrong} ○${s1.missed}`);
+    this._setText('pc-dual-detail2', `✓${s2.correct} ✗${s2.wrong} ○${s2.missed}`);
+
+    // Winner highlight
+    const side1 = document.getElementById('pc-dual-p1');
+    const side2 = document.getElementById('pc-dual-p2');
+    side1.classList.remove('pc-winner-side'); side2.classList.remove('pc-winner-side');
+    if(rw === p1n) side1.classList.add('pc-winner-side');
+    else if(rw === p2n) side2.classList.add('pc-winner-side');
+
+    // Winner banner
+    const wt = document.getElementById('pc-res-winner');
+    if(wt){
+      if(rw==='draw'){ wt.textContent="IT'S A TIE!"; wt.style.color='#ffe600'; }
+      else if(rw===USER){ wt.textContent='🏆 YOU WIN THE ROUND!'; wt.style.color='#39ff14'; }
+      else{ wt.textContent=`${rw} WINS THE ROUND`; wt.style.color='#ff2d95'; }
+    }
+
+    const sub = document.getElementById('pc-res-sub');
+    if(sub) sub.textContent = result.game_ended ? 'Final result coming up...' : 'Next round in 4s...';
+
+    // Hide wait + calc overlays, show result
+    ['pc-wait-overlay','pc-calc-overlay'].forEach(id=>{
+      const el = document.getElementById(id); if(el) el.style.display='none';
+    });
+
+    const ov = document.getElementById('pc-result-overlay');
+    if(ov) ov.style.display='flex';
+    const delay = result.reveal_at ? Math.max(0, result.reveal_at - Date.now()) : 0;
+    const displayMs = result.display_ms || 5000;
+    setTimeout(()=>{ if(ov) ov.style.display='flex'; }, delay);
+    setTimeout(()=>{ if(ov && !result.game_ended) ov.style.display='none'; }, delay + displayMs);
+  }
+
+  // ── Timer ──────────────────────────────────────────────────────
+  _startTimer(ms, onEnd){
+    this._stopTimer();
+    const fill  = document.getElementById('pc-timer-fill');
+    const start = Date.now();
+    if(fill) fill.style.width='100%';
+    this._timerInterval = setInterval(()=>{
+      const pct = Math.max(0, 1-(Date.now()-start)/ms)*100;
+      if(fill) fill.style.width = pct+'%';
+      if(pct<=0){ this._stopTimer(); if(onEnd) onEnd(); }
+    }, 80);
+  }
+  _stopTimer(){
+    clearInterval(this._timerInterval);
+    this._timerInterval = null;
+    const f = document.getElementById('pc-timer-fill');
+    if(f) f.style.width='0%';
+  }
+
+  // ── Status helper ──────────────────────────────────────────────
+  _statusMsg(main, hint, cls, icon){
+    const m = document.getElementById('pc-status-msg');
+    const h = document.getElementById('pc-status-hint');
+    const ic= document.getElementById('pc-status-icon');
+    if(m){ m.className='pc-status-msg '+(cls||''); m.textContent=main; }
+    if(h) h.textContent=hint||'';
+    if(ic) ic.textContent=icon||'';
+  }
+
+  // ── Pause ──────────────────────────────────────────────────────
+  _showPause(){
+    const ov = document.getElementById('pc-pause-overlay');
+    if(ov) ov.style.display='flex';
+    const dis=(this.state.disconnected_players||[])[0]||'Player';
+    this._setText('pc-disconnected', dis);
+  }
+  _hidePause(){
+    const ov = document.getElementById('pc-pause-overlay');
+    if(ov) ov.style.display='none';
+  }
+
+  updateCountdown(s){
+    this._setText('pc-countdown', s);
+  }
+
+  // ── Buttons ────────────────────────────────────────────────────
+  _setButtons(enabled){
+    const done  = document.getElementById('pc-btn-done');
+    const clear = document.getElementById('pc-btn-clear');
+    if(done) done.disabled = !enabled;
+    if(clear) clear.disabled = !enabled;
+  }
+
+  // ── Generic helpers ────────────────────────────────────────────
+  _setText(id, val){
+    const el = document.getElementById(id);
+    if(el) el.textContent = val;
+  }
+
+  _confetti(){
+    const colors=['#00f0ff','#ff2d95','#b026ff','#39ff14','#ffe600'];
+    for(let i=0;i<36;i++){
+      setTimeout(()=>{
+        const c=document.createElement('div');
+        c.style.cssText=`position:fixed;width:7px;height:7px;top:-20px;left:${Math.random()*100}%;
+          background:${colors[~~(Math.random()*colors.length)]};
+          border-radius:${Math.random()>.5?'50%':'2px'};
+          animation:pcConfall ${1.4+Math.random()*2}s linear forwards;z-index:300;`;
+        document.body.appendChild(c);
+        c.addEventListener('animationend',()=>c.remove());
+      }, i*45);
+    }
+    if(!document.getElementById('pcConfKF')){
+      const s=document.createElement('style');s.id='pcConfKF';
+      s.textContent='@keyframes pcConfall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}';
+      document.head.appendChild(s);
+    }
+  }
+}
+
+// Register
+window.GameClasses = window.GameClasses || {};
+window.GameClasses.patternclash = PatternClashGame;
+
+// Exit
+window.exitGame = window.exitGame || function(){
+  if(confirm('Leave game? Both players return to lobby.')){
+    if(typeof socket!=='undefined' && socket && socket.readyState===WebSocket.OPEN)
+      socket.send(JSON.stringify({event:'game_exit'}));
+  }
+};
+</script>

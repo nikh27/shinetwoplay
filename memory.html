@@ -1,9 +1,283 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Memory — Duel of Minds</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{height:100%;overflow:hidden;touch-action:manipulation}
+body{
+  background:linear-gradient(170deg,#0a0a1a 0%,#0d1b2a 40%,#1b2838 100%);
+  font-family:'DM Sans',sans-serif;
+  display:flex;flex-direction:column;
+  position:relative;overflow:hidden;
+  min-height:100dvh;height:100dvh;
+}
 
+/* ─── KEYFRAMES ─── */
+@keyframes cardIn{from{opacity:0;transform:scale(.85) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes pBurst{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+@keyframes mPulse{0%,100%{opacity:.12}50%{opacity:.35}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{0%{transform:scale(0) translateY(8px);opacity:0}60%{transform:scale(1.12) translateY(-2px)}100%{transform:scale(1) translateY(0);opacity:1}}
+@keyframes confettiFall{0%{transform:translateY(-10px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(500deg);opacity:0}}
+@keyframes victPop{from{transform:scale(.3) rotate(-12deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+@keyframes glowPulse{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:.5;transform:scale(1.03)}}
+@keyframes scoreJump{0%{transform:scale(1.4);color:#d4af37}100%{transform:scale(1);color:#fff}}
+@keyframes mf1{0%,100%{transform:translate(0,0)}50%{transform:translate(10px,-16px)}}
+@keyframes mf2{0%,100%{transform:translate(0,0)}50%{transform:translate(-12px,10px)}}
+@keyframes mf3{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(7px,13px) rotate(6deg)}}
+@keyframes flipIn{from{transform:rotateY(0deg)}to{transform:rotateY(180deg)}}
+@keyframes flipOut{from{transform:rotateY(180deg)}to{transform:rotateY(0deg)}}
+
+/* ─── SCREENS ─── */
+.screen{display:none;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;height:100%;padding:16px;position:relative;z-index:1}
+.screen.active{display:flex}
+
+/* ─── MENU SCREEN ─── */
+#menu-screen{padding:20px}
+.menu-float{position:absolute;pointer-events:none;z-index:0;font-size:24px;opacity:.07}
+.menu-content{position:relative;z-index:2;width:100%;max-width:320px;animation:fadeUp .6s ease-out;text-align:center}
+.menu-icon{width:70px;height:70px;margin:0 auto 14px;
+  background:linear-gradient(145deg,#d4af37,#f4d03f);border-radius:18px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 30px rgba(212,175,55,.25);
+  animation:glowPulse 3s ease-in-out infinite;font-size:32px}
+.menu-title{font-size:clamp(1.8rem,8vw,2.2rem);font-weight:900;font-family:'Playfair Display',serif;
+  background:linear-gradient(135deg,#d4af37,#f4e5b0,#d4af37,#aa8a2e);
+  background-size:200% auto;-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;animation:shimmer 4s linear infinite;margin-bottom:4px}
+.menu-sub{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.25em;text-transform:uppercase;margin-bottom:clamp(20px,4vh,36px)}
+.player-inputs{display:flex;flex-direction:column;gap:10px;margin-bottom:clamp(16px,3vh,28px)}
+.player-input-row{display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.03);border-radius:12px;padding:10px 12px;
+  border:1px solid rgba(255,255,255,.05)}
+.player-badge{width:34px;height:34px;border-radius:9px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff}
+.p1-badge{background:linear-gradient(135deg,#FF4757,#FF6B81);box-shadow:0 3px 12px rgba(255,71,87,.5)}
+.p2-badge{background:linear-gradient(135deg,#1E90FF,#5B9FFF);box-shadow:0 3px 12px rgba(30,144,255,.5)}
+.player-input-row input{flex:1;background:transparent;border:none;outline:none;
+  color:#fff;font-size:14px;font-family:'DM Sans',sans-serif}
+.player-input-row input::placeholder{color:rgba(255,255,255,.2)}
+.start-btn{width:100%;padding:clamp(12px,3vh,16px) 0;border-radius:14px;border:none;
+  background:linear-gradient(135deg,#d4af37,#f4d03f);
+  color:#0a0a1a;font-size:15px;font-weight:700;cursor:pointer;
+  box-shadow:0 6px 24px rgba(212,175,55,.3);letter-spacing:.08em;text-transform:uppercase;
+  transition:transform .15s}
+.start-btn:active{transform:scale(.97)}
+.menu-hint{margin-top:16px;font-size:10px;color:rgba(255,255,255,.15);line-height:1.8}
+
+/* ─── GAME SCREEN ─── */
+#game-screen{padding:0;justify-content:flex-start;align-items:stretch}
+/* Header */
+.game-header{padding:clamp(6px,2vh,10px) clamp(8px,3vw,12px) clamp(5px,1.5vh,8px);flex-shrink:0}
+.turn-badge-wrap{text-align:center;margin-bottom:clamp(4px,1vh,8px)}
+.turn-badge{display:inline-block;padding:4px 16px;border-radius:20px;
+  font-size:11px;font-weight:600;letter-spacing:.04em;animation:popIn .3s ease-out}
+.score-row{display:flex;gap:6px}
+.score-card{flex:1;padding:clamp(6px,1.5vh,8px) clamp(8px,2vw,10px);border-radius:12px;
+  display:flex;align-items:center;gap:8px;transition:all .3s}
+.score-card .badge{width:28px;height:28px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.score-card .info{flex:1;min-width:0}
+.score-card .pname{font-size:10px;color:rgba(255,255,255,.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.score-card .pts{font-size:18px;font-weight:700;color:#fff;font-family:'Playfair Display',serif;line-height:1.1}
+.score-card .pts span{font-size:9px;font-weight:400;color:rgba(255,255,255,.2);margin-left:2px}
+.progress-bar{margin-top:clamp(4px,1vh,6px);height:3px;border-radius:3px;
+  background:rgba(255,255,255,.04);overflow:hidden;display:flex}
+.progress-seg{height:100%;transition:width .4s ease}
+
+/* Grid area */
+.grid-area{flex:1;display:flex;align-items:center;justify-content:center;
+  padding:4px clamp(6px,2vw,10px);min-height:0;overflow:hidden}
+.card-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:clamp(3px,1.2vmin,8px);
+  /* Width constrained by viewport width OR height (whichever is smaller)
+     Height of grid = width * 6/4 (because 6 rows of 3:4 cards = 6*(3/4) * col_width)
+     So grid-width = min(vw-space, vh-space * 4/6) */
+  width:min(
+    calc(100vw - 24px),
+    calc((100dvh - 160px) * 4 / 6)
+  );
+  max-width:360px;
+}
+/* FOOTER */
+.game-footer{padding:clamp(4px,1vh,6px) 12px clamp(6px,2vh,12px);text-align:center;flex-shrink:0}
+.quit-btn{padding:7px 20px;border-radius:8px;border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.02);color:rgba(255,255,255,.25);font-size:11px;
+  cursor:pointer;letter-spacing:.04em;font-family:'DM Sans',sans-serif}
+
+/* ─── CARD STRUCTURE ─── */
+.card-wrap{
+  perspective:600px;cursor:pointer;
+  animation:cardIn .35s ease-out both;
+  aspect-ratio:3/4;  /* maintain card ratio always */
+}
+.card-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;
+  transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.card-wrap.flipped .card-inner,
+.card-wrap.matched .card-inner{transform:rotateY(180deg)}
+.card-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:clamp(6px,2vmin,12px);overflow:hidden}
+/* Back face */
+.card-back{background:linear-gradient(145deg,#1a1a2e,#16213e,#0f3460);
+  border:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.card-back::before{content:'';position:absolute;inset:0;
+  background:repeating-conic-gradient(rgba(255,255,255,.015) 0% 25%,transparent 0% 50%) 0 0/14px 14px}
+.card-back-inner{width:50%;height:50%;border-radius:6px;
+  border:1.5px solid rgba(212,175,55,.2);
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle,rgba(212,175,55,.06) 0%,transparent 70%)}
+.card-back-q{font-size:clamp(10px,3vmin,16px);color:rgba(212,175,55,.4);
+  font-family:'Playfair Display',serif;font-weight:700}
+/* Front face */
+.card-front{transform:rotateY(180deg);
+  display:flex;align-items:center;justify-content:center;border:1px solid transparent}
+.card-symbol{font-size:clamp(14px,5vmin,26px);position:relative;z-index:2;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+.card-shine{position:absolute;inset:0;opacity:.15;
+  background:radial-gradient(circle at 30% 20%,white 0%,transparent 60%)}
+.card-owner{position:absolute;bottom:2px;right:4px;
+  font-size:clamp(6px,1.5vmin,9px);font-weight:700;color:rgba(255,255,255,.8);
+  font-family:'DM Sans',sans-serif;background:rgba(0,0,0,.3);border-radius:3px;padding:1px 4px}
+.card-pulse{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,255,255,.12) 0%,transparent 70%);
+  animation:mPulse 2s ease-in-out infinite}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;top:12vh;left:50%;transform:translateX(-50%);z-index:200;
+  animation:popIn .3s ease-out;pointer-events:none}
+.toast-inner{padding:7px 20px;border-radius:24px;color:#fff;font-size:13px;font-weight:700;white-space:nowrap}
+
+/* ─── PARTICLES ─── */
+.particle-wrap{position:fixed;pointer-events:none;z-index:999}
+.particle{position:absolute;border-radius:50%;opacity:0}
+
+/* ─── GAME OVER SCREEN ─── */
+#gameover-screen{padding:20px}
+.gameover-content{position:relative;z-index:2;text-align:center}
+.gameover-trophy{animation:victPop .5s ease-out;margin-bottom:12px;font-size:clamp(40px,12vw,60px)}
+.gameover-title{font-size:clamp(1.4rem,6vw,1.8rem);font-weight:900;font-family:'Playfair Display',serif;
+  background:linear-gradient(135deg,#d4af37,#f4e5b0,#d4af37);background-size:200% auto;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  animation:shimmer 3s linear infinite;margin-bottom:4px}
+.gameover-sub{font-size:12px;color:rgba(255,255,255,.35);margin-bottom:clamp(16px,4vh,30px)}
+.gameover-scores{display:flex;gap:14px;justify-content:center;margin-bottom:clamp(16px,4vh,36px)}
+.go-score-card{border-radius:16px;padding:clamp(12px,3vh,18px) clamp(14px,4vw,22px);min-width:100px;text-align:center}
+.go-score-card .go-badge{width:38px;height:38px;border-radius:10px;margin:0 auto clamp(4px,1vh,8px);
+  display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700}
+.go-score-card .go-name{font-size:11px;color:rgba(255,255,255,.4);margin-bottom:2px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.go-score-card .go-pts{font-size:clamp(22px,7vw,28px);font-weight:900;color:#fff;font-family:'Playfair Display',serif}
+.go-score-card .go-label{font-size:9px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.12em}
+.gameover-btns{display:flex;flex-direction:column;gap:8px;align-items:center}
+.go-btn-main{width:230px;padding:clamp(10px,2.5vh,14px) 0;border-radius:12px;border:none;
+  background:linear-gradient(135deg,#d4af37,#f4d03f);color:#0a0a1a;font-size:14px;font-weight:700;
+  cursor:pointer;box-shadow:0 6px 20px rgba(212,175,55,.25);letter-spacing:.08em;text-transform:uppercase;
+  font-family:'DM Sans',sans-serif}
+.go-btn-sec{width:230px;padding:clamp(8px,2vh,12px) 0;border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);background:transparent;
+  color:rgba(255,255,255,.4);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.conf-piece{position:absolute;border-radius:2px;animation:confettiFall linear forwards}
+</style>
+</head>
+<body>
+
+<!-- ═══ MENU ═══ -->
+<div class="screen active" id="menu-screen">
+  <!-- floating symbols bg -->
+  <div id="menu-floats"></div>
+  <div class="menu-content">
+    <div class="menu-icon">🃏</div>
+    <h1 class="menu-title">Memory</h1>
+    <p class="menu-sub">Duel of Minds</p>
+    <div class="player-inputs">
+      <div class="player-input-row">
+        <div class="player-badge p1-badge">P1</div>
+        <input type="text" id="name1" value="Player 1" placeholder="Player 1" autocomplete="off">
+      </div>
+      <div class="player-input-row">
+        <div class="player-badge p2-badge">P2</div>
+        <input type="text" id="name2" value="Player 2" placeholder="Player 2" autocomplete="off">
+      </div>
+    </div>
+    <button class="start-btn" id="start-btn">Start Game</button>
+    <p class="menu-hint">6×4 Grid · 12 Pairs · Match a pair → keep your turn</p>
+  </div>
+</div>
+
+<!-- ═══ GAME ═══ -->
+<div class="screen" id="game-screen">
+  <div class="game-header">
+    <div class="turn-badge-wrap">
+      <span class="turn-badge" id="turn-badge">Player 1's Turn</span>
+    </div>
+    <div class="score-row">
+      <div class="score-card" id="scard1">
+        <div class="badge p1-badge" id="sbadge1">P1</div>
+        <div class="info">
+          <div class="pname" id="sname1">Player 1</div>
+          <div class="pts" id="spts1">0<span>/12</span></div>
+        </div>
+      </div>
+      <div class="score-card" id="scard2">
+        <div class="badge p2-badge" id="sbadge2">P2</div>
+        <div class="info">
+          <div class="pname" id="sname2">Player 2</div>
+          <div class="pts" id="spts2">0<span>/12</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-seg" id="prog1" style="background:linear-gradient(90deg,#FF4757,#FF6B81);width:0%"></div>
+      <div class="progress-seg" id="prog2" style="background:linear-gradient(90deg,#1E90FF,#5B9FFF);width:0%"></div>
+    </div>
+  </div>
+
+  <div class="grid-area">
+    <div class="card-grid" id="card-grid"></div>
+  </div>
+
+  <div class="game-footer">
+    <button class="quit-btn" id="quit-btn">✕ Quit</button>
+  </div>
+</div>
+
+<!-- ═══ GAME OVER ═══ -->
+<div class="screen" id="gameover-screen">
+  <div id="confetti-layer" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
+  <div class="gameover-content">
+    <div class="gameover-trophy" id="go-trophy">🏆</div>
+    <h1 class="gameover-title" id="go-title">Player 1 Wins!</h1>
+    <p class="gameover-sub" id="go-sub">Champion of Memory</p>
+    <div class="gameover-scores" id="go-scores"></div>
+    <div class="gameover-btns">
+      <button class="go-btn-main" id="go-again">Play Again</button>
+      <button class="go-btn-sec" id="go-menu">Main Menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast slot -->
+<div class="toast" id="toast" style="display:none">
+  <div class="toast-inner" id="toast-inner"></div>
+</div>
+
+<!-- Particle layer -->
+<div id="particle-layer" style="position:fixed;inset:0;pointer-events:none;z-index:999"></div>
+
+<script>
+// ═══ CONSTANTS ═══
 const SYMBOLS = ["♠","♦","♣","♥","★","♛","♞","♜","⚡","✿","♫","☀"];
-const PAIR_COUNT = SYMBOLS.length;
-const COLS = 4;
-const ROWS = 6;
+const PAIR_COUNT = SYMBOLS.length; // 12
+const COLS = 4, ROWS = 6;
 
 const CARD_FRONTS = [
   ["#FF6B6B","#EE5A24"],["#4ECDC4","#0ABDE3"],["#A29BFE","#6C5CE7"],["#FD79A8","#E84393"],
@@ -12,422 +286,334 @@ const CARD_FRONTS = [
 ];
 
 const P = {
-  1: { grad:["#FF4757","#FF6B81"], glow:"rgba(255,71,87,0.5)", tag:"#FF4757", light:"rgba(255,71,87,0.12)", border:"rgba(255,71,87,0.35)" },
-  2: { grad:["#1E90FF","#5B9FFF"], glow:"rgba(30,144,255,0.5)", tag:"#1E90FF", light:"rgba(30,144,255,0.12)", border:"rgba(30,144,255,0.35)" },
+  1:{grad:["#FF4757","#FF6B81"],glow:"rgba(255,71,87,0.5)",tag:"#FF4757",light:"rgba(255,71,87,0.12)",border:"rgba(255,71,87,0.35)"},
+  2:{grad:["#1E90FF","#5B9FFF"],glow:"rgba(30,144,255,0.5)",tag:"#1E90FF",light:"rgba(30,144,255,0.12)",border:"rgba(30,144,255,0.35)"},
 };
 
-function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
-function createDeck(){return shuffle(SYMBOLS.flatMap((s,i)=>[{id:i*2,symbol:s,ci:i},{id:i*2+1,symbol:s,ci:i}]));}
+// ═══ STATE ═══
+let names={1:"Player 1",2:"Player 2"};
+let deck=[], flipped=[], matchOwner={}, cur=1, scores={1:0,2:0}, disabled=false, streak=0;
+let toastTimer=null, particleId=0;
 
-const Card=({card, isFlipped, matchedBy, onCardClick, disabled, index})=>{
+// ═══ HELPERS ═══
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function createDeck(){return shuffle(SYMBOLS.flatMap((s,i)=>[{id:i*2,sym:s,ci:i},{id:i*2+1,sym:s,ci:i}]));}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+// ═══ TOAST ═══
+function flashToast(msg,color){
+  const t=document.getElementById('toast');
+  const ti=document.getElementById('toast-inner');
+  ti.textContent=msg;
+  ti.style.background=`linear-gradient(135deg,${P[cur].grad[0]},${P[cur].grad[1]})`;
+  ti.style.boxShadow=`0 4px 18px ${P[cur].glow}`;
+  if(color){ti.style.background=`linear-gradient(135deg,${color},${color}aa)`;}
+  t.style.display='block';
+  t.style.animation='none';t.offsetHeight;t.style.animation='popIn .3s ease-out';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{t.style.display='none';},1100);
+}
+
+// ═══ PARTICLES ═══
+function spawnParticles(rect){
+  if(!rect)return;
+  const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+  const layer=document.getElementById('particle-layer');
+  const id=++particleId;
+  const wrap=document.createElement('div');
+  wrap.className='particle-wrap';
+  wrap.style.left=cx+'px'; wrap.style.top=cy+'px';
+  for(let i=0;i<12;i++){
+    const angle=(i/12)*360, dist=30+Math.random()*45;
+    const dx=Math.cos(angle*Math.PI/180)*dist, dy=Math.sin(angle*Math.PI/180)*dist;
+    const p=document.createElement('div');
+    p.className='particle';
+    const sz=4+Math.random()*4;
+    p.style.cssText=`width:${sz}px;height:${sz}px;background:${P[cur].tag};
+      --dx:${dx}px;--dy:${dy}px;
+      animation:pBurst .7s ease-out ${Math.random()*.1}s forwards`;
+    wrap.appendChild(p);
+  }
+  layer.appendChild(wrap);
+  setTimeout(()=>wrap.remove(),900);
+}
+
+// ═══ MENU FLOAT SYMBOLS ═══
+(function(){
+  const floats=document.getElementById('menu-floats');
+  const syms=["♠","♦","♣","♥","★","♛","⚡","✿"];
+  const anims=["mf1","mf2","mf3"];
+  syms.forEach((s,i)=>{
+    const d=document.createElement('div');
+    d.className='menu-float';
+    d.textContent=s;
+    d.style.cssText=`font-size:${20+i*5}px;color:${CARD_FRONTS[i][0]};opacity:.08;
+      left:${8+(i*15)%80}%;top:${4+(i*19)%85}%;
+      animation:${anims[i%3]} ${4+i*.6}s ease-in-out infinite;
+      filter:${i>4?'blur(2px)':'none'}`;
+    floats.appendChild(d);
+  });
+})();
+
+// ═══ CARD RENDERING ═══
+function buildCardElement(card, idx){
   const [g1,g2]=CARD_FRONTS[card.ci];
-  const pm=matchedBy?P[matchedBy]:null;
-  const cardRef=useRef(null);
+  const wrapper=document.createElement('div');
+  wrapper.className='card-wrap';
+  wrapper.dataset.idx=idx;
+  wrapper.style.animationDelay=`${idx*.02}s`;
+  wrapper.style.aspectRatio='3/4';
 
-  const handleTap=(e)=>{
-    e.stopPropagation();
-    if(disabled||isFlipped||matchedBy) return;
-    const rect=cardRef.current?.getBoundingClientRect();
-    onCardClick(rect);
-  };
-
-  return(
-    <div ref={cardRef} onClick={handleTap}
-      style={{perspective:600, cursor:disabled||isFlipped||matchedBy?"default":"pointer",
-        animation:`cardIn 0.35s ease-out ${index*0.02}s both`, width:"100%", aspectRatio:"3/4"}}>
-      <div style={{position:"relative", width:"100%", height:"100%", transformStyle:"preserve-3d",
-        transition:"transform 0.4s cubic-bezier(0.4,0,0.2,1)",
-        transform:isFlipped||matchedBy?"rotateY(180deg)":"rotateY(0deg)"}}>
-
-        {/* Back */}
-        <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",borderRadius:"clamp(6px,2vw,12px)",
-          background:"linear-gradient(145deg,#1a1a2e,#16213e,#0f3460)",
-          border:"1px solid rgba(255,255,255,0.07)",
-          display:"flex",alignItems:"center",justifyContent:"center",
-          boxShadow:"0 4px 16px rgba(0,0,0,0.4)",overflow:"hidden"}}>
-          <div style={{position:"absolute",inset:0,
-            background:"repeating-conic-gradient(rgba(255,255,255,0.015) 0% 25%, transparent 0% 50%) 0 0/14px 14px"}}/>
-          <div style={{width:"50%",height:"50%",borderRadius:6,
-            border:"1.5px solid rgba(212,175,55,0.2)",
-            display:"flex",alignItems:"center",justifyContent:"center",
-            background:"radial-gradient(circle,rgba(212,175,55,0.06) 0%,transparent 70%)"}}>
-            <span style={{fontSize:"clamp(10px,3vw,16px)",color:"rgba(212,175,55,0.4)",
-              fontFamily:"'Playfair Display',serif",fontWeight:700}}>?</span>
-          </div>
-        </div>
-
-        {/* Front */}
-        <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",
-          transform:"rotateY(180deg)",borderRadius:"clamp(6px,2vw,12px)",
-          background:matchedBy
-            ?`linear-gradient(145deg,${pm.grad[0]},${pm.grad[1]})`
-            :`linear-gradient(145deg,${g1},${g2})`,
-          display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",
-          boxShadow:matchedBy?`0 0 14px ${pm.glow}, 0 4px 16px rgba(0,0,0,0.3)`:"0 4px 16px rgba(0,0,0,0.3)",
-          border:matchedBy?`1.5px solid ${pm.border}`:`1px solid ${g1}55`,
-          transition:"background 0.4s, box-shadow 0.4s"}}>
-          <div style={{position:"absolute",inset:0,opacity:0.15,
-            background:"radial-gradient(circle at 30% 20%,white 0%,transparent 60%)"}}/>
-          <span style={{fontSize:"clamp(14px,5vw,24px)",
-            filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
-            position:"relative",zIndex:2}}>{card.symbol}</span>
-          {matchedBy && (
-            <div style={{position:"absolute",bottom:2,right:4,
-              fontSize:"clamp(6px,1.5vw,9px)",fontWeight:700,
-              color:"rgba(255,255,255,0.8)",fontFamily:"'DM Sans',sans-serif",
-              background:"rgba(0,0,0,0.3)",borderRadius:3,padding:"1px 4px"}}>
-              P{matchedBy}
-            </div>
-          )}
-          {matchedBy && (
-            <div style={{position:"absolute",inset:0,
-              background:"radial-gradient(circle,rgba(255,255,255,0.12) 0%,transparent 70%)",
-              animation:"mPulse 2s ease-in-out infinite"}}/>
-          )}
-        </div>
+  wrapper.innerHTML=`
+    <div class="card-inner">
+      <div class="card-face card-back">
+        <div class="card-back-inner"><span class="card-back-q">?</span></div>
       </div>
-    </div>
-  );
-};
+      <div class="card-face card-front"
+           style="background:linear-gradient(145deg,${g1},${g2});border-color:${g1}55;
+                  box-shadow:0 4px 16px rgba(0,0,0,.3)">
+        <div class="card-shine"></div>
+        <span class="card-symbol">${card.sym}</span>
+        <div class="card-owner" style="display:none"></div>
+        <div class="card-pulse" style="display:none"></div>
+      </div>
+    </div>`;
 
-export default function MemoryGame(){
-  const [screen,setScreen]=useState("menu");
-  const [cards,setCards]=useState([]);
-  const [flipped,setFlipped]=useState([]);
-  const [matchOwner,setMatchOwner]=useState({});
-  const [cur,setCur]=useState(1);
-  const [scores,setScores]=useState({1:0,2:0});
-  const [disabled,setDisabled]=useState(false);
-  const [particles,setParticles]=useState([]);
-  const [names,setNames]=useState({1:"Player 1",2:"Player 2"});
-  const [streak,setStreak]=useState(0);
-  const [toast,setToast]=useState("");
-  const pid=useRef(0);
+  wrapper.addEventListener('pointerdown', (e)=>{
+    e.preventDefault();
+    if(disabled || wrapper.classList.contains('flipped') || wrapper.classList.contains('matched')) return;
+    handleCardClick(idx, wrapper.getBoundingClientRect());
+  });
 
-  const startGame=useCallback(()=>{
-    setCards(createDeck()); setFlipped([]); setMatchOwner({}); setCur(1);
-    setScores({1:0,2:0}); setDisabled(false); setParticles([]); setStreak(0); setToast("");
-    setScreen("game");
-  },[]);
+  return wrapper;
+}
 
-  const flash=(msg)=>{ setToast(msg); setTimeout(()=>setToast(""),1100); };
+function renderGrid(){
+  const grid=document.getElementById('card-grid');
+  grid.innerHTML='';
+  deck.forEach((card,i)=>{
+    grid.appendChild(buildCardElement(card,i));
+  });
+}
 
-  const spawnParticles=(rect,player)=>{
-    if(!rect) return;
-    const id=++pid.current;
-    const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
-    setParticles(prev=>[...prev,{id,x:cx,y:cy,c:P[player].tag}]);
-    setTimeout(()=>setParticles(prev=>prev.filter(p=>p.id!==id)),900);
-  };
+function getCardEl(idx){ return document.querySelector(`.card-wrap[data-idx="${idx}"]`); }
 
-  const handleClick=(index,rect)=>{
-    if(disabled || flipped.includes(index) || matchOwner[cards[index].id]!==undefined) return;
+function setCardFlipped(idx, on){
+  const el=getCardEl(idx);
+  if(!el)return;
+  if(on) el.classList.add('flipped');
+  else   el.classList.remove('flipped');
+}
 
-    const newFlipped=[...flipped,index];
-    setFlipped(newFlipped);
+function setCardMatched(idx, player){
+  const el=getCardEl(idx);
+  if(!el)return;
+  el.classList.remove('flipped');
+  el.classList.add('matched');
+  // Change front gradient to player color
+  const front=el.querySelector('.card-front');
+  const t=P[player];
+  front.style.background=`linear-gradient(145deg,${t.grad[0]},${t.grad[1]})`;
+  front.style.borderColor=t.border;
+  front.style.boxShadow=`0 0 14px ${t.glow},0 4px 16px rgba(0,0,0,.3)`;
+  // Show owner label & pulse
+  const ownerEl=front.querySelector('.card-owner');
+  ownerEl.textContent=`P${player}`;
+  ownerEl.style.display='block';
+  front.querySelector('.card-pulse').style.display='block';
+}
 
-    if(newFlipped.length===2){
-      setDisabled(true);
-      const [a,b]=newFlipped;
+// ═══ GAME LOGIC ═══
+function handleCardClick(idx, rect){
+  if(disabled || flipped.includes(idx) || matchOwner[deck[idx].id]!==undefined) return;
+  flipped=[...flipped,idx];
+  setCardFlipped(idx,true);
 
-      if(cards[a].symbol===cards[b].symbol){
-        // MATCH
-        spawnParticles(rect,cur);
-        const ns=streak+1;
-        setStreak(ns);
-        flash(ns>=2?`🔥 ${ns} streak!`:"✓ Match!");
-
-        setTimeout(()=>{
-          setMatchOwner(prev=>{
-            const next={...prev};
-            next[cards[a].id]=cur;
-            next[cards[b].id]=cur;
-            return next;
-          });
-          setScores(prev=>({...prev,[cur]:prev[cur]+1}));
-          setFlipped([]);
-          setDisabled(false);
-          // Player keeps their turn!
-        },550);
-      } else {
-        // NO MATCH
-        setStreak(0);
-        setTimeout(()=>{
-          setFlipped([]);
-          setDisabled(false);
-          setCur(prev=>prev===1?2:1);
-        },850);
-      }
+  if(flipped.length===2){
+    disabled=true;
+    const [a,b]=flipped;
+    if(deck[a].sym===deck[b].sym){
+      // MATCH
+      spawnParticles(rect);
+      const ns=streak+1; streak=ns;
+      flashToast(ns>=2?`🔥 ${ns} streak!`:"✓ Match!");
+      setTimeout(()=>{
+        matchOwner={...matchOwner,[deck[a].id]:cur,[deck[b].id]:cur};
+        scores={...scores,[cur]:scores[cur]+1};
+        flipped=[];
+        disabled=false;
+        setCardMatched(a,cur);
+        setCardMatched(b,cur);
+        updateHUD();
+        checkGameOver();
+      },550);
+    } else {
+      // NO MATCH
+      streak=0;
+      setTimeout(()=>{
+        setCardFlipped(a,false);
+        setCardFlipped(b,false);
+        flipped=[];
+        disabled=false;
+        cur=cur===1?2:1;
+        updateHUD();
+      },850);
     }
-  };
+  }
+}
 
-  const totalMatched=Object.keys(matchOwner).length;
-  const gameOver=totalMatched===PAIR_COUNT*2;
+function updateHUD(){
+  const t=P[cur];
+  // Turn badge
+  const badge=document.getElementById('turn-badge');
+  badge.textContent=`${names[cur]}'s Turn${streak>=2?` · 🔥${streak}`:''}`;
+  badge.style.background=t.light;
+  badge.style.border=`1px solid ${t.border}`;
+  badge.style.color=t.tag;
+  badge.style.animation='none'; badge.offsetHeight; badge.style.animation='popIn .3s ease-out';
+
+  // Score cards
+  [1,2].forEach(p=>{
+    const tp=P[p];
+    const sc=document.getElementById(`scard${p}`);
+    sc.style.background=cur===p?'rgba(255,255,255,.05)':'rgba(255,255,255,.015)';
+    sc.style.border=cur===p?`1px solid ${tp.border}`:'1px solid rgba(255,255,255,.03)';
+    const badge2=document.getElementById(`sbadge${p}`);
+    badge2.style.boxShadow=cur===p?`0 2px 10px ${tp.glow}`:'none';
+    document.getElementById(`sname${p}`).textContent=names[p];
+    const ptsEl=document.getElementById(`spts${p}`);
+    if(scores[p]>0){
+      ptsEl.style.animation='none'; ptsEl.offsetHeight;
+      ptsEl.style.animation='scoreJump .3s ease-out';
+    }
+    ptsEl.innerHTML=`${scores[p]}<span>/${PAIR_COUNT}</span>`;
+    // Progress bars
+    document.getElementById(`prog${p}`).style.width=`${(scores[p]/PAIR_COUNT)*100}%`;
+    document.getElementById(`prog${p}`).style.boxShadow=scores[p]>0?`0 0 6px ${tp.glow}`:'none';
+  });
+}
+
+function checkGameOver(){
+  const total=Object.keys(matchOwner).length;
+  if(total<PAIR_COUNT*2) return;
+  setTimeout(()=>showGameOver(),400);
+}
+
+// ═══ GAME OVER ═══
+function showGameOver(){
+  // Winner calc
   const winner=scores[1]>scores[2]?1:scores[2]>scores[1]?2:0;
 
-  const CSS=`
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@400;500;600;700&display=swap');
-    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
-    html,body,#root{height:100%;overflow:hidden;}
-    @keyframes cardIn{from{opacity:0;transform:scale(0.85) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
-    @keyframes pBurst{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
-    @keyframes mPulse{0%,100%{opacity:.12}50%{opacity:.35}}
-    @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes popIn{0%{transform:scale(0) translateY(8px);opacity:0}60%{transform:scale(1.12) translateY(-2px)}100%{transform:scale(1) translateY(0);opacity:1}}
-    @keyframes confetti{0%{transform:translateY(-10px) rotate(0);opacity:1}100%{transform:translateY(50vh) rotate(500deg);opacity:0}}
-    @keyframes victPop{from{transform:scale(0.3) rotate(-12deg);opacity:0}to{transform:scale(1) rotate(0deg);opacity:1}}
-    @keyframes glow{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:.5;transform:scale(1.03)}}
-    @keyframes scoreJump{0%{transform:scale(1.4);color:#d4af37}100%{transform:scale(1);color:#fff}}
-    @keyframes mf1{0%,100%{transform:translate(0,0)}50%{transform:translate(10px,-16px)}}
-    @keyframes mf2{0%,100%{transform:translate(0,0)}50%{transform:translate(-12px,10px)}}
-    @keyframes mf3{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(7px,13px) rotate(6deg)}}
-    input::placeholder{color:rgba(255,255,255,0.2)}
-  `;
+  document.getElementById('go-title').textContent=winner===0?"It's a Draw!":
+    (names[winner]==="Player "+(winner)?"Player "+winner+" Wins!":names[winner]+" Wins!");
+  document.getElementById('go-sub').textContent=winner===0?"Evenly matched!":"Champion of Memory";
+  document.getElementById('go-trophy').textContent=winner===0?"🤝":"🏆";
 
-  const BG={height:"100vh",maxHeight:"-webkit-fill-available",
-    background:"linear-gradient(170deg,#0a0a1a 0%,#0d1b2a 40%,#1b2838 100%)",
-    display:"flex",flexDirection:"column",fontFamily:"'DM Sans',sans-serif",
-    position:"relative",overflow:"hidden"};
+  // Score cards
+  const goScores=document.getElementById('go-scores');
+  goScores.innerHTML='';
+  [1,2].forEach(p=>{
+    const t=P[p];
+    const isW=winner===p;
+    const div=document.createElement('div');
+    div.className='go-score-card';
+    div.style.cssText=`background:${isW?"rgba(212,175,55,.08)":"rgba(255,255,255,.03)"};
+      border:1px solid ${isW?"rgba(212,175,55,.2)":"rgba(255,255,255,.05)"};`;
+    div.innerHTML=`
+      <div class="go-badge" style="background:linear-gradient(135deg,${t.grad[0]},${t.grad[1]})">${isW?"👑":"P"+p}</div>
+      <div class="go-name">${names[p]}</div>
+      <div class="go-pts">${scores[p]}</div>
+      <div class="go-label">pairs</div>`;
+    goScores.appendChild(div);
+  });
 
-  // ─── PARTICLES LAYER ───
-  const ParticleLayer=()=>(
-    <>
-      {particles.map(p=>(
-        <div key={p.id} style={{position:"fixed",left:p.x,top:p.y,pointerEvents:"none",zIndex:999}}>
-          {Array.from({length:12},(_,i)=>{
-            const angle=(i/12)*360, dist=30+Math.random()*45;
-            return <div key={i} style={{position:"absolute",
-              width:4+Math.random()*4,height:4+Math.random()*4,borderRadius:"50%",
-              background:p.c,animation:`pBurst 0.7s ease-out ${Math.random()*0.1}s forwards`,opacity:0,
-              "--dx":`${Math.cos(angle*Math.PI/180)*dist}px`,
-              "--dy":`${Math.sin(angle*Math.PI/180)*dist}px`}}/>;
-          })}
-        </div>
-      ))}
-    </>
-  );
-
-  // ═══════ MENU ═══════
-  if(screen==="menu"){
-    return(
-      <div style={{...BG,alignItems:"center",justifyContent:"center",padding:20}}>
-        <style>{CSS}</style>
-        {["♠","♦","♣","♥","★","♛","⚡","✿"].map((s,i)=>(
-          <div key={i} style={{position:"absolute",fontSize:20+i*5,color:CARD_FRONTS[i][0],opacity:.08,
-            left:`${8+(i*15)%80}%`,top:`${4+(i*19)%85}%`,
-            animation:`mf${(i%3)+1} ${4+i*0.6}s ease-in-out infinite`,
-            filter:i>4?"blur(2px)":"none"}}>{s}</div>
-        ))}
-        <div style={{animation:"fadeUp 0.6s ease-out",textAlign:"center",position:"relative",zIndex:2,width:"100%",maxWidth:320}}>
-          <div style={{width:70,height:70,margin:"0 auto 14px",
-            background:"linear-gradient(145deg,#d4af37,#f4d03f)",borderRadius:18,
-            display:"flex",alignItems:"center",justifyContent:"center",
-            boxShadow:"0 8px 30px rgba(212,175,55,0.25)",animation:"glow 3s ease-in-out infinite"}}>
-            <span style={{fontSize:32}}>🃏</span>
-          </div>
-          <h1 style={{fontSize:"2em",fontWeight:900,fontFamily:"'Playfair Display',serif",
-            background:"linear-gradient(135deg,#d4af37,#f4e5b0,#d4af37,#aa8a2e)",
-            backgroundSize:"200% auto",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
-            animation:"shimmer 4s linear infinite",marginBottom:4}}>Memory</h1>
-          <p style={{fontSize:11,color:"rgba(255,255,255,0.3)",letterSpacing:"0.25em",
-            textTransform:"uppercase",marginBottom:36}}>Duel of Minds</p>
-
-          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
-            {[1,2].map(p=>{const t=P[p];return(
-              <div key={p} style={{display:"flex",alignItems:"center",gap:10,
-                background:"rgba(255,255,255,0.03)",borderRadius:12,padding:"10px 12px",
-                border:"1px solid rgba(255,255,255,0.05)"}}>
-                <div style={{width:34,height:34,borderRadius:9,flexShrink:0,
-                  background:`linear-gradient(135deg,${t.grad[0]},${t.grad[1]})`,
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  fontSize:12,fontWeight:700,color:"#fff",
-                  boxShadow:`0 3px 12px ${t.glow}`}}>P{p}</div>
-                <input type="text" value={names[p]}
-                  onChange={e=>setNames(n=>({...n,[p]:e.target.value}))}
-                  style={{flex:1,background:"transparent",border:"none",outline:"none",
-                    color:"#fff",fontSize:14,fontFamily:"'DM Sans',sans-serif"}}
-                  placeholder={`Player ${p}`}/>
-              </div>
-            );})}
-          </div>
-
-          <button onClick={startGame}
-            style={{width:"100%",padding:"16px 0",borderRadius:14,border:"none",
-              background:"linear-gradient(135deg,#d4af37,#f4d03f)",
-              color:"#0a0a1a",fontSize:15,fontWeight:700,cursor:"pointer",
-              boxShadow:"0 6px 24px rgba(212,175,55,0.3)",
-              letterSpacing:"0.08em",textTransform:"uppercase",
-              transition:"transform 0.15s",WebkitTapHighlightColor:"transparent"}}
-            onPointerDown={e=>e.currentTarget.style.transform="scale(0.97)"}
-            onPointerUp={e=>e.currentTarget.style.transform="scale(1)"}
-            onPointerLeave={e=>e.currentTarget.style.transform="scale(1)"}>
-            Start Game</button>
-
-          <p style={{marginTop:20,fontSize:10,color:"rgba(255,255,255,0.15)",lineHeight:1.8}}>
-            {ROWS}×{COLS} Grid · {PAIR_COUNT} Pairs · Match → keep your turn</p>
-        </div>
-      </div>
-    );
+  // Confetti
+  const conf=document.getElementById('confetti-layer');
+  conf.innerHTML='';
+  const cc=["#d4af37","#FF4757","#1E90FF","#4ECDC4","#FD79A8","#FDCB6E"];
+  for(let i=0;i<30;i++){
+    const d=document.createElement('div');
+    d.className='conf-piece';
+    const sz=6+Math.random()*6;
+    d.style.cssText=`
+      left:${Math.random()*100}%;top:-10px;
+      width:${sz}px;height:${sz}px;
+      border-radius:${Math.random()>.5?'50%':'2px'};
+      background:${cc[i%cc.length]};opacity:.75;
+      animation-duration:${2+Math.random()*2.5}s;
+      animation-delay:${Math.random()*1.5}s;
+      animation-iteration-count:infinite;`;
+    conf.appendChild(d);
   }
 
-  // ═══════ GAME OVER ═══════
-  if(gameOver){
-    const cc=["#d4af37","#FF4757","#1E90FF","#4ECDC4","#FD79A8","#FDCB6E"];
-    return(
-      <div style={{...BG,alignItems:"center",justifyContent:"center",padding:20}}>
-        <style>{CSS}</style>
-        {Array.from({length:30},(_,i)=>(
-          <div key={i} style={{position:"absolute",left:`${Math.random()*100}%`,top:-10,
-            width:6+Math.random()*6,height:6+Math.random()*6,
-            borderRadius:Math.random()>.5?"50%":2,background:cc[i%cc.length],
-            animation:`confetti ${2+Math.random()*2.5}s ease-in ${Math.random()*1.5}s infinite`,opacity:.75}}/>
-        ))}
-        <div style={{textAlign:"center",position:"relative",zIndex:2}}>
-          <div style={{animation:"victPop 0.5s ease-out",marginBottom:12}}>
-            <span style={{fontSize:60}}>🏆</span>
-          </div>
-          <h1 style={{fontSize:"1.7em",fontWeight:900,fontFamily:"'Playfair Display',serif",
-            background:"linear-gradient(135deg,#d4af37,#f4e5b0,#d4af37)",backgroundSize:"200% auto",
-            WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
-            animation:"shimmer 3s linear infinite",marginBottom:4}}>
-            {winner===0?"It's a Draw!":`${names[winner]} Wins!`}</h1>
-          <p style={{fontSize:12,color:"rgba(255,255,255,0.35)",marginBottom:30}}>
-            {winner===0?"Evenly matched!":"Champion of Memory"}</p>
-
-          <div style={{display:"flex",gap:14,justifyContent:"center",marginBottom:36}}>
-            {[1,2].map(p=>{const t=P[p];return(
-              <div key={p} style={{background:winner===p?"rgba(212,175,55,0.08)":"rgba(255,255,255,0.03)",
-                borderRadius:16,padding:"18px 22px",
-                border:winner===p?"1px solid rgba(212,175,55,0.2)":"1px solid rgba(255,255,255,0.05)",
-                minWidth:115}}>
-                <div style={{width:38,height:38,borderRadius:10,margin:"0 auto 8px",
-                  background:`linear-gradient(135deg,${t.grad[0]},${t.grad[1]})`,
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  fontSize:16,color:"#fff",fontWeight:700}}>
-                  {winner===p?"👑":`P${p}`}</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginBottom:2}}>{names[p]}</div>
-                <div style={{fontSize:28,fontWeight:900,color:"#fff",
-                  fontFamily:"'Playfair Display',serif"}}>{scores[p]}</div>
-                <div style={{fontSize:9,color:"rgba(255,255,255,0.2)",
-                  textTransform:"uppercase",letterSpacing:"0.12em"}}>pairs</div>
-              </div>
-            );})}
-          </div>
-
-          <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"center"}}>
-            <button onClick={startGame} style={{width:230,padding:"14px 0",borderRadius:12,border:"none",
-              background:"linear-gradient(135deg,#d4af37,#f4d03f)",color:"#0a0a1a",fontSize:14,fontWeight:700,
-              cursor:"pointer",boxShadow:"0 6px 20px rgba(212,175,55,0.25)",
-              letterSpacing:"0.08em",textTransform:"uppercase"}}>Play Again</button>
-            <button onClick={()=>setScreen("menu")} style={{width:230,padding:"12px 0",borderRadius:12,
-              border:"1px solid rgba(255,255,255,0.08)",background:"transparent",
-              color:"rgba(255,255,255,0.4)",fontSize:12,cursor:"pointer"}}>Main Menu</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══════ GAMEPLAY ═══════
-  const pt=P[cur];
-  return(
-    <div style={BG}>
-      <style>{CSS}</style>
-      <ParticleLayer/>
-
-      {/* Toast */}
-      {toast&&(
-        <div style={{position:"fixed",top:"12vh",left:"50%",transform:"translateX(-50%)",zIndex:100,
-          animation:"popIn 0.3s ease-out",pointerEvents:"none"}}>
-          <div style={{padding:"7px 20px",borderRadius:24,
-            background:`linear-gradient(135deg,${pt.grad[0]},${pt.grad[1]})`,
-            color:"#fff",fontSize:13,fontWeight:700,
-            boxShadow:`0 4px 18px ${pt.glow}`,whiteSpace:"nowrap"}}>{toast}</div>
-        </div>
-      )}
-
-      {/* === HEADER — fixed height === */}
-      <div style={{padding:"10px 12px 8px",flexShrink:0}}>
-        {/* Turn badge */}
-        <div style={{textAlign:"center",marginBottom:8}}>
-          <span key={`${cur}-${streak}`} style={{display:"inline-block",padding:"4px 16px",borderRadius:20,
-            background:pt.light,border:`1px solid ${pt.border}`,
-            fontSize:11,fontWeight:600,color:pt.tag,
-            animation:"popIn 0.3s ease-out"}}>
-            {names[cur]}'s Turn{streak>=2?` · 🔥${streak}`:""}</span>
-        </div>
-
-        {/* Score row */}
-        <div style={{display:"flex",gap:6}}>
-          {[1,2].map(p=>{const t=P[p];return(
-            <div key={p} style={{flex:1,padding:"8px 10px",borderRadius:12,
-              background:cur===p?"rgba(255,255,255,0.05)":"rgba(255,255,255,0.015)",
-              border:cur===p?`1px solid ${t.border}`:"1px solid rgba(255,255,255,0.03)",
-              display:"flex",alignItems:"center",gap:8,transition:"all 0.3s"}}>
-              <div style={{width:28,height:28,borderRadius:8,flexShrink:0,
-                background:`linear-gradient(135deg,${t.grad[0]},${t.grad[1]})`,
-                display:"flex",alignItems:"center",justifyContent:"center",
-                fontSize:11,fontWeight:700,color:"#fff",
-                boxShadow:cur===p?`0 2px 10px ${t.glow}`:"none"}}>P{p}</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",
-                  whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{names[p]}</div>
-                <div key={`s${p}-${scores[p]}`} style={{fontSize:18,fontWeight:700,color:"#fff",
-                  fontFamily:"'Playfair Display',serif",lineHeight:1.1,
-                  animation:scores[p]>0?"scoreJump 0.3s ease-out":"none"}}>
-                  {scores[p]}<span style={{fontSize:9,fontWeight:400,
-                    color:"rgba(255,255,255,0.2)",marginLeft:2}}>/{PAIR_COUNT}</span>
-                </div>
-              </div>
-            </div>
-          );})}
-        </div>
-
-        {/* Progress bar */}
-        <div style={{marginTop:6,height:3,borderRadius:3,
-          background:"rgba(255,255,255,0.04)",overflow:"hidden",display:"flex"}}>
-          <div style={{height:"100%",transition:"width 0.4s ease",
-            background:`linear-gradient(90deg,${P[1].grad[0]},${P[1].grad[1]})`,
-            width:`${(scores[1]/PAIR_COUNT)*100}%`,
-            boxShadow:scores[1]>0?`0 0 6px ${P[1].glow}`:"none"}}/>
-          <div style={{height:"100%",transition:"width 0.4s ease",
-            background:`linear-gradient(90deg,${P[2].grad[0]},${P[2].grad[1]})`,
-            width:`${(scores[2]/PAIR_COUNT)*100}%`,
-            boxShadow:scores[2]>0?`0 0 6px ${P[2].glow}`:"none"}}/>
-        </div>
-      </div>
-
-      {/* === CARD GRID — fills remaining space === */}
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",
-        padding:"4px 10px",minHeight:0}}>
-        <div style={{
-          display:"grid",
-          gridTemplateColumns:`repeat(${COLS}, 1fr)`,
-          gridTemplateRows:`repeat(${ROWS}, 1fr)`,
-          gap:"clamp(4px,1.2vw,8px)",
-          width:"min(92vw, 360px)",
-          height:"100%",
-          maxHeight:"calc(100vh - 160px)",
-        }}>
-          {cards.map((card,i)=>(
-            <Card key={card.id} card={card} index={i}
-              isFlipped={flipped.includes(i)}
-              matchedBy={matchOwner[card.id]}
-              onCardClick={(rect)=>handleClick(i,rect)}
-              disabled={disabled}/>
-          ))}
-        </div>
-      </div>
-
-      {/* === FOOTER === */}
-      <div style={{padding:"4px 12px 12px",textAlign:"center",flexShrink:0}}>
-        <button onClick={()=>setScreen("menu")}
-          style={{padding:"7px 20px",borderRadius:8,
-            border:"1px solid rgba(255,255,255,0.06)",
-            background:"rgba(255,255,255,0.02)",color:"rgba(255,255,255,0.25)",
-            fontSize:11,cursor:"pointer",letterSpacing:"0.04em"}}>✕ Quit</button>
-      </div>
-    </div>
-  );
+  showScreen('gameover-screen');
 }
+
+// ═══ START GAME ═══
+function startGame(){
+  names={
+    1:document.getElementById('name1').value.trim()||"Player 1",
+    2:document.getElementById('name2').value.trim()||"Player 2",
+  };
+  deck=createDeck();
+  flipped=[]; matchOwner={}; cur=1; scores={1:0,2:0}; disabled=false; streak=0;
+  document.getElementById('particle-layer').innerHTML='';
+
+  // Build grid
+  renderGrid();
+
+  // Sync names in HUD
+  document.getElementById('sname1').textContent=names[1];
+  document.getElementById('sname2').textContent=names[2];
+  document.getElementById('spts1').innerHTML='0<span>/12</span>';
+  document.getElementById('spts2').innerHTML='0<span>/12</span>';
+  document.getElementById('prog1').style.width='0%';
+  document.getElementById('prog2').style.width='0%';
+
+  updateHUD();
+  showScreen('game-screen');
+}
+
+// ═══ BUTTON WIRING ═══
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('quit-btn').addEventListener('click', ()=>showScreen('menu-screen'));
+document.getElementById('go-again').addEventListener('click', startGame);
+document.getElementById('go-menu').addEventListener('click', ()=>showScreen('menu-screen'));
+
+// ═══ RESPONSIVE GRID ═══
+// The grid uses CSS min() for responsive sizing, but we also watch resize
+// to ensure the grid fills the available height correctly
+function fitGrid(){
+  const gridArea=document.querySelector('.grid-area');
+  if(!gridArea) return;
+  const areaH=gridArea.clientHeight;
+  const areaW=gridArea.clientWidth - 24; // padding
+  // Cards are 4 cols × 6 rows with aspect 3:4 each
+  // Available width constrains to areaW
+  // Available height constrains: maxH = areaH * (4/6) width per cell * 4 = areaH * 4 * (3/4) / 6
+  // Ideal card height = size, card width = size * 3/4
+  // Grid width = 4*w + 3*gap, Grid height = 6*h + 5*gap
+  const gap = Math.max(3, Math.min(8, Math.min(areaW,areaH) * 0.012));
+  const maxW = areaW;
+  const maxH = areaH;
+  // w/h constrained: h/w = 6/4 (grid), card ratio 3:4 → same
+  let gw = Math.min(maxW, maxH * (4/6) );
+  // but also can't exceed maxW
+  gw = Math.min(gw, maxW);
+  const grid=document.getElementById('card-grid');
+  if(!grid) return;
+  grid.style.width=gw+'px';
+  grid.style.height='';
+  grid.style.gap=gap+'px';
+}
+
+window.addEventListener('resize', fitGrid);
+// Also call after screen switch
+const origShowScreen=showScreen;
+window.showScreen=function(id){
+  origShowScreen(id);
+  if(id==='game-screen') setTimeout(fitGrid,50);
+};
+</script>
+</body>
+</html>

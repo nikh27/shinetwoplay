@@ -1,0 +1,770 @@
+<!-- Memory Card Game — Online Multiplayer -->
+
+<div class="mg-wrap" id="mg-wrap">
+
+  <!-- ===== TOP BAR ===== -->
+  <div class="mg-topbar">
+    <div class="mg-topbar-left">
+      <button class="mg-tb-btn" onclick="exitGame()" title="Back">✕</button>
+      <button class="mg-tb-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+      <button class="mg-tb-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Spk">🔊</button>
+    </div>
+    <div class="mg-topbar-mid">
+      <!-- P1 mini card -->
+      <div class="mg-mini-card mg-mc-p1" id="mg-mc-p1">
+        <div class="mg-mini-av" id="mg-av1"></div>
+        <div class="mg-mini-info">
+          <div class="mg-mini-name" id="mg-name1">P1</div>
+          <div class="mg-mini-pts" id="mg-pts1">0<span>/12</span></div>
+        </div>
+      </div>
+
+      <div class="mg-round-badge" id="mg-round-badge">R 1/3</div>
+
+      <!-- P2 mini card -->
+      <div class="mg-mini-card mg-mc-p2" id="mg-mc-p2">
+        <div class="mg-mini-info" style="text-align:right">
+          <div class="mg-mini-name" id="mg-name2">P2</div>
+          <div class="mg-mini-pts" id="mg-pts2">0<span>/12</span></div>
+        </div>
+        <div class="mg-mini-av" id="mg-av2"></div>
+      </div>
+    </div>
+    <div class="mg-topbar-right">
+      <div class="mg-turn-dot" id="mg-turn-dot"></div>
+    </div>
+  </div>
+
+  <!-- ===== TURN BADGE ===== -->
+  <div class="mg-turn-row">
+    <span class="mg-turn-badge" id="mg-turn-badge">Waiting...</span>
+    <div class="mg-progress-bar">
+      <div class="mg-prog" id="mg-prog1"></div>
+      <div class="mg-prog" id="mg-prog2"></div>
+    </div>
+  </div>
+
+  <!-- ===== CARD GRID ===== -->
+  <div class="mg-board-area">
+    <div class="mg-grid" id="mg-grid"></div>
+  </div>
+
+  <!-- ===== PAUSE OVERLAY ===== -->
+  <div class="mg-overlay" id="mg-pause-ov" style="display:none">
+    <div class="mg-modal">
+      <div style="font-size:40px">⏸️</div>
+      <h2>Game Paused</h2>
+      <p><span id="mg-disconnected">Player</span> disconnected</p>
+      <p>Waiting... <span id="mg-countdown">30</span>s</p>
+    </div>
+  </div>
+
+  <!-- ===== ROUND RESULT OVERLAY ===== -->
+  <div class="mg-overlay" id="mg-result-ov" style="display:none">
+    <div class="mg-modal">
+      <div class="mg-res-icon" id="mg-res-icon">🏆</div>
+      <div class="mg-res-title" id="mg-res-title">Round Won!</div>
+      <div class="mg-res-scores" id="mg-res-scores"></div>
+      <div class="mg-res-sub" id="mg-res-sub">Next round starting...</div>
+    </div>
+  </div>
+
+</div><!-- /mg-wrap -->
+
+
+<!-- ============================================================ CSS -->
+<style>
+.mg-wrap *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.mg-wrap{
+  position:relative;display:flex;flex-direction:column;align-items:center;
+  width:100%;height:100%;
+  background:linear-gradient(170deg,#0a0a1a 0%,#0d1b2a 40%,#1b2838 100%);
+  font-family:'DM Sans','Segoe UI',sans-serif;
+  color:#fff;overflow:hidden;user-select:none;
+  transition:background .6s ease;
+}
+/* Turn-based background tints */
+.mg-wrap.mg-bg-p1{background:linear-gradient(170deg,#1a0a0f 0%,#1b0d1a 40%,#1b1828 100%)}
+.mg-wrap.mg-bg-p2{background:linear-gradient(170deg,#0a0f1a 0%,#0d1a2a 40%,#182838 100%)}
+/* subtle bg grid */
+.mg-wrap::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-conic-gradient(rgba(255,255,255,.012) 0% 25%,transparent 0% 50%) 0 0/36px 36px;
+}
+.mg-wrap > *{position:relative;z-index:1;}
+
+/* ===== TOP BAR ===== */
+.mg-topbar{
+  width:100%;display:flex;align-items:center;
+  padding:5px 8px 4px;gap:6px;flex-shrink:0;
+  background:rgba(10,10,26,.75);backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(255,255,255,.05);
+  position:relative;z-index:95; /* always above overlays */
+}
+.mg-topbar-left{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.mg-tb-btn{
+  width:28px;height:28px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.1);color:#fff;font-size:12px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .2s;flex-shrink:0;
+}
+.mg-tb-btn:hover{background:rgba(255,255,255,.22)}
+.mg-topbar-mid{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-width:0}
+.mg-topbar-right{flex-shrink:0;display:flex;align-items:center}
+
+.mg-round-badge{
+  font-family:'Orbitron',sans-serif;
+  font-size:9px;font-weight:700;letter-spacing:3px;color:#d4af37;
+  background:rgba(212,175,55,.1);padding:3px 10px;border-radius:20px;
+  border:1px solid rgba(212,175,55,.3);white-space:nowrap;flex-shrink:0;
+}
+
+/* Mini player cards */
+.mg-mini-card{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.04);border-radius:10px;
+  padding:3px 6px;border:1px solid transparent;transition:all .3s;
+  min-width:0;flex-shrink:1;
+}
+.mg-mc-p1.mg-active{border-color:#FF475744;box-shadow:0 0 12px rgba(255,71,87,.18)}
+.mg-mc-p2.mg-active{border-color:#1E90FF44;box-shadow:0 0 12px rgba(30,144,255,.18)}
+.mg-mini-av{
+  width:22px;height:22px;border-radius:50%;flex-shrink:0;
+  background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.12);overflow:hidden;
+}
+.mg-mini-av img{width:100%;height:100%;object-fit:cover}
+.mg-mini-info{min-width:0;line-height:1.15}
+.mg-mini-name{font-size:7px;letter-spacing:1.5px;font-weight:700;opacity:.65;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55px}
+.mg-mc-p1 .mg-mini-name{color:#FF4757}
+.mg-mc-p2 .mg-mini-name{color:#1E90FF}
+.mg-mini-pts{font-size:13px;font-weight:900;color:#fff;font-family:'Playfair Display',serif;line-height:1}
+.mg-mini-pts span{font-size:8px;font-weight:400;color:rgba(255,255,255,.25);margin-left:1px}
+
+/* Turn indicator dot */
+.mg-turn-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:rgba(255,255,255,.15);transition:all .4s;
+}
+.mg-turn-dot.td-p1{background:#FF4757;box-shadow:0 0 8px #FF4757}
+.mg-turn-dot.td-p2{background:#1E90FF;box-shadow:0 0 8px #1E90FF}
+
+/* ===== TURN BADGE ROW ===== */
+.mg-turn-row{
+  width:100%;padding:3px 8px 2px;flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.mg-turn-badge{
+  font-family:'Orbitron',sans-serif;
+  font-size:10px;font-weight:700;letter-spacing:2px;
+  padding:3px 14px;border-radius:20px;
+  transition:all .3s;
+}
+.mg-turn-badge.tb-p1{
+  color:#FF4757;background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.3);
+}
+.mg-turn-badge.tb-p2{
+  color:#1E90FF;background:rgba(30,144,255,.1);border:1px solid rgba(30,144,255,.3);
+}
+.mg-turn-badge.tb-wait{
+  color:rgba(255,255,255,.35);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+}
+.mg-progress-bar{
+  width:min(92vw,380px);height:3px;border-radius:3px;
+  background:rgba(255,255,255,.05);display:flex;overflow:hidden;
+}
+.mg-prog{height:100%;transition:width .4s ease;width:0%}
+#mg-prog1{background:linear-gradient(90deg,#FF4757,#FF6B81)}
+#mg-prog2{background:linear-gradient(90deg,#1E90FF,#5B9FFF)}
+
+/* ===== CARD GRID ===== */
+.mg-board-area{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  width:100%;padding:4px 8px;min-height:0;overflow:hidden;
+}
+.mg-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:clamp(3px,1.1vmin,6px);
+  /* Grid height ≈ 2× width (4 cols, 6 rows of 3:4 cards)
+     Available height = viewport - topbar(38px) - turn-row(40px) - padding(20px) = dvh - 98px
+     So max-width = (dvh - 98px) / 2 */
+  width:min(
+    calc(100vw - 20px),
+    calc((100dvh - 100px) / 2)
+  );
+  max-width:320px;
+}
+
+/* ===== CARD ===== */
+.mg-card-wrap{
+  perspective:600px;cursor:pointer;
+  animation:mgCardIn .35s ease-out both;
+  aspect-ratio:3/4;
+}
+.mg-card-wrap.mg-off{pointer-events:none}
+.mg-card-inner{
+  position:relative;width:100%;height:100%;transform-style:preserve-3d;
+  transition:transform .38s cubic-bezier(.4,0,.2,1);
+}
+.mg-card-wrap.mg-flipped .mg-card-inner,
+.mg-card-wrap.mg-matched .mg-card-inner{transform:rotateY(180deg)}
+.mg-card-face{
+  position:absolute;inset:0;backface-visibility:hidden;
+  border-radius:clamp(5px,2vmin,10px);overflow:hidden;
+}
+/* Back */
+.mg-card-back{
+  background:linear-gradient(145deg,#1a1a2e,#16213e,#0f3460);
+  border:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 12px rgba(0,0,0,.4);
+}
+.mg-card-back::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-conic-gradient(rgba(255,255,255,.015) 0% 25%,transparent 0% 50%) 0 0/12px 12px;
+}
+.mg-card-back-q{
+  width:48%;height:48%;border-radius:5px;
+  border:1.5px solid rgba(212,175,55,.2);
+  background:radial-gradient(circle,rgba(212,175,55,.06) 0%,transparent 70%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(9px,2.5vmin,15px);color:rgba(212,175,55,.4);
+  font-family:'Playfair Display',serif;font-weight:700;position:relative;z-index:1;
+}
+/* Front */
+.mg-card-front{
+  transform:rotateY(180deg);
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid transparent;
+}
+.mg-card-shine{
+  position:absolute;inset:0;opacity:.15;
+  background:radial-gradient(circle at 30% 20%,white 0%,transparent 60%);
+}
+.mg-card-sym{
+  font-size:clamp(13px,4.5vmin,24px);position:relative;z-index:2;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.35));
+}
+.mg-card-owner{
+  position:absolute;bottom:2px;right:4px;
+  font-size:clamp(5px,1.3vmin,8px);font-weight:700;color:rgba(255,255,255,.85);
+  background:rgba(0,0,0,.35);border-radius:3px;padding:1px 3px;display:none;
+}
+.mg-card-pulse{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,255,255,.12) 0%,transparent 70%);
+  animation:mgPulse 2s ease-in-out infinite;display:none;
+}
+
+/* Card click ripple */
+.mg-card-wrap:not(.mg-off):not(.mg-flipped):not(.mg-matched):active .mg-card-back{
+  filter:brightness(1.4);
+}
+
+@keyframes mgCardIn{from{opacity:0;transform:scale(.88) translateY(8px)}to{opacity:1;transform:none}}
+@keyframes mgPulse{0%,100%{opacity:.12}50%{opacity:.35}}
+@keyframes mgPopIn{0%{transform:scale(0) translateY(8px);opacity:0}60%{transform:scale(1.1) translateY(-2px)}100%{transform:scale(1);opacity:1}}
+@keyframes mgScoreJump{0%{transform:scale(1.35);color:#d4af37}100%{transform:scale(1);color:#fff}}
+
+/* ===== OVERLAYS ===== */
+.mg-overlay{
+  position:absolute;inset:0;z-index:80;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(4,4,22,.9);backdrop-filter:blur(18px);
+}
+.mg-modal{
+  text-align:center;padding:24px 20px;max-width:300px;width:92%;
+  animation:mgPopIn .4s cubic-bezier(.22,.68,0,1.2);
+}
+.mg-modal h2{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;letter-spacing:3px;margin:8px 0 4px}
+.mg-modal p{font-size:11px;color:rgba(255,255,255,.4);margin:2px 0}
+.mg-res-icon{font-size:52px;margin-bottom:8px}
+.mg-res-title{
+  font-family:'Playfair Display',serif;font-size:20px;font-weight:900;
+  background:linear-gradient(135deg,#d4af37,#f4e5b0,#d4af37);
+  background-size:200% auto;-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:mgShimmer 3s linear infinite;margin-bottom:12px;
+}
+@keyframes mgShimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+.mg-res-scores{display:flex;gap:12px;justify-content:center;margin-bottom:10px}
+.mg-res-card{
+  flex:1;max-width:110px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 8px;text-align:center;
+}
+.mg-res-card.mg-winner{border-color:rgba(212,175,55,.3);box-shadow:0 0 16px rgba(212,175,55,.15)}
+.mg-res-pname{font-size:8px;letter-spacing:2px;opacity:.6;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mg-res-pts{font-family:'Playfair Display',serif;font-size:26px;font-weight:900;color:#fff;line-height:1}
+.mg-res-sub{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:2px;font-family:'Orbitron',sans-serif}
+
+/* Toast */
+#mg-toast{
+  position:absolute;top:13vh;left:50%;transform:translateX(-50%);z-index:90;
+  pointer-events:none;display:none;animation:mgPopIn .3s ease-out;
+}
+#mg-toast-inner{
+  padding:6px 18px;border-radius:24px;color:#fff;
+  font-size:12px;font-weight:700;white-space:nowrap;
+}
+</style>
+
+<!-- Toast element -->
+<div id="mg-toast"><div id="mg-toast-inner"></div></div>
+
+<script>
+// ===================================================================
+// Memory Card Game — Multiplayer Frontend
+// ===================================================================
+const MG_PAIR_COUNT = 12;
+const MG_COLS = 4;
+
+const MG_CARD_FRONTS = [
+  ["#FF6B6B","#EE5A24"],["#4ECDC4","#0ABDE3"],["#A29BFE","#6C5CE7"],["#FD79A8","#E84393"],
+  ["#FDCB6E","#F39C12"],["#00CEC9","#00B894"],["#E17055","#D63031"],["#74B9FF","#0984E3"],
+  ["#55E6C1","#1ABC9C"],["#F8A5C2","#C44569"],["#778BEB","#546DE5"],["#F3A683","#E66767"],
+];
+const MG_P = {
+  P1:{grad:["#FF4757","#FF6B81"],glow:"rgba(255,71,87,.5)",tag:"#FF4757",light:"rgba(255,71,87,.1)",border:"rgba(255,71,87,.3)"},
+  P2:{grad:["#1E90FF","#5B9FFF"],glow:"rgba(30,144,255,.5)",tag:"#1E90FF",light:"rgba(30,144,255,.1)",border:"rgba(30,144,255,.3)"},
+};
+
+class MemoryGame extends BaseGame {
+  constructor(){
+    super();
+    this.gameMode     = 'turn_based';
+    this.state        = null;
+    this._cards       = [];
+    this._toastT      = null;
+    this._revealTimer = null;     // timer for no-match reveal
+    this._revealKey   = null;     // de-dup: don't replay same reveal
+    this._inputLocked = false;    // block taps during reveal animation
+    this._tapLocked   = false;    // block taps between client-tap → server-ack
+    this._lastMatchKey = null;   // de-dup match toast/tone
+  }
+
+  init(state){
+    this.state = state;
+    this._buildGrid();
+    this._renderAll();
+  }
+
+  update(state){
+    const prev = this.state;
+    const isNewRound = prev && prev.current_round !== state.current_round;
+    this.state = state;
+    // Every server ack unlocks the tap gate
+    this._tapLocked = false;
+
+    if(state.paused){ this._showPause(); return; }
+    this._hidePause();
+
+    if(isNewRound){
+      // Cancel any pending reveal from old round
+      clearTimeout(this._revealTimer);
+      this._revealTimer = null;
+      this._revealKey   = null;
+      this._inputLocked = false;
+      this._buildGrid();
+    }
+    this._renderAll();
+
+    // ── Handle last_flip events for BOTH players ──
+    const lf = state.last_flip;
+    if(lf && lf.matched === false){
+      // Mismatch: show both cards briefly then flip back
+      const key = `miss-${lf.a}-${lf.b}`;
+      if(key !== this._revealKey){
+        this._revealKey   = key;
+        this._inputLocked = true;
+        this._showReveal(lf.a, lf.b);
+      }
+    } else if(lf && lf.matched === true){
+      // Match: play tone + toast ONCE per match
+      const key = `match-${lf.a}-${lf.b}`;
+      if(key !== this._lastMatchKey){
+        this._lastMatchKey = key;
+        this._playTone(880, 110);
+        setTimeout(()=>this._playTone(1047,170),130);
+        const streak = (state.streak || {})[USER] || 0;
+        if(streak >= 2) this._toast(`🔥 ${streak} streak!`, MG_P[this._myPlayerKey()]);
+        else if(streak >= 1) this._toast('✓ Match!', MG_P[this._myPlayerKey()]);
+      }
+      this._revealKey   = null;
+      this._inputLocked = false;
+    } else {
+      // last_flip is null (first flip of new pair) — reset
+      this._revealKey    = null;
+      this._lastMatchKey = null;
+      this._inputLocked  = false;
+    }
+  }
+
+  onRoundEnd(result){
+    // Show grid result briefly then open overlay
+    setTimeout(()=> this._showRoundResult(result), 600);
+  }
+
+  onGameEnd(result){
+    const isWin  = result.game_winner === USER;
+    const isDraw = result.game_winner === 'draw';
+    const icon  = document.getElementById('mg-res-icon');
+    const title = document.getElementById('mg-res-title');
+    const sub   = document.getElementById('mg-res-sub');
+    if(icon)  icon.textContent = isDraw ? '🤝' : isWin ? '🎉' : '😞';
+    if(title) title.textContent = isDraw ? "It's a Draw!" : isWin ? 'You Win!' : 'Game Over';
+    if(sub)   sub.textContent  = 'Returning to lobby...';
+    if(isWin) this._confetti();
+    this._showResultOv();
+  }
+
+  // ── Briefly show both mismatched cards, then flip them back ──────
+  // Called for BOTH players via update() — everyone sees the reveal
+  _showReveal(aIdx, bIdx){
+    // Temporarily flip these two cards open
+    const elA = this._cards[aIdx];
+    const elB = this._cards[bIdx];
+    if(elA){ elA.classList.add('mg-flipped'); elA.classList.add('mg-off'); }
+    if(elB){ elB.classList.add('mg-flipped'); elB.classList.add('mg-off'); }
+    this._playTone(180, 300);
+
+    clearTimeout(this._revealTimer);
+    this._revealTimer = setTimeout(()=>{
+      if(elA){ elA.classList.remove('mg-flipped'); elA.classList.remove('mg-off'); }
+      if(elB){ elB.classList.remove('mg-flipped'); elB.classList.remove('mg-off'); }
+      this._inputLocked = false;
+      // Re-render so the active player's cards become clickable again
+      this._updateCards();
+    }, 900);
+  }
+
+  // ── Build / rebuild the 4×6 card grid ─────────────────────────
+  _buildGrid(){
+    const grid = document.getElementById('mg-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    this._cards = [];
+    const deck = this.state ? (this.state.deck || []) : [];
+    deck.forEach((card, i)=>{
+      const el = this._makeCard(card, i);
+      grid.appendChild(el);
+      this._cards.push(el);
+    });
+  }
+
+  _makeCard(card, idx){
+    const [g1,g2] = MG_CARD_FRONTS[card.ci] || ["#555","#333"];
+    const wrap = document.createElement('div');
+    wrap.className = 'mg-card-wrap mg-off';
+    wrap.dataset.idx = idx;
+    wrap.style.animationDelay = `${idx * 0.018}s`;
+
+    wrap.innerHTML = `
+      <div class="mg-card-inner">
+        <div class="mg-card-face mg-card-back">
+          <div class="mg-card-back-q">?</div>
+        </div>
+        <div class="mg-card-face mg-card-front"
+             style="background:linear-gradient(145deg,${g1},${g2});border-color:${g1}55;
+                    box-shadow:0 3px 12px rgba(0,0,0,.4)">
+          <div class="mg-card-shine"></div>
+          <span class="mg-card-sym">${card.symbol}</span>
+          <div class="mg-card-owner"></div>
+          <div class="mg-card-pulse"></div>
+        </div>
+      </div>`;
+
+    wrap.addEventListener('pointerdown',(e)=>{
+      e.preventDefault();
+      this._onCardTap(idx);
+    });
+    return wrap;
+  }
+
+  _onCardTap(idx){
+    if(!this.state) return;
+    if(this.state.paused) return;
+    if(this._inputLocked) return;  // locked during mismatch reveal
+    if(this._tapLocked)   return;  // locked waiting for server ack
+
+    // My turn?
+    const cpKey  = this.state.current_player;
+    const cpName = this.state.players[cpKey];
+    if(cpName !== USER) return;
+
+    const card = this.state.deck[idx];
+    if(!card) return;
+
+    // Already matched? (string keys from server)
+    const mo = this.state.match_owner || {};
+    if(mo[String(card.id)] !== undefined) return;
+
+    // Already server-flipped (first card of this pair already picked)?
+    if((this.state.flipped || []).includes(idx)) return;
+
+    // Lock until server confirms
+    this._tapLocked = true;
+    this.sendMove('flip', {index: idx});
+  }
+
+  // ── Full render pass ──────────────────────────────────────────
+  _renderAll(){
+    if(!this.state) return;
+    this._updateTopBar();
+    this._updateTurnBadge();
+    this._updateCards();
+    this._updateBackground();
+  }
+
+  // ── Background tint based on turn ─────────────────────────────
+  _updateBackground(){
+    const wrap = document.getElementById('mg-wrap');
+    if(!wrap || !this.state) return;
+    const cp = this.state.current_player;
+    wrap.classList.remove('mg-bg-p1','mg-bg-p2');
+    if(cp === 'P1') wrap.classList.add('mg-bg-p1');
+    else            wrap.classList.add('mg-bg-p2');
+  }
+
+  _updateTopBar(){
+    const {players, scores, round_wins, current_round, total_rounds, current_player} = this.state;
+    const p1 = players['P1'], p2 = players['P2'];
+
+    this._setText('mg-name1', p1);
+    this._setText('mg-name2', p2);
+    this._setText('mg-round-badge', `R ${current_round}/${total_rounds}`);
+
+    // Points
+    const s1 = scores[p1] ?? 0, s2 = scores[p2] ?? 0;
+    this._setHTML('mg-pts1', `${s1}<span>/${MG_PAIR_COUNT}</span>`);
+    this._setHTML('mg-pts2', `${s2}<span>/${MG_PAIR_COUNT}</span>`);
+
+    // Progress bars
+    const el1 = document.getElementById('mg-prog1');
+    const el2 = document.getElementById('mg-prog2');
+    if(el1) el1.style.width = `${(s1/MG_PAIR_COUNT)*100}%`;
+    if(el2) el2.style.width = `${(s2/MG_PAIR_COUNT)*100}%`;
+
+    // Active card borders
+    const cp = current_player;
+    document.getElementById('mg-mc-p1').classList.toggle('mg-active', cp==='P1');
+    document.getElementById('mg-mc-p2').classList.toggle('mg-active', cp==='P2');
+
+    // Turn dot
+    const dot = document.getElementById('mg-turn-dot');
+    if(dot){ dot.className='mg-turn-dot '+(cp==='P1'?'td-p1':'td-p2'); }
+
+    // Avatars
+    this._setAvatar('mg-av1', p1);
+    this._setAvatar('mg-av2', p2);
+  }
+
+  _updateTurnBadge(){
+    const {current_player, players, phase} = this.state;
+    const cpName = players[current_player];
+    const myTurn = cpName === USER;
+    const badge  = document.getElementById('mg-turn-badge');
+    if(!badge) return;
+    const cpKey = current_player;
+    badge.className = 'mg-turn-badge';
+    if(phase === 'result'){
+      badge.textContent = 'Round Over';
+      badge.classList.add('tb-wait');
+    } else if(myTurn){
+      badge.textContent = `Your Turn ✦`;
+      badge.classList.add(cpKey==='P1'?'tb-p1':'tb-p2');
+    } else {
+      badge.textContent = `${cpName} is picking...`;
+      badge.classList.add(cpKey==='P1'?'tb-p1':'tb-p2');
+    }
+  }
+
+  _updateCards(){
+    if(!this.state) return;
+    const {deck, match_owner, flipped, current_player, players, phase} = this.state;
+    const cpName = players[current_player];
+    const myTurn = cpName === USER && phase !== 'result' && !this._inputLocked;
+    const mo = match_owner || {};
+
+    // match_owner keys are ALWAYS strings now (e.g. "4": "alice")
+    const matchedIds = new Set(Object.keys(mo));
+    const flippedIdxs = new Set(flipped || []);
+
+    deck.forEach((card, i)=>{
+      const el = this._cards[i];
+      if(!el) return;
+
+      const cardKey = String(card.id);
+      const isMatched = matchedIds.has(cardKey);
+      const inReveal  = el.classList.contains('mg-flipped') && !flippedIdxs.has(i) && !isMatched;
+      const isFlipped = flippedIdxs.has(i);
+
+      if(!inReveal){
+        el.classList.toggle('mg-flipped', !isMatched && isFlipped);
+      }
+      el.classList.toggle('mg-matched', isMatched);
+
+      const clickable = myTurn && !isMatched && !isFlipped && !inReveal;
+      el.classList.toggle('mg-off', !clickable);
+
+      if(isMatched){
+        const ownerName = mo[cardKey];
+        const ownerKey  = ownerName === players['P1'] ? 'P1' : 'P2';
+        const t = MG_P[ownerKey];
+        const front = el.querySelector('.mg-card-front');
+        if(front){
+          front.style.background = `linear-gradient(145deg,${t.grad[0]},${t.grad[1]})`;
+          front.style.borderColor= t.border;
+          front.style.boxShadow  = `0 0 12px ${t.glow},0 3px 12px rgba(0,0,0,.35)`;
+        }
+        const ownerEl = el.querySelector('.mg-card-owner');
+        if(ownerEl){ ownerEl.textContent=`P${ownerKey[1]}`; ownerEl.style.display='block'; }
+        const pulseEl = el.querySelector('.mg-card-pulse');
+        if(pulseEl) pulseEl.style.display='block';
+      }
+    });
+  }
+
+
+  // ── Round result ──────────────────────────────────────────────
+  _showRoundResult(result){
+    const state = result.game_state || this.state;
+    if(!state) return;
+    const p1n = state.players['P1'], p2n = state.players['P2'];
+    const s1  = state.scores[p1n] ?? 0;
+    const s2  = state.scores[p2n] ?? 0;
+    const rw  = result.round_winner;
+
+    const icon  = document.getElementById('mg-res-icon');
+    const title = document.getElementById('mg-res-title');
+    const sub   = document.getElementById('mg-res-sub');
+    const scores= document.getElementById('mg-res-scores');
+
+    if(icon)  icon.textContent = rw===USER?'🏆':rw==='draw'?'🤝':'😔';
+    if(title) title.textContent = rw==='draw'?"It's a Draw!":rw===USER?'Round Won!':'Round Lost';
+    if(sub)   sub.textContent = result.game_ended ? 'Final result coming...' : 'Next round in 4s...';
+
+    if(scores){
+      scores.innerHTML = '';
+      [[p1n,'P1',s1],[p2n,'P2',s2]].forEach(([name, key, score])=>{
+        const t = MG_P[key];
+        const div = document.createElement('div');
+        div.className = 'mg-res-card' + (rw===name?' mg-winner':'');
+        div.innerHTML = `<div class="mg-res-pname" style="color:${t.tag}">${name}</div>
+          <div class="mg-res-pts">${score}</div>`;
+        scores.appendChild(div);
+      });
+    }
+
+    if(rw===USER) this._confetti();
+    this._showResultOv();
+
+    const delay = result.display_ms || 4000;
+    if(!result.game_ended){
+      setTimeout(()=>{ const ov=document.getElementById('mg-result-ov'); if(ov) ov.style.display='none'; }, delay);
+    }
+  }
+
+  _showResultOv(){
+    const ov = document.getElementById('mg-result-ov');
+    if(ov) ov.style.display='flex';
+  }
+
+  // ── Helper: which player key am I? ───────────────────────────
+  _myPlayerKey(){
+    if(!this.state) return 'P1';
+    const p = this.state.players;
+    return p['P1']===USER ? 'P1' : 'P2';
+  }
+
+  // ── Pause ────────────────────────────────────────────────────
+  _showPause(){
+    const ov = document.getElementById('mg-pause-ov');
+    if(ov) ov.style.display='flex';
+    const d = (this.state.disconnected_players||[])[0]||'Player';
+    this._setText('mg-disconnected', d);
+  }
+  _hidePause(){
+    const ov = document.getElementById('mg-pause-ov');
+    if(ov) ov.style.display='none';
+  }
+  updateCountdown(s){ this._setText('mg-countdown',s); }
+
+  // ── Avatar ────────────────────────────────────────────────────
+  _setAvatar(elId, username){
+    const el = document.getElementById(elId);
+    if(!el || el.querySelector('img')) return;
+    if(typeof window.players !== 'undefined'){
+      const pd = window.players[username];
+      if(pd && pd.gender){
+        const src = pd.gender==='female'?'/static/games/icons/avatar_female.png':'/static/games/icons/avatar_male.png';
+        el.innerHTML=`<img src="${src}" alt="av">`;
+      }
+    }
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────
+  _toast(msg, player){
+    const t  = document.getElementById('mg-toast');
+    const ti = document.getElementById('mg-toast-inner');
+    if(!t||!ti) return;
+    ti.textContent = msg;
+    const pt = player || MG_P.P1;
+    ti.style.background=`linear-gradient(135deg,${pt.grad[0]},${pt.grad[1]})`;
+    ti.style.boxShadow=`0 4px 16px ${pt.glow}`;
+    t.style.display='block';t.style.animation='none';t.offsetHeight;
+    t.style.animation='mgPopIn .3s ease-out';
+    clearTimeout(this._toastT);
+    this._toastT=setTimeout(()=>{ t.style.display='none'; },1200);
+  }
+
+  // ── Audio ─────────────────────────────────────────────────────
+  _playTone(freq, ms){
+    try{
+      const ac = window._mgAC = window._mgAC || new (window.AudioContext||window.webkitAudioContext)();
+      const o=ac.createOscillator(), g=ac.createGain();
+      o.type='sine'; o.frequency.value=freq;
+      g.gain.setValueAtTime(.14,ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+ms/1000);
+      o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+ms/1000);
+    }catch(e){}
+  }
+
+  // ── Confetti ──────────────────────────────────────────────────
+  _confetti(){
+    const colors=['#d4af37','#FF4757','#1E90FF','#4ECDC4','#FD79A8','#FDCB6E'];
+    for(let i=0;i<32;i++){
+      setTimeout(()=>{
+        const c=document.createElement('div');
+        c.style.cssText=`position:fixed;width:7px;height:7px;top:-20px;left:${Math.random()*100}%;
+          background:${colors[~~(Math.random()*colors.length)]};
+          border-radius:${Math.random()>.5?'50%':'2px'};
+          animation:confFall ${1.4+Math.random()*2}s linear forwards;z-index:300;`;
+        document.body.appendChild(c);
+        c.addEventListener('animationend',()=>c.remove());
+      },i*45);
+    }
+    if(!document.getElementById('mgConfKF')){
+      const s=document.createElement('style');s.id='mgConfKF';
+      s.textContent='@keyframes confFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}';
+      document.head.appendChild(s);
+    }
+  }
+
+  // ── Generic utils ─────────────────────────────────────────────
+  _setText(id,val){ const e=document.getElementById(id); if(e) e.textContent=val; }
+  _setHTML(id,val){ const e=document.getElementById(id); if(e) e.innerHTML=val; }
+}
+
+// ── Register ──────────────────────────────────────────────────────
+window.GameClasses = window.GameClasses || {};
+window.GameClasses.memory = MemoryGame;
+
+// ── Exit ──────────────────────────────────────────────────────────
+window.exitGame = window.exitGame || function(){
+  if(confirm('Leave the game? Both players will return to lobby.')){
+    if(typeof socket!=='undefined'&&socket&&socket.readyState===WebSocket.OPEN)
+      socket.send(JSON.stringify({event:'game_exit'}));
+  }
+};
+</script>

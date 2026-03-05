@@ -2702,6 +2702,7 @@
                     // Game events
                     case 'game_loaded': handleGameLoadedEvent(payload); break;
                     case 'game_update': handleGameUpdateEvent(payload); break;
+                    case 'player_submitted': handlePlayerSubmittedEvent(payload); break;
                     case 'round_ended': handleRoundEndedEvent(payload); break;
                     case 'round_started': handleRoundStartedEvent(payload); break;
                     case 'game_ended': handleGameEndedEvent(payload); break;
@@ -3708,6 +3709,12 @@
             }
         }
         
+        function handlePlayerSubmittedEvent(payload) {
+            if (currentGame && currentGame.onOpponentSubmitted) {
+                currentGame.onOpponentSubmitted(payload.player);
+            }
+        }
+
         function handleRoundEndedEvent(payload) {
             console.log('🏆 Round ended:', payload);
             if (currentGame && currentGame.onRoundEnd) {
