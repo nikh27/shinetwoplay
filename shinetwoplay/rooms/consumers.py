@@ -321,6 +321,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 'ready': self.handle_ready,
                 'select_game': self.handle_select_game,
                 'round_change': self.handle_round_change,
+                'game_setting_change': self.handle_game_setting_change,
                 'start_game': self.handle_start_game,
                 'react_message': self.handle_react_message,
                 'remove_reaction': self.handle_remove_reaction,
@@ -555,6 +556,36 @@ class RoomConsumer(AsyncWebsocketConsumer):
             {
                 'type': 'broadcast_round_update',
                 'rounds': rounds
+            }
+        )
+
+    async def handle_game_setting_change(self, data):
+        """Owner sets a game-specific setting (e.g. grid_size for Dots & Boxes)"""
+        room_info = get_room_info(self.room_code)
+        if room_info.get('owner') != self.username:
+            await self.send_error('NOT_OWNER', 'Only owner can change settings')
+            return
+
+        key = data.get('key')
+        value = data.get('value')
+        if not key or value is None:
+            return
+
+        # Store under game_settings dict in room_info
+        settings = room_info.get('game_settings') or {}
+        if not isinstance(settings, dict):
+            settings = {}
+        settings[key] = value
+        update_room_info(self.room_code, 'game_settings', settings)
+
+        # Broadcast to all
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'broadcast_game_setting',
+                'key': key,
+                'value': value,
+                'player': self.username,
             }
         )
 
@@ -1130,6 +1161,17 @@ class RoomConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'event': 'round_update',
             'data': {'rounds': event['rounds']}
+        }))
+
+    async def broadcast_game_setting(self, event):
+        """Relay a game-specific setting change to all clients"""
+        await self.send(text_data=json.dumps({
+            'event': 'game_setting',
+            'data': {
+                'key': event['key'],
+                'value': event['value'],
+                'player': event['player'],
+            }
         }))
 
     async def broadcast_start_game(self, event):

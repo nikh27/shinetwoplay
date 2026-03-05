@@ -2287,6 +2287,20 @@
                                 <div class="round-option" onclick="selectRoundFromDropdown(5, event)">5</div>
                             </div>
                         </div>
+
+                        <!-- Grid size selector for Dots & Boxes (hidden by default) -->
+                        <div class="round-selector" id="gridSizeSelector" style="display:none" onclick="toggleGridSizeDropdown(event)">
+                            <div class="round-selector-content">
+                                <span class="round-label">grid</span>
+                                <span class="round-value" id="selectedGridSize">5×5</span>
+                            </div>
+                            <span class="round-arrow">▼</span>
+                            <div class="round-dropdown" id="gridSizeDropdown">
+                                <div class="round-option" onclick="selectGridSize('short','3×3',event)">3×3</div>
+                                <div class="round-option" onclick="selectGridSize('medium','4×4',event)">4×4</div>
+                                <div class="round-option selected" onclick="selectGridSize('long','5×5',event)">5×5</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2687,6 +2701,7 @@
                     case 'ready_state': updateReadyState(payload); break;
                     case 'game_selected': handleGameSelectedEvent(payload); break;
                     case 'round_update': handleRoundUpdateEvent(payload); break;
+                    case 'game_setting': handleGameSettingEvent(payload); break;
                     case 'start_game': handleStartGameEvent(payload); break;
                     case 'message_reaction': updateMessageReactions(payload.message_id, payload.user, payload.emoji, payload.action, payload.old_emoji); break;
                     case 'recording_voice': if(payload.user !== USER) showToast(`${payload.user} is recording...`, 'info'); break;
@@ -3031,12 +3046,25 @@
             document.querySelectorAll('.game-card').forEach(card => card.classList.remove('selected'));
 
             addNotification(`Game selected: ${payload.game_name}`);
+
+            // Show/hide game-specific settings for all players
+            const gss = document.getElementById('gridSizeSelector');
+            if(gss) gss.style.display = payload.game_id === 'dotnbox' ? '' : 'none';
         }
 
         function handleRoundUpdateEvent(payload) {
             selectedRounds = payload.rounds;
             document.getElementById('selectedRound').textContent = payload.rounds;
             addNotification(`Rounds set to ${payload.rounds}`);
+        }
+
+        function handleGameSettingEvent(payload) {
+            if(payload.key === 'grid_size'){
+                const labels = {short:'3×3', medium:'4×4', long:'5×5'};
+                const el = document.getElementById('selectedGridSize');
+                if(el) el.textContent = labels[payload.value] || payload.value;
+                addNotification(`Grid size set to ${labels[payload.value] || payload.value}`);
+            }
         }
 
         function handleStartGameEvent(payload) {
@@ -3855,10 +3883,23 @@
                 if (state.room.selected_game) {
                     selectedGame = { id: state.room.selected_game };
                     document.getElementById('selectedGameName').textContent = state.room.selected_game;
+
+                    // Show/hide game-specific settings
+                    const gss = document.getElementById('gridSizeSelector');
+                    if(gss) gss.style.display = state.room.selected_game === 'dotnbox' ? '' : 'none';
                 }
                 if (state.room.rounds) {
                     selectedRounds = state.room.rounds;
                     document.getElementById('selectedRound').textContent = state.room.rounds;
+                }
+                // Sync game settings (e.g. grid_size for dotnbox)
+                if (state.room.game_settings) {
+                    const gs = state.room.game_settings;
+                    if(gs.grid_size){
+                        const labels = {short:'3×3', medium:'4×4', long:'5×5'};
+                        const el = document.getElementById('selectedGridSize');
+                        if(el) el.textContent = labels[gs.grid_size] || gs.grid_size;
+                    }
                 }
             }
             
@@ -4022,6 +4063,10 @@
             document.getElementById('selectedGameName').textContent = name;
             closeGameModal();
             
+            // Show/hide game-specific settings
+            const gss = document.getElementById('gridSizeSelector');
+            if(gss) gss.style.display = gameId === 'dotnbox' ? '' : 'none';
+            
             socket.send(JSON.stringify({ event: "select_game", game: gameId }));
         }
 
@@ -4070,7 +4115,35 @@
                 dropdown.classList.remove('active');
                 selector.classList.remove('active');
             }
+
+            // Close grid size dropdown too
+            const gsd = document.getElementById('gridSizeDropdown');
+            const gss = document.getElementById('gridSizeSelector');
+            if(gsd && gsd.classList.contains('active')){
+                gsd.classList.remove('active');
+                if(gss) gss.classList.remove('active');
+            }
         });
+
+        // ── Grid Size selector (Dots & Boxes) ──────────────────
+        function toggleGridSizeDropdown(event){
+            event.stopPropagation();
+            const dd = document.getElementById('gridSizeDropdown');
+            const sel = document.getElementById('gridSizeSelector');
+            dd.classList.toggle('active');
+            sel.classList.toggle('active');
+        }
+
+        function selectGridSize(key, label, event){
+            if(!isOwner) return;
+            event.stopPropagation();
+            document.getElementById('selectedGridSize').textContent = label;
+            document.querySelectorAll('#gridSizeDropdown .round-option').forEach(o=>o.classList.remove('selected'));
+            event.target.classList.add('selected');
+            document.getElementById('gridSizeDropdown').classList.remove('active');
+            document.getElementById('gridSizeSelector').classList.remove('active');
+            socket.send(JSON.stringify({event:'game_setting_change', key:'grid_size', value:key}));
+        }
 
         function startGame() {
             if (!isOwner) {

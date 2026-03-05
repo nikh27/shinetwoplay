@@ -123,6 +123,14 @@ GAMES = [
         'description': 'Classic Bingo showdown! Mark called numbers on your card. Complete a line and shout BINGO to win!',
         'min_players': 2,
         'max_players': 2,
+    },
+    {
+        'game_id': 'dotnbox',
+        'name': 'Dots & Boxes',
+        'image_url': '/static/games/dotnbox.png',
+        'description': 'Draw lines between dots to complete boxes. Score a box and keep your turn! Most boxes wins.',
+        'min_players': 2,
+        'max_players': 2,
     }
 ]
 

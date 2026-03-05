@@ -1,0 +1,414 @@
+import { useState, useCallback, useEffect } from "react";
+
+const DIFFICULTIES = {
+  Easy: { dots: 4, label: "3×3" },
+  Medium: { dots: 5, label: "4×4" },
+  Hard: { dots: 6, label: "5×5" },
+};
+
+const P1_COLOR = "#3B82F6";
+const P1_BG = "rgba(59,130,246,0.15)";
+const P1_BG_SOLID = "#dbeafe";
+const P2_COLOR = "#F43F5E";
+const P2_BG = "rgba(244,63,94,0.13)";
+const P2_BG_SOLID = "#ffe4e6";
+
+function createInitialState(dots) {
+  const rows = dots;
+  const cols = dots;
+  const hLines = Array.from({ length: rows }, () => Array(cols - 1).fill(0));
+  const vLines = Array.from({ length: rows - 1 }, () => Array(cols).fill(0));
+  const boxes = Array.from({ length: rows - 1 }, () => Array(cols - 1).fill(0));
+  return { hLines, vLines, boxes, scores: [0, 0], currentPlayer: 1, gameOver: false, winner: null };
+}
+
+export default function DotsAndBoxes() {
+  const [difficulty, setDifficulty] = useState("Medium");
+  const [screen, setScreen] = useState("menu");
+  const dots = DIFFICULTIES[difficulty].dots;
+  const [state, setState] = useState(() => createInitialState(dots));
+  const [animatingBoxes, setAnimatingBoxes] = useState([]);
+  const [animatingLine, setAnimatingLine] = useState(null);
+  const [showResult, setShowResult] = useState(false);
+
+  const resetGame = useCallback((diff) => {
+    const d = diff || difficulty;
+    setDifficulty(d);
+    setState(createInitialState(DIFFICULTIES[d].dots));
+    setAnimatingBoxes([]);
+    setAnimatingLine(null);
+    setShowResult(false);
+  }, [difficulty]);
+
+  const startGame = (diff) => {
+    resetGame(diff);
+    setScreen("game");
+  };
+
+  const totalBoxes = (DIFFICULTIES[difficulty].dots - 1) ** 2;
+
+  const handleLineClick = useCallback((type, row, col) => {
+    setState((prev) => {
+      if (prev.gameOver) return prev;
+      const lines = type === "h" ? prev.hLines : prev.vLines;
+      if (lines[row][col] !== 0) return prev;
+
+      const newH = prev.hLines.map((r) => [...r]);
+      const newV = prev.vLines.map((r) => [...r]);
+      const newBoxes = prev.boxes.map((r) => [...r]);
+      const player = prev.currentPlayer;
+
+      if (type === "h") newH[row][col] = player;
+      else newV[row][col] = player;
+
+      let scored = 0;
+      const completedBoxes = [];
+      const numRows = newBoxes.length;
+      const numCols = newBoxes[0].length;
+
+      for (let r = 0; r < numRows; r++) {
+        for (let c = 0; c < numCols; c++) {
+          if (newBoxes[r][c] === 0) {
+            const top = newH[r][c];
+            const bottom = newH[r + 1][c];
+            const left = newV[r][c];
+            const right = newV[r][c + 1];
+            if (top && bottom && left && right) {
+              newBoxes[r][c] = player;
+              scored++;
+              completedBoxes.push({ r, c });
+            }
+          }
+        }
+      }
+
+      const newScores = [...prev.scores];
+      newScores[player - 1] += scored;
+      const totalFilled = newBoxes.flat().filter((b) => b !== 0).length;
+      const total = numRows * numCols;
+      const gameOver = totalFilled === total;
+      let winner = null;
+      if (gameOver) {
+        if (newScores[0] > newScores[1]) winner = 1;
+        else if (newScores[1] > newScores[0]) winner = 2;
+        else winner = 0;
+      }
+      const nextPlayer = scored > 0 ? player : player === 1 ? 2 : 1;
+
+      setAnimatingLine({ type, row, col });
+      if (completedBoxes.length > 0) setAnimatingBoxes(completedBoxes);
+      setTimeout(() => { setAnimatingLine(null); setAnimatingBoxes([]); }, 350);
+      if (gameOver) setTimeout(() => setShowResult(true), 600);
+
+      return { hLines: newH, vLines: newV, boxes: newBoxes, scores: newScores, currentPlayer: nextPlayer, gameOver, winner };
+    });
+  }, []);
+
+  const [cellSize, setCellSize] = useState(60);
+  useEffect(() => {
+    const calc = () => {
+      const d = DIFFICULTIES[difficulty].dots;
+      const maxW = Math.min(window.innerWidth - 48, 500);
+      const maxH = window.innerHeight - 300;
+      const size = Math.min(Math.floor(maxW / d), Math.floor(maxH / d), 80);
+      setCellSize(Math.max(size, 36));
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, [difficulty]);
+
+  const dotSize = Math.max(10, Math.round(cellSize * 0.18));
+  const lineThick = Math.max(5, Math.round(cellSize * 0.09));
+  const gridW = cellSize * (dots - 1) + dotSize;
+  const gridH = cellSize * (dots - 1) + dotSize;
+
+  if (screen === "menu") {
+    return (
+      <div style={{
+        minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+        background: "linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%)", padding: 20,
+      }}>
+        <div style={{
+          background: "#fff", borderRadius: 24, padding: "40px 28px 32px", maxWidth: 360, width: "100%",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.08)", display: "flex", flexDirection: "column",
+          alignItems: "center", position: "relative", overflow: "hidden", animation: "fadeUp 0.5s ease",
+        }}>
+          <div style={{
+            position: "absolute", top: -60, right: -60, width: 160, height: 160, borderRadius: "50%",
+            background: "linear-gradient(135deg, rgba(59,130,246,0.12), rgba(244,63,94,0.12))",
+          }} />
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: -0.5, zIndex: 1 }}>
+            Dots & Boxes
+          </h1>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "#94a3b8", margin: "2px 0 0", letterSpacing: 4, textTransform: "uppercase" }}>
+            Duel
+          </p>
+          <div style={{
+            width: 48, height: 3, borderRadius: 2, margin: "20px 0",
+            background: "linear-gradient(90deg, #3B82F6, #F43F5E)",
+          }} />
+          <p style={{ fontSize: 14, color: "#64748b", textAlign: "center", lineHeight: 1.6, margin: 0, maxWidth: 280 }}>
+            Challenge a friend on the same device. Complete boxes to score points!
+          </p>
+          <div style={{ marginTop: 28, display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
+            {Object.entries(DIFFICULTIES).map(([key, val]) => (
+              <button key={key} onClick={() => startGame(key)} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "14px 20px", borderRadius: 14, border: "1.5px solid #e2e8f0", background: "#fff",
+                fontSize: 15, color: "#1e293b", cursor: "pointer", transition: "all 0.2s",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+              }}>
+                <span style={{ fontWeight: 700 }}>{key}</span>
+                <span style={{ opacity: 0.5, fontSize: 13 }}>{val.label} grid</span>
+              </button>
+            ))}
+          </div>
+          <div style={{ marginTop: 28, fontSize: 12, color: "#94a3b8", display: "flex", gap: 6, alignItems: "center" }}>
+            <span style={{ color: P1_COLOR, fontWeight: 700 }}>●</span> Player 1 vs Player 2 <span style={{ color: P2_COLOR, fontWeight: 700 }}>●</span>
+          </div>
+        </div>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+          * { font-family: 'DM Sans', sans-serif; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+          @keyframes fadeUp { from { opacity:0; transform: translateY(20px) scale(0.95); } to { opacity:1; transform: translateY(0) scale(1); } }
+          @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+          @keyframes overlayIn { from { opacity:0; } to { opacity:1; } }
+          button:active { transform: scale(0.97) !important; }
+        `}</style>
+      </div>
+    );
+  }
+
+  const p = state.currentPlayer;
+  const turnColor = p === 1 ? P1_COLOR : P2_COLOR;
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: "#f8fafc", display: "flex", flexDirection: "column",
+      alignItems: "center", padding: "0 0 20px",
+    }}>
+      {/* Header */}
+      <div style={{ width: "100%", maxWidth: 500, padding: "12px 16px 6px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <button onClick={() => setScreen("menu")} style={{
+            background: "none", border: "none", color: "#64748b", cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center",
+          }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M13 4L7 10L13 16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+          <h1 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: -0.3 }}>Dots & Boxes</h1>
+          <button onClick={() => resetGame()} style={{
+            background: "none", border: "none", color: "#64748b", cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center",
+          }}>
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 10a7 7 0 0112.9-3.7M17 10a7 7 0 01-12.9 3.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M16 3v4h-4M4 17v-4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+        </div>
+
+        {/* Scores */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
+          <div style={{
+            flex: 1, maxWidth: 160, padding: "10px 14px", borderRadius: 14, textAlign: "center",
+            position: "relative", transition: "all 0.3s",
+            border: `2px solid ${p === 1 && !state.gameOver ? P1_COLOR : "transparent"}`,
+            background: p === 1 && !state.gameOver ? P1_BG : "rgba(0,0,0,0.03)",
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: P1_COLOR, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 2 }}>Player 1</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: P1_COLOR, lineHeight: 1.1 }}>{state.scores[0]}</div>
+            {p === 1 && !state.gameOver && <div style={{
+              width: 6, height: 6, borderRadius: "50%", background: P1_COLOR,
+              position: "absolute", top: 8, right: 8, animation: "pulse 1.2s infinite",
+            }} />}
+          </div>
+          <div style={{
+            width: 36, height: 36, borderRadius: "50%", background: "#f1f5f9",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: "#94a3b8", letterSpacing: 1 }}>VS</span>
+          </div>
+          <div style={{
+            flex: 1, maxWidth: 160, padding: "10px 14px", borderRadius: 14, textAlign: "center",
+            position: "relative", transition: "all 0.3s",
+            border: `2px solid ${p === 2 && !state.gameOver ? P2_COLOR : "transparent"}`,
+            background: p === 2 && !state.gameOver ? P2_BG : "rgba(0,0,0,0.03)",
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: P2_COLOR, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 2 }}>Player 2</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: P2_COLOR, lineHeight: 1.1 }}>{state.scores[1]}</div>
+            {p === 2 && !state.gameOver && <div style={{
+              width: 6, height: 6, borderRadius: "50%", background: P2_COLOR,
+              position: "absolute", top: 8, right: 8, animation: "pulse 1.2s infinite",
+            }} />}
+          </div>
+        </div>
+
+        {!state.gameOver && (
+          <div style={{ textAlign: "center", marginTop: 6 }}>
+            <span style={{
+              fontSize: 13, fontWeight: 600, color: turnColor,
+              background: p === 1 ? P1_BG : P2_BG, padding: "4px 16px", borderRadius: 20,
+            }}>
+              Player {p}'s Turn
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Board */}
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 20px" }}>
+        <div style={{ position: "relative", width: gridW, height: gridH }}>
+
+          {/* Boxes */}
+          {state.boxes.map((row, r) =>
+            row.map((val, c) => {
+              const isAnim = animatingBoxes.some((b) => b.r === r && b.c === c);
+              return (
+                <div key={`box-${r}-${c}`} style={{
+                  position: "absolute",
+                  left: dotSize / 2 + c * cellSize + lineThick / 2,
+                  top: dotSize / 2 + r * cellSize + lineThick / 2,
+                  width: cellSize - lineThick,
+                  height: cellSize - lineThick,
+                  borderRadius: 6,
+                  background: val === 1 ? P1_BG_SOLID : val === 2 ? P2_BG_SOLID : "transparent",
+                  transition: "background 0.3s, transform 0.3s",
+                  transform: isAnim ? "scale(1.08)" : "scale(1)",
+                  display: "flex", alignItems: "center", justifyContent: "center", zIndex: 0,
+                }}>
+                  {val !== 0 && (
+                    <span style={{
+                      fontWeight: 800, fontSize: Math.max(11, cellSize * 0.22),
+                      color: val === 1 ? P1_COLOR : P2_COLOR, opacity: 0.65, letterSpacing: 0.5,
+                    }}>P{val}</span>
+                  )}
+                </div>
+              );
+            })
+          )}
+
+          {/* Horizontal Lines */}
+          {state.hLines.map((row, r) =>
+            row.map((val, c) => {
+              const isAnim = animatingLine?.type === "h" && animatingLine.row === r && animatingLine.col === c;
+              return (
+                <div key={`h-${r}-${c}`} onClick={() => handleLineClick("h", r, c)} style={{
+                  position: "absolute",
+                  left: dotSize / 2 + c * cellSize,
+                  top: r * cellSize + dotSize / 2 - lineThick / 2,
+                  width: cellSize, height: lineThick,
+                  cursor: val === 0 ? "pointer" : "default", zIndex: 2,
+                  padding: "10px 0", marginTop: -10, boxSizing: "content-box",
+                }}>
+                  <div style={{
+                    width: "100%", height: lineThick, borderRadius: lineThick / 2,
+                    background: val === 0 ? "#e2e8f0" : val === 1 ? P1_COLOR : P2_COLOR,
+                    transition: "background 0.2s, transform 0.25s, box-shadow 0.2s",
+                    transform: isAnim ? "scaleX(1.06)" : "scaleX(1)",
+                    boxShadow: val !== 0 ? `0 2px 8px ${val === 1 ? "rgba(59,130,246,0.3)" : "rgba(244,63,94,0.3)"}` : "none",
+                  }} />
+                </div>
+              );
+            })
+          )}
+
+          {/* Vertical Lines */}
+          {state.vLines.map((row, r) =>
+            row.map((val, c) => {
+              const isAnim = animatingLine?.type === "v" && animatingLine.row === r && animatingLine.col === c;
+              return (
+                <div key={`v-${r}-${c}`} onClick={() => handleLineClick("v", r, c)} style={{
+                  position: "absolute",
+                  left: c * cellSize + dotSize / 2 - lineThick / 2,
+                  top: dotSize / 2 + r * cellSize,
+                  width: lineThick, height: cellSize,
+                  cursor: val === 0 ? "pointer" : "default", zIndex: 2,
+                  padding: "0 10px", marginLeft: -10, boxSizing: "content-box",
+                }}>
+                  <div style={{
+                    width: lineThick, height: "100%", borderRadius: lineThick / 2,
+                    background: val === 0 ? "#e2e8f0" : val === 1 ? P1_COLOR : P2_COLOR,
+                    transition: "background 0.2s, transform 0.25s, box-shadow 0.2s",
+                    transform: isAnim ? "scaleY(1.06)" : "scaleY(1)",
+                    boxShadow: val !== 0 ? `0 2px 8px ${val === 1 ? "rgba(59,130,246,0.3)" : "rgba(244,63,94,0.3)"}` : "none",
+                  }} />
+                </div>
+              );
+            })
+          )}
+
+          {/* Dots */}
+          {Array.from({ length: dots }).map((_, r) =>
+            Array.from({ length: dots }).map((_, c) => (
+              <div key={`dot-${r}-${c}`} style={{
+                position: "absolute", left: c * cellSize, top: r * cellSize,
+                width: dotSize, height: dotSize, borderRadius: "50%",
+                background: "#1e293b", zIndex: 3, boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
+              }} />
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Progress */}
+      <div style={{ width: "100%", maxWidth: 340, padding: "0 24px", marginTop: 4 }}>
+        <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", background: "#f1f5f9" }}>
+          <div style={{ width: `${(state.scores[0] / totalBoxes) * 100}%`, background: P1_COLOR, transition: "width 0.4s" }} />
+          <div style={{ width: `${(state.scores[1] / totalBoxes) * 100}%`, background: P2_COLOR, transition: "width 0.4s" }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
+          <span>{state.scores[0]} boxes</span>
+          <span>{totalBoxes - state.scores[0] - state.scores[1]} left</span>
+          <span>{state.scores[1]} boxes</span>
+        </div>
+      </div>
+
+      {/* Game Over */}
+      {showResult && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(6px)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24,
+          animation: "overlayIn 0.3s ease",
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 24, padding: "36px 28px 28px", maxWidth: 320, width: "100%",
+            display: "flex", flexDirection: "column", alignItems: "center",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.15)", animation: "fadeUp 0.4s ease",
+          }}>
+            <div style={{ fontSize: 48, marginBottom: 4 }}>{state.winner === 0 ? "🤝" : "🏆"}</div>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", margin: "8px 0 20px" }}>
+              {state.winner === 0 ? "It's a Draw!" : `Player ${state.winner} Wins!`}
+            </h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 28, padding: "16px 0" }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 32, fontWeight: 800, color: P1_COLOR }}>{state.scores[0]}</div>
+                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Player 1</div>
+              </div>
+              <div style={{ width: 1, height: 40, background: "#e2e8f0" }} />
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 32, fontWeight: 800, color: P2_COLOR }}>{state.scores[1]}</div>
+                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Player 2</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 24, width: "100%" }}>
+              <button onClick={() => resetGame()} style={{
+                flex: 1, padding: "12px 0", borderRadius: 12, border: "none", fontSize: 14,
+                fontWeight: 700, cursor: "pointer", background: "#1e293b", color: "#fff",
+              }}>Play Again</button>
+              <button onClick={() => { setShowResult(false); setScreen("menu"); }} style={{
+                flex: 1, padding: "12px 0", borderRadius: 12, border: "none", fontSize: 14,
+                fontWeight: 700, cursor: "pointer", background: "#f1f5f9", color: "#1e293b",
+              }}>Menu</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+        * { font-family: 'DM Sans', sans-serif; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        @keyframes fadeUp { from { opacity:0; transform: translateY(20px) scale(0.95); } to { opacity:1; transform: translateY(0) scale(1); } }
+        @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+        @keyframes overlayIn { from { opacity:0; } to { opacity:1; } }
+        button:active { transform: scale(0.97) !important; }
+      `}</style>
+    </div>
+  );
+}

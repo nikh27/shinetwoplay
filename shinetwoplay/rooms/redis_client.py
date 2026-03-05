@@ -66,11 +66,22 @@ def room_exists(code: str) -> bool:
 
 def get_room_info(code: str) -> dict:
     """Get room info from Redis"""
-    return redis_client.hgetall(f'room:{code}:info')
+    raw = redis_client.hgetall(f'room:{code}:info')
+    # Try to parse JSON values (for nested dicts stored as strings)
+    for k, v in raw.items():
+        if v and v.startswith('{'):
+            try:
+                raw[k] = json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                pass
+    return raw
 
 
-def update_room_info(code: str, field: str, value: str):
+def update_room_info(code: str, field: str, value):
     """Update a field in room info"""
+    # JSON-serialize dicts/lists before storing
+    if isinstance(value, (dict, list)):
+        value = json.dumps(value)
     redis_client.hset(f'room:{code}:info', field, value)
     refresh_room_ttl(code)
 

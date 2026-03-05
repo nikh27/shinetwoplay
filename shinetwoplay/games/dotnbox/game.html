@@ -1,0 +1,713 @@
+<!-- Dots & Boxes — Online Multiplayer -->
+
+<div class="db-wrap" id="db-wrap">
+
+  <!-- ===== TOP BAR ===== -->
+  <div class="db-topbar">
+    <div class="db-topbar-left">
+      <button class="db-tb-btn" onclick="exitGame()" title="Exit">✕</button>
+      <button class="db-tb-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+      <button class="db-tb-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Spk">🔊</button>
+    </div>
+    <div class="db-topbar-mid">
+      <!-- P1 score card -->
+      <div class="db-sc-card db-sc-p1" id="db-sc-p1">
+        <div class="db-sc-av" id="db-av1"></div>
+        <div class="db-sc-info">
+          <div class="db-sc-name" id="db-name1">P1</div>
+          <div class="db-sc-pts" id="db-pts1">0</div>
+        </div>
+        <div class="db-sc-dot" id="db-dot-p1"></div>
+      </div>
+
+      <div class="db-vs">VS</div>
+
+      <!-- P2 score card -->
+      <div class="db-sc-card db-sc-p2" id="db-sc-p2">
+        <div class="db-sc-dot" id="db-dot-p2"></div>
+        <div class="db-sc-info" style="text-align:right">
+          <div class="db-sc-name" id="db-name2">P2</div>
+          <div class="db-sc-pts" id="db-pts2">0</div>
+        </div>
+        <div class="db-sc-av" id="db-av2"></div>
+      </div>
+    </div>
+    <div class="db-topbar-right">
+      <div class="db-round-b" id="db-round-b">R1</div>
+    </div>
+  </div>
+
+  <!-- ===== TURN BADGE ===== -->
+  <div class="db-turn-row">
+    <span class="db-turn-badge" id="db-turn-badge">Waiting...</span>
+  </div>
+
+  <!-- ===== BOARD ===== -->
+  <div class="db-board-area">
+    <div class="db-board" id="db-board"></div>
+  </div>
+
+  <!-- ===== PROGRESS BAR ===== -->
+  <div class="db-progress-row">
+    <div class="db-prog-bar">
+      <div class="db-prog-fill db-prog-p1" id="db-prog1"></div>
+      <div class="db-prog-fill db-prog-p2" id="db-prog2"></div>
+    </div>
+    <div class="db-prog-labels">
+      <span id="db-lbl1">0 boxes</span>
+      <span id="db-lbl-left">0 left</span>
+      <span id="db-lbl2">0 boxes</span>
+    </div>
+  </div>
+
+  <!-- ===== GRID CHOICE (3s at game start) ===== -->
+  <div class="db-overlay db-choose-ov" id="db-choose-ov" style="display:none">
+    <div class="db-modal db-choose-modal">
+      <h2>Choose Grid Size</h2>
+      <div class="db-choose-opts">
+        <button class="db-choose-btn" onclick="currentGame && currentGame._pickGrid('short')">
+          <span class="db-cb-label">Short</span>
+          <span class="db-cb-sub">3×3 · 9 boxes</span>
+        </button>
+        <button class="db-choose-btn db-choose-sel" onclick="currentGame && currentGame._pickGrid('medium')">
+          <span class="db-cb-label">Medium</span>
+          <span class="db-cb-sub">4×4 · 16 boxes</span>
+        </button>
+        <button class="db-choose-btn" onclick="currentGame && currentGame._pickGrid('long')">
+          <span class="db-cb-label">Long</span>
+          <span class="db-cb-sub">5×5 · 25 boxes</span>
+        </button>
+      </div>
+      <div class="db-choose-timer">Auto-selecting Medium in <span id="db-choose-cd">3</span>s</div>
+    </div>
+  </div>
+
+  <!-- ===== PAUSE ===== -->
+  <div class="db-overlay" id="db-pause-ov" style="display:none">
+    <div class="db-modal">
+      <div style="font-size:40px">⏸️</div>
+      <h2>Game Paused</h2>
+      <p><span id="db-disconnected">Player</span> disconnected</p>
+      <p>Waiting... <span id="db-countdown">30</span>s</p>
+    </div>
+  </div>
+
+  <!-- ===== ROUND RESULT ===== -->
+  <div class="db-overlay" id="db-result-ov" style="display:none">
+    <div class="db-modal db-result-modal">
+      <div class="db-res-emoji" id="db-res-emoji">🏆</div>
+      <h2 class="db-res-title" id="db-res-title">Player Wins!</h2>
+      <div class="db-res-scores">
+        <div class="db-res-sc">
+          <div class="db-res-pts" id="db-res-pts1" style="color:#3B82F6">0</div>
+          <div class="db-res-nm" id="db-res-nm1">P1</div>
+        </div>
+        <div class="db-res-div"></div>
+        <div class="db-res-sc">
+          <div class="db-res-pts" id="db-res-pts2" style="color:#F43F5E">0</div>
+          <div class="db-res-nm" id="db-res-nm2">P2</div>
+        </div>
+      </div>
+      <div class="db-res-note" id="db-res-note">Next round in 5s...</div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ============================================================ CSS -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+.db-wrap *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+.db-wrap{
+  position:relative;display:flex;flex-direction:column;align-items:center;
+  width:100%;height:100%;
+  background:#f8fafc;
+  font-family:'DM Sans','Segoe UI',sans-serif;
+  color:#0f172a;overflow:hidden;
+}
+
+/* ===== TOP BAR ===== */
+.db-topbar{
+  width:100%;display:flex;align-items:center;
+  padding:6px 8px 5px;gap:6px;flex-shrink:0;
+  background:#fff;border-bottom:1px solid #e2e8f0;z-index:95;
+}
+.db-topbar-left{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.db-tb-btn{
+  width:28px;height:28px;border-radius:50%;border:none;
+  background:#f1f5f9;color:#64748b;font-size:12px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .2s;flex-shrink:0;
+}
+.db-tb-btn:hover{background:#e2e8f0}
+.db-topbar-mid{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-width:0}
+.db-topbar-right{flex-shrink:0;display:flex;align-items:center}
+
+.db-vs{
+  font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:1px;flex-shrink:0;
+  width:30px;height:30px;border-radius:50%;background:#f1f5f9;
+  display:flex;align-items:center;justify-content:center;
+}
+.db-round-b{
+  font-size:9px;font-weight:800;color:#94a3b8;letter-spacing:1px;
+  background:#f1f5f9;padding:3px 8px;border-radius:12px;
+}
+
+/* Score cards */
+.db-sc-card{
+  display:flex;align-items:center;gap:4px;
+  padding:4px 8px;border-radius:12px;
+  border:2px solid transparent;transition:all .3s;
+  min-width:0;flex-shrink:1;position:relative;
+}
+.db-sc-p1.db-active{border-color:#3B82F6;background:rgba(59,130,246,.08)}
+.db-sc-p2.db-active{border-color:#F43F5E;background:rgba(244,63,94,.08)}
+.db-sc-av{
+  width:20px;height:20px;border-radius:50%;flex-shrink:0;
+  background:#f1f5f9;border:1.5px solid #e2e8f0;overflow:hidden;
+}
+.db-sc-av img{width:100%;height:100%;object-fit:cover}
+.db-sc-info{min-width:0;line-height:1.1}
+.db-sc-name{font-size:7px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50px}
+.db-sc-p1 .db-sc-name{color:#3B82F6}
+.db-sc-p2 .db-sc-name{color:#F43F5E}
+.db-sc-pts{font-size:18px;font-weight:800;line-height:1}
+.db-sc-p1 .db-sc-pts{color:#3B82F6}
+.db-sc-p2 .db-sc-pts{color:#F43F5E}
+.db-sc-dot{
+  width:6px;height:6px;border-radius:50%;
+  position:absolute;top:5px;right:6px;
+  display:none;animation:dbPulse 1.2s infinite;
+}
+.db-sc-p1 .db-sc-dot{background:#3B82F6}
+.db-sc-p2 .db-sc-dot{background:#F43F5E}
+@keyframes dbPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+
+/* ===== TURN BADGE ===== */
+.db-turn-row{padding:3px 0;flex-shrink:0}
+.db-turn-badge{
+  font-size:12px;font-weight:600;padding:3px 16px;border-radius:20px;
+  transition:all .3s;
+}
+.db-turn-badge.db-tb-p1{color:#3B82F6;background:rgba(59,130,246,.1)}
+.db-turn-badge.db-tb-p2{color:#F43F5E;background:rgba(244,63,94,.1)}
+.db-turn-badge.db-tb-wait{color:#94a3b8;background:#f1f5f9}
+
+/* ===== BOARD ===== */
+.db-board-area{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  width:100%;padding:4px 16px;min-height:0;overflow:hidden;
+}
+.db-board{position:relative}
+
+/* Lines */
+.db-line{position:absolute;cursor:pointer;z-index:2}
+.db-line-inner{
+  border-radius:99px;transition:background .2s,transform .25s,box-shadow .2s;
+}
+.db-line.db-line-h .db-line-inner{width:100%;border-radius:99px}
+.db-line.db-line-v .db-line-inner{height:100%;border-radius:99px}
+.db-line-inner.db-empty{background:#e2e8f0}
+.db-line-inner.db-p1{background:#3B82F6;box-shadow:0 2px 8px rgba(59,130,246,.3)}
+.db-line-inner.db-p2{background:#F43F5E;box-shadow:0 2px 8px rgba(244,63,94,.3)}
+.db-line-inner.db-anim-h{transform:scaleX(1.06)}
+.db-line-inner.db-anim-v{transform:scaleY(1.06)}
+.db-line:hover .db-line-inner.db-empty{background:#cbd5e1}
+
+/* Boxes */
+.db-box{
+  position:absolute;border-radius:6px;z-index:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .3s,transform .3s;
+}
+.db-box.db-box-p1{background:#dbeafe}
+.db-box.db-box-p2{background:#ffe4e6}
+.db-box.db-box-anim{transform:scale(1.08)}
+.db-box-label{font-weight:800;opacity:.65;letter-spacing:.5px}
+.db-box-p1 .db-box-label{color:#3B82F6}
+.db-box-p2 .db-box-label{color:#F43F5E}
+
+/* Dots */
+.db-dot{
+  position:absolute;border-radius:50%;
+  background:#1e293b;z-index:3;box-shadow:0 1px 4px rgba(0,0,0,.18);
+}
+
+/* ===== PROGRESS ===== */
+.db-progress-row{width:100%;max-width:340px;padding:4px 20px 8px;flex-shrink:0}
+.db-prog-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:#f1f5f9}
+.db-prog-fill{height:100%;transition:width .4s}
+.db-prog-p1{background:#3B82F6}
+.db-prog-p2{background:#F43F5E}
+.db-prog-labels{display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:3px}
+
+/* ===== OVERLAYS ===== */
+.db-overlay{
+  position:absolute;inset:0;z-index:80;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(15,23,42,.5);backdrop-filter:blur(6px);
+}
+.db-modal{
+  text-align:center;padding:30px 24px;max-width:320px;width:92%;
+  background:#fff;border-radius:24px;
+  box-shadow:0 24px 64px rgba(0,0,0,.15);
+  animation:dbFadeUp .4s ease;
+}
+@keyframes dbFadeUp{from{opacity:0;transform:translateY(20px) scale(.95)}to{opacity:1;transform:none}}
+.db-modal h2{font-size:20px;font-weight:800;color:#0f172a;margin:8px 0 16px}
+.db-modal p{font-size:12px;color:#94a3b8;margin:2px 0}
+.db-res-emoji{font-size:48px;margin-bottom:4px}
+.db-res-scores{display:flex;align-items:center;gap:24px;justify-content:center;padding:12px 0}
+.db-res-sc{text-align:center}
+.db-res-pts{font-size:32px;font-weight:800;line-height:1.1}
+.db-res-nm{font-size:12px;color:#64748b;font-weight:600}
+.db-res-div{width:1px;height:40px;background:#e2e8f0}
+.db-res-note{font-size:11px;color:#94a3b8;margin-top:8px}
+
+/* ===== GRID CHOICE OVERLAY ===== */
+.db-choose-ov{z-index:85}
+.db-choose-modal{padding:28px 20px}
+.db-choose-modal h2{font-size:18px;font-weight:800;color:#0f172a;margin:0 0 16px}
+.db-choose-opts{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.db-choose-btn{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;border-radius:14px;
+  border:2px solid #e2e8f0;background:#fff;
+  cursor:pointer;transition:all .2s;
+}
+.db-choose-btn:active{transform:scale(.97)}
+.db-choose-btn.db-choose-sel{border-color:#3B82F6;background:rgba(59,130,246,.06)}
+.db-cb-label{font-size:15px;font-weight:700;color:#1e293b}
+.db-cb-sub{font-size:13px;color:#94a3b8}
+.db-choose-timer{font-size:12px;color:#94a3b8;text-align:center}
+</style>
+
+
+<script>
+// ===================================================================
+// Dots & Boxes — Multiplayer Frontend
+// ===================================================================
+const DB_P1 = {color:'#3B82F6',bg:'rgba(59,130,246,.15)',bgSolid:'#dbeafe'};
+const DB_P2 = {color:'#F43F5E',bg:'rgba(244,63,94,.13)',bgSolid:'#ffe4e6'};
+
+class DotsBoxesGame extends BaseGame {
+  constructor(){
+    super();
+    this.gameMode   = 'turn_based';
+    this.state      = null;
+    this._cellSize  = 60;
+    this._dotSize   = 10;
+    this._lineThick = 5;
+    this._animLine  = null;
+    this._animBoxes = [];
+    this._chooseTimer = null;
+    this._chooseCd    = 3;
+    this._gridPicked  = false;
+  }
+
+  init(state){
+    this.state = state;
+    this._calcSizes();
+    this._buildBoard();
+    this._renderAll();
+    window.addEventListener('resize',()=>{ this._calcSizes(); this._buildBoard(); this._renderAll(); });
+
+    // If phase is 'choosing', show the grid picker with 3s countdown
+    if(state.phase === 'choosing'){
+      this._showChooseOverlay();
+    }
+  }
+
+  update(state){
+    const prev = this.state;
+    const isNewRound = prev && prev.current_round !== state.current_round;
+    const gridChanged = prev && prev.dots !== state.dots;
+    this.state = state;
+
+    if(state.paused){ this._showPause(); return; }
+    this._hidePause();
+
+    // Grid was just chosen → hide overlay, rebuild board
+    if(state.phase === 'playing' && !this._gridPicked && document.getElementById('db-choose-ov').style.display !== 'none'){
+      this._gridPicked = true;
+      this._hideChooseOverlay();
+      this._calcSizes();
+      this._buildBoard();
+    }
+    if(gridChanged || isNewRound){
+      this._calcSizes();
+      this._buildBoard();
+      if(isNewRound && state.phase === 'choosing'){
+        this._gridPicked = false;
+        this._showChooseOverlay();
+      }
+    }
+
+    // Animate last move
+    const lm = state.last_move;
+    if(lm){
+      this._animLine = lm;
+      this._animBoxes = state.last_boxes || [];
+      setTimeout(()=>{ this._animLine=null; this._animBoxes=[]; this._renderBoard(); }, 350);
+    }
+
+    this._renderAll();
+  }
+
+  onRoundEnd(result){
+    setTimeout(()=> this._showRoundResult(result), 600);
+  }
+
+  onGameEnd(result){
+    setTimeout(()=>{
+      const isWin  = result.game_winner === USER;
+      const isDraw = result.game_winner === 'draw';
+      const emoji  = document.getElementById('db-res-emoji');
+      const title  = document.getElementById('db-res-title');
+      const note   = document.getElementById('db-res-note');
+      if(emoji) emoji.textContent = isDraw ? '🤝' : isWin ? '🎉' : '😢';
+      if(title) title.textContent = isDraw ? "It's a Draw!" : isWin ? 'You Win!' : 'Game Over';
+      if(note)  note.textContent = 'Returning to lobby...';
+      this._fillResultScores(result);
+      this._showResultOv();
+    }, 600);
+  }
+
+  // ── Sizes ─────────────────────────────────────────────────────
+  _calcSizes(){
+    if(!this.state) return;
+    const dots = this.state.dots || 6;
+    const maxW = Math.min(window.innerWidth - 40, 500);
+    const maxH = window.innerHeight - 240;
+    const size = Math.min(Math.floor(maxW / dots), Math.floor(maxH / dots), 80);
+    this._cellSize  = Math.max(size, 32);
+    this._dotSize   = Math.max(8, Math.round(this._cellSize * 0.18));
+    this._lineThick = Math.max(4, Math.round(this._cellSize * 0.09));
+  }
+
+  // ── Build board DOM ───────────────────────────────────────────
+  _buildBoard(){
+    const board = document.getElementById('db-board');
+    if(!board || !this.state) return;
+    board.innerHTML = '';
+
+    const dots = this.state.dots || 6;
+    const cs = this._cellSize, ds = this._dotSize, lt = this._lineThick;
+    const gW = cs * (dots-1) + ds;
+    const gH = cs * (dots-1) + ds;
+    board.style.width  = gW + 'px';
+    board.style.height = gH + 'px';
+
+    // Boxes
+    for(let r=0; r<dots-1; r++){
+      for(let c=0; c<dots-1; c++){
+        const box = document.createElement('div');
+        box.className = 'db-box';
+        box.id = `db-box-${r}-${c}`;
+        box.style.left   = (ds/2 + c*cs + lt/2) + 'px';
+        box.style.top    = (ds/2 + r*cs + lt/2) + 'px';
+        box.style.width  = (cs - lt) + 'px';
+        box.style.height = (cs - lt) + 'px';
+        box.innerHTML    = '<span class="db-box-label" style="font-size:'+Math.max(11,cs*.22)+'px"></span>';
+        board.appendChild(box);
+      }
+    }
+
+    // H-lines
+    for(let r=0; r<dots; r++){
+      for(let c=0; c<dots-1; c++){
+        const el = document.createElement('div');
+        el.className = 'db-line db-line-h';
+        el.style.left   = (ds/2 + c*cs) + 'px';
+        el.style.top    = (r*cs + ds/2 - lt/2 - 8) + 'px';
+        el.style.width  = cs + 'px';
+        el.style.height = (lt + 16) + 'px';  // larger touch area
+        el.innerHTML    = `<div class="db-line-inner db-empty" style="height:${lt}px;margin-top:8px"></div>`;
+        el.addEventListener('pointerdown',(e)=>{
+          e.preventDefault();
+          this._onLineTap('h', r, c);
+        });
+        el.id = `db-h-${r}-${c}`;
+        board.appendChild(el);
+      }
+    }
+
+    // V-lines
+    for(let r=0; r<dots-1; r++){
+      for(let c=0; c<dots; c++){
+        const el = document.createElement('div');
+        el.className = 'db-line db-line-v';
+        el.style.left   = (c*cs + ds/2 - lt/2 - 8) + 'px';
+        el.style.top    = (ds/2 + r*cs) + 'px';
+        el.style.width  = (lt + 16) + 'px';
+        el.style.height = cs + 'px';
+        el.innerHTML    = `<div class="db-line-inner db-empty" style="width:${lt}px;margin-left:8px"></div>`;
+        el.addEventListener('pointerdown',(e)=>{
+          e.preventDefault();
+          this._onLineTap('v', r, c);
+        });
+        el.id = `db-v-${r}-${c}`;
+        board.appendChild(el);
+      }
+    }
+
+    // Dots
+    for(let r=0; r<dots; r++){
+      for(let c=0; c<dots; c++){
+        const dot = document.createElement('div');
+        dot.className = 'db-dot';
+        dot.style.left   = (c*cs) + 'px';
+        dot.style.top    = (r*cs) + 'px';
+        dot.style.width  = ds + 'px';
+        dot.style.height = ds + 'px';
+        board.appendChild(dot);
+      }
+    }
+  }
+
+  _onLineTap(type, row, col){
+    if(!this.state || this.state.phase !== 'playing') return;
+    const cpKey  = this.state.current_player;
+    const cpName = this.state.players[cpKey];
+    if(cpName !== USER) return;
+
+    const lines = type === 'h' ? this.state.h_lines : this.state.v_lines;
+    if(lines[row][col] !== 0) return;
+
+    this.sendMove('draw_line', {type, row, col});
+  }
+
+  // ── Render ────────────────────────────────────────────────────
+  _renderAll(){
+    if(!this.state) return;
+    this._renderTopBar();
+    this._renderTurnBadge();
+    this._renderBoard();
+    this._renderProgress();
+  }
+
+  _renderTopBar(){
+    const {players, scores, current_round, total_rounds, current_player, phase} = this.state;
+    const p1 = players['P1'], p2 = players['P2'];
+    this._setText('db-name1', p1);
+    this._setText('db-name2', p2);
+    this._setText('db-pts1', scores[p1] ?? 0);
+    this._setText('db-pts2', scores[p2] ?? 0);
+    this._setText('db-round-b', `R${current_round}/${total_rounds}`);
+
+    const cp = current_player;
+    const go = phase === 'result';
+    const c1 = document.getElementById('db-sc-p1');
+    const c2 = document.getElementById('db-sc-p2');
+    if(c1){ c1.classList.toggle('db-active', cp==='P1' && !go); }
+    if(c2){ c2.classList.toggle('db-active', cp==='P2' && !go); }
+    const d1 = document.getElementById('db-dot-p1');
+    const d2 = document.getElementById('db-dot-p2');
+    if(d1) d1.style.display = cp==='P1' && !go ? 'block' : 'none';
+    if(d2) d2.style.display = cp==='P2' && !go ? 'block' : 'none';
+
+    this._setAvatar('db-av1', p1);
+    this._setAvatar('db-av2', p2);
+  }
+
+  _renderTurnBadge(){
+    const {current_player, players, phase} = this.state;
+    const cpName = players[current_player];
+    const myTurn = cpName === USER;
+    const badge = document.getElementById('db-turn-badge');
+    if(!badge) return;
+    badge.className = 'db-turn-badge';
+    if(phase === 'choosing'){
+      badge.textContent = 'Choose grid size...';
+      badge.classList.add('db-tb-wait');
+    } else if(phase === 'result'){
+      badge.textContent = 'Round Over';
+      badge.classList.add('db-tb-wait');
+    } else if(myTurn){
+      badge.textContent = 'Your Turn';
+      badge.classList.add(current_player==='P1'?'db-tb-p1':'db-tb-p2');
+    } else {
+      badge.textContent = `${cpName}'s Turn`;
+      badge.classList.add(current_player==='P1'?'db-tb-p1':'db-tb-p2');
+    }
+  }
+
+  _renderBoard(){
+    if(!this.state) return;
+    const {h_lines, v_lines, boxes, dots} = this.state;
+    const d = dots || 6;
+
+    // H-lines
+    for(let r=0;r<d;r++){
+      for(let c=0;c<d-1;c++){
+        const el = document.getElementById(`db-h-${r}-${c}`);
+        if(!el) continue;
+        const inner = el.querySelector('.db-line-inner');
+        if(!inner) continue;
+        const val = h_lines[r][c];
+        inner.className = 'db-line-inner ' + (val===0?'db-empty':val===1?'db-p1':'db-p2');
+        const isAnim = this._animLine && this._animLine.type==='h' && this._animLine.row===r && this._animLine.col===c;
+        if(isAnim) inner.classList.add('db-anim-h');
+        el.style.cursor = val===0 ? 'pointer' : 'default';
+      }
+    }
+
+    // V-lines
+    for(let r=0;r<d-1;r++){
+      for(let c=0;c<d;c++){
+        const el = document.getElementById(`db-v-${r}-${c}`);
+        if(!el) continue;
+        const inner = el.querySelector('.db-line-inner');
+        if(!inner) continue;
+        const val = v_lines[r][c];
+        inner.className = 'db-line-inner ' + (val===0?'db-empty':val===1?'db-p1':'db-p2');
+        const isAnim = this._animLine && this._animLine.type==='v' && this._animLine.row===r && this._animLine.col===c;
+        if(isAnim) inner.classList.add('db-anim-v');
+        el.style.cursor = val===0 ? 'pointer' : 'default';
+      }
+    }
+
+    // Boxes
+    for(let r=0;r<d-1;r++){
+      for(let c=0;c<d-1;c++){
+        const el = document.getElementById(`db-box-${r}-${c}`);
+        if(!el) continue;
+        const val = boxes[r][c];
+        el.classList.remove('db-box-p1','db-box-p2','db-box-anim');
+        if(val===1) el.classList.add('db-box-p1');
+        else if(val===2) el.classList.add('db-box-p2');
+        const isAnim = this._animBoxes.some(b=>b.r===r && b.c===c);
+        if(isAnim) el.classList.add('db-box-anim');
+        const lbl = el.querySelector('.db-box-label');
+        if(lbl) lbl.textContent = val ? `P${val}` : '';
+      }
+    }
+  }
+
+  _renderProgress(){
+    const {scores, players, dots} = this.state;
+    const p1 = players['P1'], p2 = players['P2'];
+    const s1 = scores[p1]??0, s2 = scores[p2]??0;
+    const total = ((dots||6) - 1) ** 2;
+    const left = total - s1 - s2;
+
+    const el1 = document.getElementById('db-prog1');
+    const el2 = document.getElementById('db-prog2');
+    if(el1) el1.style.width = `${(s1/total)*100}%`;
+    if(el2) el2.style.width = `${(s2/total)*100}%`;
+
+    this._setText('db-lbl1', `${s1} boxes`);
+    this._setText('db-lbl-left', `${left} left`);
+    this._setText('db-lbl2', `${s2} boxes`);
+  }
+
+  // ── Round result ──────────────────────────────────────────────
+  _showRoundResult(result){
+    const state = result.game_state || this.state;
+    const rw = result.round_winner;
+    const emoji = document.getElementById('db-res-emoji');
+    const title = document.getElementById('db-res-title');
+    const note  = document.getElementById('db-res-note');
+
+    if(emoji) emoji.textContent = rw==='draw'?'🤝':rw===USER?'🏆':'😢';
+    if(title) title.textContent = rw==='draw'?"It's a Draw!":rw===USER?'You Win!':'Round Lost';
+    if(note)  note.textContent  = result.game_ended?'Final result coming...':'Next round in 5s...';
+
+    this._fillResultScores(result);
+    this._showResultOv();
+
+    if(!result.game_ended){
+      setTimeout(()=>{ const ov=document.getElementById('db-result-ov'); if(ov) ov.style.display='none'; }, 5000);
+    }
+  }
+
+  _fillResultScores(result){
+    const state = result.game_state || this.state;
+    if(!state) return;
+    const p1n = state.players['P1'], p2n = state.players['P2'];
+    const s1 = state.scores[p1n]??0, s2 = state.scores[p2n]??0;
+    this._setText('db-res-pts1', s1);
+    this._setText('db-res-pts2', s2);
+    this._setText('db-res-nm1', p1n);
+    this._setText('db-res-nm2', p2n);
+  }
+
+  _showResultOv(){
+    const ov = document.getElementById('db-result-ov');
+    if(ov) ov.style.display='flex';
+  }
+
+  // ── Pause ─────────────────────────────────────────────────────
+  _showPause(){
+    const ov=document.getElementById('db-pause-ov'); if(ov) ov.style.display='flex';
+    const d=(this.state.disconnected_players||[])[0]||'Player';
+    this._setText('db-disconnected',d);
+  }
+  _hidePause(){
+    const ov=document.getElementById('db-pause-ov'); if(ov) ov.style.display='none';
+  }
+  updateCountdown(s){ this._setText('db-countdown',s); }
+
+  // ── Avatar ────────────────────────────────────────────────────
+  _setAvatar(elId,username){
+    const el=document.getElementById(elId);
+    if(!el||el.querySelector('img')) return;
+    if(typeof window.players!=='undefined'){
+      const pd=window.players[username];
+      if(pd&&pd.gender){
+        const src=pd.gender==='female'?'/static/games/icons/avatar_female.png':'/static/games/icons/avatar_male.png';
+        el.innerHTML=`<img src="${src}" alt="av">`;
+      }
+    }
+  }
+
+  _setText(id,val){ const e=document.getElementById(id); if(e) e.textContent=val; }
+
+  // ── Grid choice overlay ───────────────────────────────────────
+  _showChooseOverlay(){
+    const ov = document.getElementById('db-choose-ov');
+    if(ov) ov.style.display = 'flex';
+    this._chooseCd = 3;
+    this._setText('db-choose-cd', '3');
+    clearInterval(this._chooseTimer);
+    this._chooseTimer = setInterval(()=>{
+      this._chooseCd--;
+      this._setText('db-choose-cd', String(this._chooseCd));
+      if(this._chooseCd <= 0){
+        clearInterval(this._chooseTimer);
+        // Auto-select medium if nobody picked yet
+        if(!this._gridPicked){
+          this._pickGrid('medium');
+        }
+      }
+    }, 1000);
+  }
+
+  _hideChooseOverlay(){
+    clearInterval(this._chooseTimer);
+    const ov = document.getElementById('db-choose-ov');
+    if(ov) ov.style.display = 'none';
+  }
+
+  _pickGrid(size){
+    if(this._gridPicked) return;
+    this._gridPicked = true;
+    this.sendMove('set_grid', {size});
+    this._hideChooseOverlay();
+  }
+}
+
+// ── Register ────────────────────────────────────────────────────
+window.GameClasses = window.GameClasses || {};
+window.GameClasses.dotnbox = DotsBoxesGame;
+
+window.exitGame = window.exitGame || function(){
+  if(confirm('Leave the game?')){
+    if(typeof socket!=='undefined'&&socket&&socket.readyState===WebSocket.OPEN)
+      socket.send(JSON.stringify({event:'game_exit'}));
+  }
+};
+</script>
