@@ -1,0 +1,774 @@
+<!-- Simon Duel — Online Multiplayer UI -->
+
+<div class="sd-wrap">
+
+  <!-- ========== TOP BAR ========== -->
+  <div class="sd-topbar">
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button class="sd-ico-btn" onclick="exitGame()" title="Back">✕</button>
+      <button class="sd-ico-btn" id="sd-mic-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+      <button class="sd-ico-btn" id="sd-spk-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">🔊</button>
+    </div>
+    <div class="sd-round-badge" id="sd-round-badge">Round 1/1</div>
+  </div><!-- /topbar -->
+
+  <!-- ========== PLAYER CARDS ========== -->
+  <div class="sd-players">
+    <!-- P1 -->
+    <div class="sd-pcard sd-p1" id="sd-card-p1">
+      <div class="sd-pcard-avatar" id="sd-avatar-p1"></div>
+      <div class="sd-pcard-name" id="sd-name-p1">Player 1</div>
+      <div class="sd-pcard-score" id="sd-score-p1">0</div>
+    </div>
+    <!-- P2 -->
+    <div class="sd-pcard sd-p2" id="sd-card-p2">
+      <div class="sd-pcard-avatar" id="sd-avatar-p2"></div>
+      <div class="sd-pcard-name" id="sd-name-p2">Player 2</div>
+      <div class="sd-pcard-score" id="sd-score-p2">0</div>
+    </div>
+  </div><!-- /players -->
+
+  <!-- ========== GAME MSG / GUIDE ========== -->
+  <div class="sd-status">
+    <div class="sd-seq-len" id="sd-seqlen"></div>
+    <div class="sd-msg" id="sd-msg">Waiting...</div>
+    <div class="sd-hint" id="sd-hint"></div>
+  </div>
+
+  <!-- ========== SIMON BOARD ========== -->
+  <div class="sd-bwrap">
+    <div class="sd-board sd-off" id="sd-board">
+      <button class="sd-btn sd-green" data-c="green" onclick="currentGame && currentGame.handleColorClick('green')">
+        <div class="sd-d"></div><div class="sd-s"></div><div class="sd-b"></div>
+      </button>
+      <button class="sd-btn sd-red" data-c="red" onclick="currentGame && currentGame.handleColorClick('red')">
+        <div class="sd-d"></div><div class="sd-s"></div><div class="sd-b"></div>
+      </button>
+      <button class="sd-btn sd-yellow" data-c="yellow" onclick="currentGame && currentGame.handleColorClick('yellow')">
+        <div class="sd-d"></div><div class="sd-s"></div><div class="sd-b"></div>
+      </button>
+      <button class="sd-btn sd-blue" data-c="blue" onclick="currentGame && currentGame.handleColorClick('blue')">
+        <div class="sd-d"></div><div class="sd-s"></div><div class="sd-b"></div>
+      </button>
+    </div>
+    <!-- Center orb -->
+    <div class="sd-orb">
+      <div class="sd-orb-inner">
+        <div class="sd-pip" id="sd-pip1"></div>
+        <div class="sd-pip" id="sd-pip2"></div>
+      </div>
+    </div>
+  </div><!-- /bwrap -->
+
+  <!-- ========== SEQUENCE TRACK DOTS ========== -->
+  <div class="sd-track" id="sd-track"></div>
+
+
+
+  <!-- ========== PAUSE OVERLAY ========== -->
+  <div class="sd-overlay sd-pause-ov" id="sd-pause-ov" style="display:none;">
+    <div class="sd-modal">
+      <div style="font-size:48px">⏸️</div>
+      <h2>Game Paused</h2>
+      <p><span id="sd-disconnected">Player</span> disconnected</p>
+      <p>Waiting... <span id="sd-countdown">30</span>s</p>
+    </div>
+  </div>
+
+  <!-- ========== ROUND / GAME RESULT OVERLAY ========== -->
+  <div class="sd-overlay sd-result-ov" id="sd-result-ov" style="display:none;">
+    <div class="sd-modal">
+      <div id="sd-res-icon" style="font-size:52px;margin-bottom:8px;">🏆</div>
+      <h2 id="sd-res-title">You Win!</h2>
+      <p id="sd-res-sub" style="color:rgba(255,255,255,.5);font-size:13px;margin-top:6px;">Next round starting...</p>
+    </div>
+  </div>
+
+</div><!-- /sd-wrap -->
+
+<!-- ========== CSS ========== -->
+<style>
+/* — reset scoped to sd- — */
+.sd-wrap *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+/* ---- Container ---- */
+.sd-wrap{
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;
+  width:100%;height:100%;
+  padding:8px 12px 10px;
+  gap:6px;
+  font-family:'Exo 2','Segoe UI',sans-serif;
+  background:#060618;
+  color:#fff;
+  overflow:hidden;
+  user-select:none;
+  transition:background 0.6s ease;
+}
+/* Player-based background tint */
+.sd-wrap.sd-bg-p1{
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,80,160,.18) 0%,#060618 60%);
+}
+.sd-wrap.sd-bg-p2{
+  background:radial-gradient(ellipse at 50% 0%,rgba(0,180,255,.16) 0%,#060618 60%);
+}
+
+/* ambient glow */
+.sd-wrap::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse at 25% 10%,rgba(255,110,199,.09),transparent 50%),
+    radial-gradient(ellipse at 75% 90%,rgba(0,229,255,.07),transparent 50%);
+}
+.sd-wrap::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);
+  background-size:44px 44px;
+}
+.sd-wrap > *{position:relative;z-index:1;}
+
+/* ---- TOP BAR ---- */
+.sd-topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  width:100%;flex-shrink:0;
+}
+.sd-ico-btn{
+  width:34px;height:34px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.15);color:#fff;font-size:16px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(10px);transition:background .2s;
+}
+.sd-ico-btn:hover{background:rgba(255,255,255,.28);}
+.sd-round-badge{
+  background:rgba(255,255,255,.12);color:#fff;
+  padding:4px 14px;border-radius:20px;
+  font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;
+  letter-spacing:2px;backdrop-filter:blur(10px);
+}
+
+/* ---- PLAYER CARDS ---- */
+.sd-players{
+  display:flex;gap:8px;width:100%;max-width:380px;flex-shrink:0;
+}
+.sd-pcard{
+  flex:1;background:rgba(255,255,255,.06);border-radius:16px;
+  padding:8px 6px;text-align:center;
+  border:2px solid transparent;
+  transition:all .4s cubic-bezier(.4,0,.2,1);
+  position:relative;overflow:hidden;
+}
+.sd-pcard.sd-active{transform:scale(1.04);}
+.sd-p1.sd-active{border-color:#ff6ec7;box-shadow:0 0 28px rgba(255,110,199,.22);}
+.sd-p2.sd-active{border-color:#00e5ff;box-shadow:0 0 28px rgba(0,229,255,.22);}
+.sd-pcard-avatar{
+  width:36px;height:36px;border-radius:50%;
+  margin:0 auto 4px;overflow:hidden;
+  border:2px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.08);
+}
+.sd-pcard-avatar img{width:100%;height:100%;object-fit:cover;}
+.sd-pcard-name{
+  font-size:9px;font-weight:700;letter-spacing:2px;
+  color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  text-transform:uppercase;
+}
+.sd-p1 .sd-pcard-name{color:#ff6ec7}
+.sd-p2 .sd-pcard-name{color:#00e5ff}
+.sd-pcard-score{
+  font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;line-height:1.2;
+  color:#fff;
+}
+
+/* ---- STATUS / GUIDE ---- */
+.sd-status{
+  text-align:center;flex-shrink:0;min-height:42px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+}
+.sd-seq-len{
+  font-family:'Orbitron',sans-serif;font-size:8px;letter-spacing:5px;
+  color:rgba(255,255,255,.22);
+}
+.sd-msg{
+  font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:2px;transition:color .3s;color:#fff;
+}
+.sd-msg.m-watch{color:#ffea00}
+.sd-msg.m-go{color:#00e676}
+.sd-msg.m-add{color:#ce93d8}
+.sd-msg.m-fail{color:#ff1744}
+.sd-msg.m-nice{color:#69f0ae}
+.sd-msg.m-wait{color:rgba(255,255,255,.4)}
+.sd-hint{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:1px}
+
+/* ---- BOARD WRAPPER ---- */
+.sd-bwrap{
+  position:relative;
+  width:min(78vw,300px);height:min(78vw,300px);
+  perspective:700px;flex-shrink:0;
+}
+.sd-board{
+  width:100%;height:100%;
+  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;
+  gap:10px;
+  transform:rotateX(10deg);transform-style:preserve-3d;
+  transition:transform .4s;
+}
+.sd-board.sd-off{pointer-events:none}
+@keyframes sd-shake{
+  0%,100%{transform:translateX(0) rotateX(10deg)}
+  20%{transform:translateX(-8px) rotateX(10deg)}
+  40%{transform:translateX(8px) rotateX(10deg)}
+  60%{transform:translateX(-4px) rotateX(10deg)}
+  80%{transform:translateX(4px) rotateX(10deg)}
+}
+.sd-board.sd-shake{animation:sd-shake .4s ease}
+
+/* ---- 3D BUTTONS ---- */
+.sd-btn{
+  position:relative;border:none;cursor:pointer;background:none;outline:none;
+  transform-style:preserve-3d;
+  transition:transform .07s ease-out;
+}
+.sd-btn .sd-d{position:absolute;inset:0;border-radius:inherit}
+.sd-btn .sd-s{
+  position:absolute;inset:0;border-radius:inherit;
+  transform:translateZ(14px);
+  border:1.5px solid rgba(255,255,255,.06);
+  transition:filter .1s,box-shadow .1s;overflow:hidden;
+}
+.sd-btn .sd-s::before{
+  content:'';position:absolute;top:8%;left:14%;width:42%;height:25%;
+  border-radius:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.13),transparent);
+  pointer-events:none;transition:opacity .1s;
+}
+.sd-btn .sd-b{
+  position:absolute;inset:20%;border-radius:50%;
+  opacity:0;filter:blur(24px);transform:translateZ(16px);
+  pointer-events:none;transition:opacity .1s;
+}
+.sd-green .sd-d{background:#004d29}.sd-green .sd-s{background:linear-gradient(145deg,#00c960,#00e676)}.sd-green .sd-b{background:#69f0ae}
+.sd-red .sd-d{background:#6b0a1e}.sd-red .sd-s{background:linear-gradient(145deg,#d01040,#ff1744)}.sd-red .sd-b{background:#ff5252}
+.sd-yellow .sd-d{background:#6b5f00}.sd-yellow .sd-s{background:linear-gradient(145deg,#d4c200,#ffea00)}.sd-yellow .sd-b{background:#ffff8d}
+.sd-blue .sd-d{background:#0a2e6b}.sd-blue .sd-s{background:linear-gradient(145deg,#1c6ae0,#2979ff)}.sd-blue .sd-b{background:#82b1ff}
+
+.sd-btn.sd-lit .sd-s{filter:brightness(2) saturate(1.5);box-shadow:0 0 28px rgba(255,255,255,.15)}
+.sd-btn.sd-lit .sd-b{opacity:.85}
+.sd-btn.sd-lit .sd-s::before{opacity:.45}
+.sd-green.sd-lit{filter:drop-shadow(0 0 22px #00e67655)}
+.sd-red.sd-lit{filter:drop-shadow(0 0 22px #ff174455)}
+.sd-yellow.sd-lit{filter:drop-shadow(0 0 22px #ffea0055)}
+.sd-blue.sd-lit{filter:drop-shadow(0 0 22px #2979ff55)}
+
+.sd-btn.sd-tap{transform:scale(.95)}
+.sd-btn.sd-tap .sd-s{transform:translateZ(5px);filter:brightness(2.4) saturate(1.7);box-shadow:0 0 35px rgba(255,255,255,.22)}
+.sd-btn.sd-tap .sd-b{opacity:1}
+
+/* rounded corners per quadrant */
+.sd-btn:nth-child(1),.sd-btn:nth-child(1) .sd-d,.sd-btn:nth-child(1) .sd-s{border-radius:50% 18px 18px 18px}
+.sd-btn:nth-child(2),.sd-btn:nth-child(2) .sd-d,.sd-btn:nth-child(2) .sd-s{border-radius:18px 50% 18px 18px}
+.sd-btn:nth-child(3),.sd-btn:nth-child(3) .sd-d,.sd-btn:nth-child(3) .sd-s{border-radius:18px 18px 18px 50%}
+.sd-btn:nth-child(4),.sd-btn:nth-child(4) .sd-d,.sd-btn:nth-child(4) .sd-s{border-radius:18px 18px 50% 18px}
+
+/* ---- CENTER ORB ---- */
+.sd-orb{
+  position:absolute;top:50%;left:50%;
+  width:62px;height:62px;
+  transform:translate(-50%,-50%) translateZ(16px) rotateX(-10deg);
+  border-radius:50%;z-index:10;
+  background:radial-gradient(circle at 38% 32%,#13133a,#08081a);
+  border:2px solid rgba(255,255,255,.07);
+  box-shadow:0 0 40px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.04);
+  display:flex;align-items:center;justify-content:center;
+}
+.sd-orb-inner{
+  width:40px;height:40px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.sd-pip{
+  width:8px;height:8px;border-radius:50%;
+  background:rgba(255,255,255,.12);transition:all .4s;
+}
+.sd-pip.sd-p1a{background:#ff6ec7;box-shadow:0 0 10px #ff6ec7;animation:sd-ppulse 1.2s infinite}
+.sd-pip.sd-p2a{background:#00e5ff;box-shadow:0 0 10px #00e5ff;animation:sd-ppulse 1.2s infinite}
+@keyframes sd-ppulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.7);opacity:.4}}
+
+/* ---- TRACK DOTS ---- */
+.sd-track{
+  display:flex;gap:5px;align-items:center;justify-content:center;
+  flex-wrap:wrap;min-height:22px;max-width:340px;padding:2px 8px;
+  flex-shrink:0;
+}
+.sd-dot{width:9px;height:9px;border-radius:50%;transition:all .2s ease}
+.sd-dot.dk-ok{opacity:1;box-shadow:0 0 6px currentColor}
+.sd-dot.dk-now{opacity:1;transform:scale(1.45);box-shadow:0 0 10px currentColor}
+.sd-dot.dk-wait{opacity:.18}
+.sd-dot.dk-cg{background:#00e676;color:#00e676}
+.sd-dot.dk-cr{background:#ff1744;color:#ff1744}
+.sd-dot.dk-cy{background:#ffea00;color:#ffea00}
+.sd-dot.dk-cb{background:#2979ff;color:#2979ff}
+.sd-dot.dk-hid{background:rgba(255,255,255,.28);color:rgba(255,255,255,.28)}
+.sd-dot.dk-plus{
+  background:none;border:2px dashed rgba(255,255,255,.35);
+  width:11px;height:11px;box-shadow:none;
+  animation:sd-pblink 1.2s infinite;
+}
+@keyframes sd-pblink{0%,100%{border-color:rgba(255,255,255,.5)}50%{border-color:rgba(255,255,255,.12)}}
+
+
+
+/* ---- OVERLAYS ---- */
+.sd-overlay{
+  position:absolute;inset:0;z-index:80;
+  background:rgba(4,4,18,.92);backdrop-filter:blur(18px);
+  display:flex;align-items:center;justify-content:center;
+  border-radius:12px;
+}
+.sd-modal{
+  text-align:center;padding:28px 24px;max-width:280px;width:90%;
+  animation:sd-popIn .45s cubic-bezier(.22,.68,0,1.2);
+}
+@keyframes sd-popIn{from{transform:scale(.8) translateY(20px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.sd-modal h2{
+  font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;
+  letter-spacing:3px;margin:8px 0 4px;color:#fff;
+}
+.sd-modal p{font-size:13px;color:rgba(255,255,255,.5);margin:0;}
+
+</style>
+
+<script>
+// ========== AUDIO ENGINE ==========
+const sdAC = window.AudioContext || window.webkitAudioContext;
+let sdAx;
+function sdInitAudio(){ if(!sdAx) sdAx = new sdAC(); }
+const SD_FREQ = {green:392, red:330, yellow:262, blue:466};
+
+function sdTone(c, ms=200){
+  if(!sdAx) return;
+  const o=sdAx.createOscillator(), g=sdAx.createGain();
+  o.type='sine'; o.frequency.value = SD_FREQ[c]||400;
+  g.gain.setValueAtTime(.22, sdAx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001, sdAx.currentTime+ms/1000);
+  o.connect(g); g.connect(sdAx.destination); o.start(); o.stop(sdAx.currentTime+ms/1000);
+}
+function sdBuzz(){
+  if(!sdAx) return;
+  const o=sdAx.createOscillator(), g=sdAx.createGain();
+  o.type='sawtooth'; o.frequency.value=72;
+  g.gain.setValueAtTime(.28, sdAx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001, sdAx.currentTime+.45);
+  o.connect(g); g.connect(sdAx.destination); o.start(); o.stop(sdAx.currentTime+.45);
+}
+function sdFanfare(){
+  if(!sdAx) return;
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>{
+    const o=sdAx.createOscillator(),g=sdAx.createGain();
+    o.type='sine'; o.frequency.value=f;
+    g.gain.setValueAtTime(.18,sdAx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,sdAx.currentTime+.35);
+    o.connect(g); g.connect(sdAx.destination); o.start(); o.stop(sdAx.currentTime+.35);
+  }, i*130));
+}
+
+// ========== HELPER: flash a button (default 1 second so both players clearly see it) ==========
+function sdFlashBtn(color, ms=1000){
+  const el = document.querySelector(`.sd-btn.sd-${color}`);
+  if(!el) return;
+  el.classList.add('sd-tap','sd-lit');
+  sdTone(color, Math.min(ms, 400)); // sound is shorter than visual
+  setTimeout(()=>el.classList.remove('sd-tap','sd-lit'), ms);
+}
+
+// ========== SIMON DUEL GAME CLASS ==========
+const SD_CMAP = {green:'dk-cg', red:'dk-cr', yellow:'dk-cy', blue:'dk-cb'};
+
+class SimonDuelGame extends BaseGame {
+  constructor(){
+    super();
+    this.gameMode = 'turn_based';
+    this.state = null;
+    this._blocked = false;
+  }
+
+  // Called once when game first loads
+  init(state){
+    sdInitAudio();
+    this.state = state;
+    this._renderAll();
+  }
+
+  // Called on every server state update
+  update(state){
+    const prev = this.state;
+    this.state = state;
+    this._renderAll();
+
+    // If previous phase was 'fail' and now it's something else, show shake
+    if(prev && prev.phase === 'fail' && state.phase !== 'fail'){
+      const board = document.getElementById('sd-board');
+      if(board){ board.classList.add('sd-shake'); setTimeout(()=>board.classList.remove('sd-shake'),400); }
+    }
+
+    // Pause state
+    if(state.paused) this._showPause();
+    else this._hidePause();
+  }
+
+  // Round ended
+  onRoundEnd(result){
+    const isWinner = result.round_winner && result.round_winner === USER;
+    const isDraw   = result.round_winner === 'draw';
+
+    // Play sound
+    if(isWinner)      sdFanfare();
+    else if(!isDraw)  sdBuzz();
+
+    const icon  = document.getElementById('sd-res-icon');
+    const title = document.getElementById('sd-res-title');
+    const sub   = document.getElementById('sd-res-sub');
+
+    if(isDraw){
+      icon.textContent='🤝'; title.textContent="It's a Draw!";
+    } else if(isWinner){
+      icon.textContent='🏆'; title.textContent='Round Won!';
+      this._confetti();
+    } else {
+      icon.textContent='😔'; title.textContent='Round Lost';
+    }
+
+    if(result.game_ended){
+      sub.textContent = 'See final result...';
+    } else {
+      sub.innerHTML  = 'Next round in <span id="sd-nxt-timer">3</span>s...';
+      let t=3;
+      const iv = setInterval(()=>{
+        t--;
+        const el = document.getElementById('sd-nxt-timer');
+        if(el) el.textContent=t;
+        if(t<=0) clearInterval(iv);
+      },1000);
+    }
+
+    const delay = result.reveal_at ? Math.max(0, result.reveal_at - Date.now()) : 0;
+    setTimeout(()=>{
+      const ov = document.getElementById('sd-result-ov');
+      if(ov) ov.style.display='flex';
+      const displayMs = result.display_ms || 3000;
+      setTimeout(()=>{ if(ov) ov.style.display='none'; },displayMs);
+    }, delay);
+  }
+
+  // Game ended
+  onGameEnd(result){
+    const isWinner = result.game_winner === USER;
+    const isDraw   = result.game_winner === 'draw';
+
+    if(isWinner) sdFanfare();
+
+    const icon  = document.getElementById('sd-res-icon');
+    const title = document.getElementById('sd-res-title');
+    const sub   = document.getElementById('sd-res-sub');
+
+    if(isDraw){
+      icon.textContent='🤝'; title.textContent='Game Draw!';
+    } else if(isWinner){
+      icon.textContent='🎉'; title.textContent='You Won!';
+      this._confetti();
+    } else {
+      icon.textContent='😞'; title.textContent='Game Over';
+    }
+
+    const scores = result.final_scores;
+    if(scores){
+      sub.textContent = 'Returning to lobby...';
+    }
+
+    const ov = document.getElementById('sd-result-ov');
+    if(ov) ov.style.display='flex';
+  }
+
+  // ---- Color button tap (from onclick) ----
+  handleColorClick(color){
+    if(!this.state) return;
+    if(this._blocked) return;
+    if(this.state.paused) return;
+
+    const board = document.getElementById('sd-board');
+    if(board && board.classList.contains('sd-off')) return;
+
+    sdInitAudio();
+    // Flash locally for 1 second
+    sdFlashBtn(color, 1000);
+    // Relay this tap to opponent so they also see it light up
+    this.sendInput({color});
+
+    this._blocked = true;
+    setTimeout(()=>this._blocked=false, 1100);
+
+    // Determine which action to send
+    const phase = this.state.phase;
+    let action;
+    if(phase === 'add' || phase === 'add-after'){
+      action = 'add_color';
+    } else if(phase === 'repeat'){
+      action = 'repeat_color';
+    } else {
+      return; // fail or gameover — not interactable
+    }
+
+    this.sendMove(action, {color});
+  }
+
+  // ---- Opponent pressed a color — show it for 1 second ----
+  onRemoteInput(player, inputData){
+    const color = inputData && inputData.color;
+    if(color) sdFlashBtn(color, 1000);
+  }
+
+  // ---- Full render ----
+  _renderAll(){
+    if(!this.state) return;
+    this._updatePlayers();
+    this._updateScores();
+    this._updateMsg();
+    this._updateDots();
+    this._updateOrb();
+    this._updateBackground();
+  }
+
+  _updatePlayers(){
+    const {players} = this.state;
+    const p1name = players['P1'], p2name = players['P2'];
+    this._setText('sd-name-p1', p1name);
+    this._setText('sd-name-p2', p2name);
+    // Avatars
+    if(typeof window.players !== 'undefined'){
+      const setAvatar = (id, username) => {
+        const pd = window.players[username];
+        if(pd && pd.gender){
+          const src = pd.gender === 'female' ? '/static/games/icons/avatar_female.png' : '/static/games/icons/avatar_male.png';
+          const el = document.getElementById(id);
+          if(el && !el.querySelector('img')) el.innerHTML = `<img src="${src}" alt="avatar">`;
+        }
+      };
+      setAvatar('sd-avatar-p1', p1name);
+      setAvatar('sd-avatar-p2', p2name);
+    }
+    // Round badge
+    const rb = document.getElementById('sd-round-badge');
+    if(rb) rb.textContent = `Round ${this.state.current_round}/${this.state.total_rounds}`;
+    // Active highlight
+    const cp = this.state.current_player;
+    const active = !['fail','gameover'].includes(this.state.phase);
+    document.getElementById('sd-card-p1').classList.toggle('sd-active', cp==='P1' && active);
+    document.getElementById('sd-card-p2').classList.toggle('sd-active', cp==='P2' && active);
+  }
+
+  _updateScores(){
+    const {players, scores} = this.state;
+    this._setText('sd-score-p1', scores[players['P1']] || 0);
+    this._setText('sd-score-p2', scores[players['P2']] || 0);
+  }
+
+
+  _updateBackground(){
+    const wrap = document.querySelector('.sd-wrap');
+    if(!wrap || !this.state) return;
+    const cp = this.state.current_player;
+    const phase = this.state.phase;
+    wrap.classList.remove('sd-bg-p1','sd-bg-p2');
+    if(phase !== 'fail' && phase !== 'gameover'){
+      wrap.classList.add(cp === 'P1' ? 'sd-bg-p1' : 'sd-bg-p2');
+    }
+  }
+
+  _updateMsg(){
+    const {phase, current_player, players, seq} = this.state;
+    const msg  = document.getElementById('sd-msg');
+    const hint = document.getElementById('sd-hint');
+    const slen = document.getElementById('sd-seqlen');
+    const board = document.getElementById('sd-board');
+    if(!msg) return;
+
+    const cpName = players[current_player];
+    const myTurn = cpName === USER;
+
+    // Sequence length
+    if(slen) slen.textContent = seq.length > 0 ? `SEQUENCE · ${seq.length}` : '';
+
+    msg.className = 'sd-msg';
+    switch(phase){
+      case 'add':
+        if(myTurn){
+          msg.classList.add('m-add');
+          msg.textContent = '🎨  PICK ANY COLOR';
+          if(hint) hint.textContent = 'Tap one button – you start the sequence!';
+        } else {
+          msg.classList.add('m-wait');
+          msg.textContent = `${cpName.toUpperCase()} IS CHOOSING`;
+          if(hint) hint.textContent = 'Watch what color they pick...';
+        }
+        if(board) board.classList.toggle('sd-off', !myTurn);
+        break;
+
+      case 'add-after':
+        if(myTurn){
+          msg.classList.add('m-add');
+          msg.textContent = '➕  ADD ONE MORE';
+          if(hint) hint.textContent = 'You remembered them all! Now add 1 new color.';
+        } else {
+          msg.classList.add('m-wait');
+          msg.textContent = `${cpName.toUpperCase()} ADDING COLOR`;
+          if(hint) hint.textContent = 'They\'ll add one more to the sequence...';
+        }
+        if(board) board.classList.toggle('sd-off', !myTurn);
+        break;
+
+      case 'repeat':
+        if(myTurn){
+          msg.classList.add('m-go');
+          msg.textContent = '🧠  REPEAT IT!';
+          if(hint) hint.textContent = `Tap all ${seq.length} color${seq.length>1?'s':''} in the right order!`;
+        } else {
+          msg.classList.add('m-watch');
+          msg.textContent = `${cpName.toUpperCase()} REPEATING`;
+          if(hint) hint.textContent = `Watch – can they remember ${seq.length} color${seq.length>1?'s':''}?`;
+        }
+        if(board) board.classList.toggle('sd-off', !myTurn);
+        break;
+
+      case 'fail':
+        msg.classList.add('m-fail');
+        msg.textContent = '❌  WRONG COLOR!';
+        if(hint) hint.textContent = 'Round goes to the other player!';
+        if(board) board.classList.add('sd-off');
+        break;
+
+      default:
+        msg.textContent = 'GET READY...';
+        if(hint) hint.textContent = '';
+    }
+  }
+
+  _updateDots(){
+    const track = document.getElementById('sd-track');
+    if(!track) return;
+    const {phase, seq, repeat_idx} = this.state;
+    track.innerHTML = '';
+
+    if(phase === 'repeat'){
+      seq.forEach((c, i)=>{
+        const d = document.createElement('div');
+        if(i < repeat_idx)      d.className = `sd-dot ${SD_CMAP[c]} dk-ok`;
+        else if(i === repeat_idx) d.className = 'sd-dot dk-hid dk-now';
+        else                    d.className = 'sd-dot dk-hid dk-wait';
+        track.appendChild(d);
+      });
+      const p = document.createElement('div');
+      p.className = 'sd-dot dk-plus dk-wait';
+      track.appendChild(p);
+
+    } else if(phase === 'add-after'){
+      seq.forEach(c=>{
+        const d = document.createElement('div');
+        d.className = `sd-dot ${SD_CMAP[c]} dk-ok`;
+        track.appendChild(d);
+      });
+      const p = document.createElement('div');
+      p.className = 'sd-dot dk-plus dk-now';
+      track.appendChild(p);
+
+    } else if(phase === 'add'){
+      const p = document.createElement('div');
+      p.className = 'sd-dot dk-plus dk-now';
+      track.appendChild(p);
+
+    } else {
+      // show filled sequence
+      seq.forEach(c=>{
+        const d = document.createElement('div');
+        d.className = `sd-dot ${SD_CMAP[c]} dk-ok`;
+        track.appendChild(d);
+      });
+    }
+  }
+
+  _updateOrb(){
+    const {current_player, phase} = this.state;
+    const active = !['fail','gameover'].includes(phase);
+    const p1 = document.getElementById('sd-pip1');
+    const p2 = document.getElementById('sd-pip2');
+    if(!p1||!p2) return;
+    p1.className = 'sd-pip'; p2.className = 'sd-pip';
+    if(active){
+      if(current_player==='P1') p1.classList.add('sd-p1a');
+      else p2.classList.add('sd-p2a');
+    }
+  }
+
+  _updateBoard(){
+    // Board on/off is handled in _updateMsg; no extra logic needed here
+  }
+
+  // ---- Helpers ----
+  _setText(id, val){
+    const el = document.getElementById(id);
+    if(el) el.textContent = val;
+  }
+
+  _showPause(){
+    const ov = document.getElementById('sd-pause-ov');
+    if(ov) ov.style.display='flex';
+    const dis = (this.state.disconnected_players||[])[0]||'Player';
+    const d = document.getElementById('sd-disconnected');
+    if(d) d.textContent = dis;
+  }
+  _hidePause(){
+    const ov = document.getElementById('sd-pause-ov');
+    if(ov) ov.style.display='none';
+  }
+
+  updateCountdown(s){
+    const el = document.getElementById('sd-countdown');
+    if(el) el.textContent = s;
+  }
+
+  _confetti(){
+    const colors = ['#ff6ec7','#00e5ff','#ffea00','#00e676','#ff1744','#a855f7','#69f0ae'];
+    for(let i=0;i<32;i++){
+      setTimeout(()=>{
+        const c = document.createElement('div');
+        c.style.cssText=`position:fixed;width:8px;height:8px;top:-20px;left:${Math.random()*100}%;
+          background:${colors[~~(Math.random()*colors.length)]};
+          border-radius:${Math.random()>.5?'50%':'2px'};
+          animation:sdConfettiFall ${1.5+Math.random()*2}s linear forwards;z-index:200;`;
+        document.body.appendChild(c);
+        c.addEventListener('animationend',()=>c.remove());
+      }, i*40);
+    }
+    // inject keyframes once
+    if(!document.getElementById('sdConfKF')){
+      const s=document.createElement('style'); s.id='sdConfKF';
+      s.textContent='@keyframes sdConfettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}';
+      document.head.appendChild(s);
+    }
+  }
+}
+
+// Register
+window.GameClasses = window.GameClasses || {};
+window.GameClasses.simonduel = SimonDuelGame;
+
+// Exit game
+window.exitGame = function(){
+  if(confirm('Leave the game? Both players will return to lobby.')){
+    if(typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN){
+      socket.send(JSON.stringify({event:'game_exit'}));
+    }
+  }
+};
+</script>

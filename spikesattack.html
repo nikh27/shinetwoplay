@@ -1,0 +1,681 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+
+const GRID = 4;
+const TICK = 25;
+const WARN_MS = 1500;
+const START_SPEED = 1.2;
+const SPEED_INC = 0.12;
+const PLAYER_SPD = 3.4;
+const INVULN = 1500;
+const START_INTERVAL = 3200;
+const MIN_INTERVAL = 1200;
+const INTERVAL_DEC = 50;
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+const lerp = (a, b, t) => a + (b - a) * t;
+const rand = (a, b) => a + Math.random() * (b - a);
+
+function pushOut(m, w) {
+  const ox = Math.min(m.x + m.w - w.x, w.x + w.w - m.x);
+  const oy = Math.min(m.y + m.h - w.y, w.y + w.h - m.y);
+  if (ox < oy) m.x += m.x + m.w / 2 < w.x + w.w / 2 ? -ox : ox;
+  else m.y += m.y + m.h / 2 < w.y + w.h / 2 ? -oy : oy;
+}
+
+// push both objects apart equally
+function pushBoth(a, b) {
+  if (!overlap(a, b)) return;
+  const ox = Math.min(a.x + a.w - b.x, b.x + b.w - a.x);
+  const oy = Math.min(a.y + a.h - b.y, b.y + b.h - a.y);
+  if (ox < oy) {
+    const half = ox / 2;
+    if (a.x + a.w / 2 < b.x + b.w / 2) { a.x -= half; b.x += half; }
+    else { a.x += half; b.x -= half; }
+  } else {
+    const half = oy / 2;
+    if (a.y + a.h / 2 < b.y + b.h / 2) { a.y -= half; b.y += half; }
+    else { a.y += half; b.y -= half; }
+  }
+}
+
+export default function SpikeArena() {
+  const [screen, setScreen] = useState("menu");
+  const [winner, setWinner] = useState(null);
+  const canvasRef = useRef(null);
+  const gRef = useRef(null);
+  const animRef = useRef(null);
+  const lastRef = useRef(0);
+  const jRef = useRef({ p1: null, p2: null });
+  const D = useRef({ cw: 0, ch: 0, ax: 0, ay: 0, as: 0, cs: 0 });
+
+  const doLayout = useCallback(() => {
+    const c = canvasRef.current; if (!c) return;
+    const par = c.parentElement;
+    const w = Math.min(par.clientWidth, 430);
+    const h = Math.min(par.clientHeight, window.innerHeight * 0.84);
+    const dpr = window.devicePixelRatio || 1;
+    c.width = w * dpr; c.height = h * dpr;
+    c.style.width = w + "px"; c.style.height = h + "px";
+    c.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0);
+    const as = Math.min(w * 0.76, h * 0.46);
+    const cs = as / GRID;
+    D.current = { cw: w, ch: h, ax: (w - as) / 2, ay: (h - as) / 2, as, cs };
+  }, []);
+
+  // Pick 3 random cell-center lanes out of 4 for a given direction
+  const pickLanes = useCallback((dir) => {
+    const { ax, ay, cs } = D.current;
+    const skip = Math.floor(Math.random() * GRID);
+    const lanes = [];
+    for (let i = 0; i < GRID; i++) {
+      if (i === skip) continue;
+      if (dir === "top" || dir === "bottom") {
+        lanes.push(ax + i * cs + cs / 2); // center of cell column
+      } else {
+        lanes.push(ay + i * cs + cs / 2); // center of cell row
+      }
+    }
+    return lanes;
+  }, []);
+
+  const mkGame = useCallback(() => {
+    const { ax, ay, cs } = D.current;
+    const ps = cs * 0.48;
+    return {
+      players: [
+        { id: 0, x: ax + cs * 0.5 + (cs - ps) / 2, y: ay + cs * 2.8 + (cs - ps) / 2, w: ps, h: ps, lives: 3, inv: 0, col: "#D63031", visor: "#FFF", name: "P1" },
+        { id: 1, x: ax + cs * 2.8 + (cs - ps) / 2, y: ay + cs * 0.8 + (cs - ps) / 2, w: ps, h: ps, lives: 3, inv: 0, col: "#222", visor: "#00E5FF", name: "P2" },
+      ],
+      blocks: [
+        { x: ax + cs * 1 + (cs - cs * 0.76) / 2, y: ay + cs * 1 + (cs - cs * 0.76) / 2, w: cs * 0.76, h: cs * 0.76 },
+        { x: ax + cs * 3 + (cs - cs * 0.76) / 2, y: ay + cs * 0 + (cs - cs * 0.76) / 2, w: cs * 0.76, h: cs * 0.76 },
+        { x: ax + cs * 0 + (cs - cs * 0.76) / 2, y: ay + cs * 3 + (cs - cs * 0.76) / 2, w: cs * 0.76, h: cs * 0.76 },
+      ],
+      spears: [],
+      warnings: [],
+      fx: [],
+      nextSpawn: 1800,
+      wave: 0,
+      t: 0,
+      gameOver: false,
+    };
+  }, []);
+
+  const startGame = useCallback(() => {
+    doLayout();
+    gRef.current = mkGame();
+    lastRef.current = performance.now();
+    setWinner(null);
+    setScreen("play");
+  }, [doLayout, mkGame]);
+
+  // ─── PARTICLES ───
+  const spawnBlood = (g, x, y) => {
+    for (let i = 0; i < 12; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd = rand(1.5, 4.5);
+      g.fx.push({ type: "blood", x, y, vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd, r: rand(2, 5), life: 500, maxLife: 500, color: Math.random() > 0.3 ? "#D63031" : "#B71C1C" });
+    }
+    g.fx.push({ type: "ring", x, y, r: 4, maxR: 28, life: 350, maxLife: 350, color: "#D63031" });
+  };
+
+  const spawnExplosion = (g, x, y) => {
+    for (let i = 0; i < 16; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd = rand(2, 5.5);
+      g.fx.push({ type: "debris", x, y, vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd, r: rand(2, 4.5), life: 450, maxLife: 450, rot: Math.random() * 6, color: ["#FF9800", "#FFC107", "#FF5722", "#FFEB3B", "#FFF"][Math.floor(Math.random() * 5)] });
+    }
+    g.fx.push({ type: "ring", x, y, r: 5, maxR: 40, life: 300, maxLife: 300, color: "#FF9800" });
+    g.fx.push({ type: "flash", x, y, r: 18, life: 120, maxLife: 120 });
+  };
+
+  // ─── DRAWING HELPERS ───
+  const drawWoodLog = (ctx, x, y, w, h, vert) => {
+    const gr = vert ? ctx.createLinearGradient(x, y, x + w, y) : ctx.createLinearGradient(x, y, x, y + h);
+    gr.addColorStop(0, "#A57442"); gr.addColorStop(0.3, "#C89860"); gr.addColorStop(0.5, "#B8864E");
+    gr.addColorStop(0.7, "#C89860"); gr.addColorStop(1, "#8B5E3C");
+    ctx.fillStyle = gr; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = "rgba(0,0,0,0.07)"; ctx.lineWidth = 1;
+    if (vert) {
+      for (let i = 1; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(x + w * i / 3, y); ctx.lineTo(x + w * i / 3, y + h); ctx.stroke(); }
+      ctx.fillStyle = "rgba(100,60,20,0.2)";
+      ctx.beginPath(); ctx.ellipse(x + w / 2, y + h * 0.35, w * 0.16, w * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+    } else {
+      for (let i = 1; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(x, y + h * i / 3); ctx.lineTo(x + w, y + h * i / 3); ctx.stroke(); }
+    }
+  };
+
+  const drawMetalTip = (ctx, cx, cy, dir, sz) => {
+    const gr = ctx.createLinearGradient(cx - sz, cy - sz, cx + sz, cy + sz);
+    gr.addColorStop(0, "#E0E4E8"); gr.addColorStop(0.4, "#B0B8C0"); gr.addColorStop(1, "#808890");
+    ctx.fillStyle = gr; ctx.strokeStyle = "#6A7078"; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    if (dir === "d") { ctx.moveTo(cx - sz * 0.55, cy); ctx.lineTo(cx + sz * 0.55, cy); ctx.lineTo(cx, cy + sz); }
+    else if (dir === "u") { ctx.moveTo(cx - sz * 0.55, cy); ctx.lineTo(cx + sz * 0.55, cy); ctx.lineTo(cx, cy - sz); }
+    else if (dir === "r") { ctx.moveTo(cx, cy - sz * 0.55); ctx.lineTo(cx, cy + sz * 0.55); ctx.lineTo(cx + sz, cy); }
+    else { ctx.moveTo(cx, cy - sz * 0.55); ctx.lineTo(cx, cy + sz * 0.55); ctx.lineTo(cx - sz, cy); }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+
+  const drawDiamond = (ctx, cx, cy, sz) => {
+    ctx.fillStyle = "#A0A8B0"; ctx.strokeStyle = "#707880"; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - sz); ctx.lineTo(cx + sz * 0.6, cy); ctx.lineTo(cx, cy + sz); ctx.lineTo(cx - sz * 0.6, cy);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+
+  const drawBlock = (ctx, b) => {
+    const r = 10;
+    const gr = ctx.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h);
+    gr.addColorStop(0, "#6B5B7B"); gr.addColorStop(1, "#4A3A5A");
+    ctx.fillStyle = gr;
+    ctx.beginPath();
+    ctx.moveTo(b.x + r, b.y); ctx.lineTo(b.x + b.w - r, b.y);
+    ctx.quadraticCurveTo(b.x + b.w, b.y, b.x + b.w, b.y + r);
+    ctx.lineTo(b.x + b.w, b.y + b.h - r);
+    ctx.quadraticCurveTo(b.x + b.w, b.y + b.h, b.x + b.w - r, b.y + b.h);
+    ctx.lineTo(b.x + r, b.y + b.h);
+    ctx.quadraticCurveTo(b.x, b.y + b.h, b.x, b.y + b.h - r);
+    ctx.lineTo(b.x, b.y + r);
+    ctx.quadraticCurveTo(b.x, b.y, b.x + r, b.y);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "#2E2040"; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    ctx.fillRect(b.x + 5, b.y + 4, b.w - 10, b.h * 0.3);
+    ctx.fillStyle = "rgba(0,0,0,0.1)";
+    ctx.fillRect(b.x + 5, b.y + b.h - 8, b.w - 10, 5);
+  };
+
+  // ─── SPEAR (bigger) ───
+  const drawSpear = (ctx, s) => {
+    const { cs } = D.current;
+    ctx.save();
+    const cx = s.x + s.w / 2, cy = s.y + s.h / 2;
+    ctx.translate(cx, cy);
+    let angle = 0;
+    if (s.dir === "top") angle = Math.PI / 2;
+    else if (s.dir === "bottom") angle = -Math.PI / 2;
+    else if (s.dir === "left") angle = 0;
+    else angle = Math.PI;
+    ctx.rotate(angle);
+
+    const len = Math.max(s.w, s.h);
+    const half = len / 2;
+    const shaftW = cs * 0.18;
+    const headLen = cs * 0.4;
+    const headW = cs * 0.36;
+
+    // shaft
+    const sg = ctx.createLinearGradient(0, -shaftW / 2, 0, shaftW / 2);
+    sg.addColorStop(0, "#A57442"); sg.addColorStop(0.5, "#D4A56A"); sg.addColorStop(1, "#8B5E3C");
+    ctx.fillStyle = sg;
+    ctx.fillRect(-half, -shaftW / 2, len - headLen * 0.3, shaftW);
+    // grain
+    ctx.strokeStyle = "rgba(0,0,0,0.08)"; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(-half, -shaftW / 5); ctx.lineTo(half - headLen, -shaftW / 5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-half, shaftW / 5); ctx.lineTo(half - headLen, shaftW / 5); ctx.stroke();
+    // binding wraps
+    ctx.strokeStyle = "#7B3F10"; ctx.lineWidth = 2.2;
+    for (let i = 0; i < 4; i++) {
+      const bx = half - headLen * 0.55 - i * 5;
+      ctx.beginPath(); ctx.moveTo(bx, -shaftW / 2 - 1); ctx.lineTo(bx, shaftW / 2 + 1); ctx.stroke();
+    }
+    // spearhead
+    const hg = ctx.createLinearGradient(half - headLen, 0, half, 0);
+    hg.addColorStop(0, "#9EAAB4"); hg.addColorStop(0.5, "#D0D8E0"); hg.addColorStop(1, "#F0F4F8");
+    ctx.fillStyle = hg;
+    ctx.beginPath();
+    ctx.moveTo(half - headLen, -headW / 2);
+    ctx.lineTo(half, 0);
+    ctx.lineTo(half - headLen, headW / 2);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "#6A7580"; ctx.lineWidth = 1.5; ctx.stroke();
+    // ridge
+    ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(half - headLen * 0.8, 0); ctx.lineTo(half - 2, 0); ctx.stroke();
+    // tail feathers
+    const tw = shaftW * 1.5;
+    ctx.fillStyle = "#C62828";
+    ctx.beginPath(); ctx.moveTo(-half, -tw); ctx.lineTo(-half + 14, -shaftW / 2); ctx.lineTo(-half, -shaftW / 2); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-half, tw); ctx.lineTo(-half + 14, shaftW / 2); ctx.lineTo(-half, shaftW / 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#E53935";
+    ctx.beginPath(); ctx.moveTo(-half + 3, -tw * 0.7); ctx.lineTo(-half + 11, -shaftW / 2); ctx.lineTo(-half + 3, -shaftW / 2); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-half + 3, tw * 0.7); ctx.lineTo(-half + 11, shaftW / 2); ctx.lineTo(-half + 3, shaftW / 2); ctx.closePath(); ctx.fill();
+
+    ctx.restore();
+  };
+
+  // ─── PLAYER (original design) ───
+  const drawPlayer = (ctx, p, t) => {
+    if (p.inv > 0 && Math.floor(t / 80) % 2) return;
+    const cx = p.x + p.w / 2, cy = p.y + p.h / 2, r = p.w / 2;
+    ctx.fillStyle = p.col;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#111"; ctx.lineWidth = 2; ctx.stroke();
+    const vw = r * 1.3, vh = r * 0.42, vy = cy - vh * 0.2;
+    ctx.fillStyle = p.visor;
+    ctx.beginPath();
+    const vr = 3;
+    ctx.moveTo(cx - vw / 2 + vr, vy - vh / 2);
+    ctx.lineTo(cx + vw / 2 - vr, vy - vh / 2);
+    ctx.quadraticCurveTo(cx + vw / 2, vy - vh / 2, cx + vw / 2, vy - vh / 2 + vr);
+    ctx.lineTo(cx + vw / 2, vy + vh / 2 - vr);
+    ctx.quadraticCurveTo(cx + vw / 2, vy + vh / 2, cx + vw / 2 - vr, vy + vh / 2);
+    ctx.lineTo(cx - vw / 2 + vr, vy + vh / 2);
+    ctx.quadraticCurveTo(cx - vw / 2, vy + vh / 2, cx - vw / 2, vy + vh / 2 - vr);
+    ctx.lineTo(cx - vw / 2, vy - vh / 2 + vr);
+    ctx.quadraticCurveTo(cx - vw / 2, vy - vh / 2, cx - vw / 2 + vr, vy - vh / 2);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = "#111";
+    ctx.beginPath(); ctx.arc(cx - vw * 0.18, vy, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + vw * 0.18, vy, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = p.col;
+    const aw = 5, ah = r * 0.5;
+    ctx.fillRect(cx - r - aw + 1, cy, aw, ah);
+    ctx.fillRect(cx + r - 1, cy, aw, ah);
+    ctx.strokeStyle = "#111"; ctx.lineWidth = 1;
+    ctx.strokeRect(cx - r - aw + 1, cy, aw, ah);
+    ctx.strokeRect(cx + r - 1, cy, aw, ah);
+  };
+
+  // ─── FX ───
+  const drawFX = (ctx, fxList) => {
+    fxList.forEach(f => {
+      const a = clamp(f.life / f.maxLife, 0, 1);
+      if (f.type === "blood") {
+        ctx.globalAlpha = a; ctx.fillStyle = f.color;
+        ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 + (1 - a) * 0.4), 0, Math.PI * 2); ctx.fill();
+      } else if (f.type === "ring") {
+        const cr = lerp(f.r, f.maxR, 1 - a);
+        ctx.globalAlpha = a * 0.45; ctx.strokeStyle = f.color; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(f.x, f.y, cr, 0, Math.PI * 2); ctx.stroke();
+      } else if (f.type === "debris") {
+        ctx.globalAlpha = a; ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.rot + (1 - a) * 4);
+        ctx.fillStyle = f.color; ctx.fillRect(-f.r, -f.r, f.r * 2, f.r * 2); ctx.restore();
+      } else if (f.type === "flash") {
+        ctx.globalAlpha = a * 0.55; ctx.fillStyle = "#FFF";
+        ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 + (1 - a)), 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    });
+  };
+
+  // ─── GAME LOOP ───
+  const loop = useCallback((now) => {
+    const g = gRef.current;
+    if (!g || screen !== "play" || g.gameOver) return;
+    const dt = now - lastRef.current;
+    if (dt < TICK) { animRef.current = requestAnimationFrame(loop); return; }
+    lastRef.current = now;
+    g.t += dt;
+    const { cw, ch, ax, ay, as: aSize, cs } = D.current;
+
+    const curInterval = Math.max(MIN_INTERVAL, START_INTERVAL - g.wave * INTERVAL_DEC);
+
+    // spawn: 1 random wall, 3 cell-aligned lanes
+    g.nextSpawn -= dt;
+    if (g.nextSpawn <= 0) {
+      g.wave++;
+      const dir = ["top", "bottom", "left", "right"][Math.floor(Math.random() * 4)];
+      const lanes = pickLanes(dir);
+      g.warnings.push({ dir, timer: WARN_MS, spawned: false, waveNum: g.wave, lanes });
+      g.nextSpawn = curInterval;
+    }
+
+    // warnings → spawn 3 spears at cell centers
+    g.warnings.forEach(w => {
+      w.timer -= dt;
+      if (w.timer <= 0 && !w.spawned) {
+        w.spawned = true;
+        const spd = (START_SPEED + w.waveNum * SPEED_INC) * cs / (1000 / TICK);
+        const thick = cs * 0.42;
+        const long_ = cs * 1.1;
+
+        w.lanes.forEach(pos => {
+          let sx, sy, vx = 0, vy = 0, sw, sh;
+          if (w.dir === "top") {
+            sx = pos - thick / 2; sy = ay - long_ - 10;
+            sw = thick; sh = long_; vy = spd;
+          } else if (w.dir === "bottom") {
+            sx = pos - thick / 2; sy = ay + aSize + 10;
+            sw = thick; sh = long_; vy = -spd;
+          } else if (w.dir === "left") {
+            sy = pos - thick / 2; sx = ax - long_ - 10;
+            sw = long_; sh = thick; vx = spd;
+          } else {
+            sy = pos - thick / 2; sx = ax + aSize + 10;
+            sw = long_; sh = thick; vx = -spd;
+          }
+          g.spears.push({ x: sx, y: sy, w: sw, h: sh, vx, vy, dir: w.dir, ttl: 4000 });
+        });
+      }
+    });
+    g.warnings = g.warnings.filter(w => w.timer > -300);
+
+    // move players
+    const joy = jRef.current;
+    g.players.forEach((p, i) => {
+      const j = i === 0 ? joy.p1 : joy.p2;
+      if (p.inv > 0) p.inv -= dt;
+      if (!j || p.lives <= 0) return;
+      const dx = j.dx * PLAYER_SPD, dy = j.dy * PLAYER_SPD;
+      // X
+      p.x += dx; p.x = clamp(p.x, ax, ax + aSize - p.w);
+      g.blocks.forEach(b => { if (overlap(p, b)) pushOut(p, b); });
+      g.blocks.forEach(b => {
+        if (overlap(p, b)) {
+          if (dx) { b.x += dx > 0 ? 2.8 : -2.8; b.x = clamp(b.x, ax, ax + aSize - b.w); }
+          pushOut(p, b);
+        }
+      });
+      // Y
+      p.y += dy; p.y = clamp(p.y, ay, ay + aSize - p.h);
+      g.blocks.forEach(b => { if (overlap(p, b)) pushOut(p, b); });
+      g.blocks.forEach(b => {
+        if (overlap(p, b)) {
+          if (dy) { b.y += dy > 0 ? 2.8 : -2.8; b.y = clamp(b.y, ay, ay + aSize - b.h); }
+          pushOut(p, b);
+        }
+      });
+    });
+
+    // player-player collision: push each other apart
+    const p0 = g.players[0], p1 = g.players[1];
+    if (overlap(p0, p1)) {
+      pushBoth(p0, p1);
+      // clamp both back inside arena
+      p0.x = clamp(p0.x, ax, ax + aSize - p0.w);
+      p0.y = clamp(p0.y, ay, ay + aSize - p0.h);
+      p1.x = clamp(p1.x, ax, ax + aSize - p1.w);
+      p1.y = clamp(p1.y, ay, ay + aSize - p1.h);
+    }
+
+    // block-block
+    for (let i = 0; i < g.blocks.length; i++)
+      for (let j = i + 1; j < g.blocks.length; j++)
+        if (overlap(g.blocks[i], g.blocks[j])) pushOut(g.blocks[i], g.blocks[j]);
+
+    // player-block re-check after player-player push
+    g.players.forEach(p => {
+      g.blocks.forEach(b => { if (overlap(p, b)) pushOut(p, b); });
+    });
+
+    // move spears
+    g.spears.forEach(s => {
+      s.x += s.vx; s.y += s.vy; s.ttl -= dt;
+      g.blocks.forEach(b => {
+        if (overlap(s, b)) { s.ttl = -1; spawnExplosion(g, s.x + s.w / 2, s.y + s.h / 2); }
+      });
+      g.players.forEach(p => {
+        if (p.inv > 0 || p.lives <= 0) return;
+        if (overlap(s, p)) {
+          p.lives--; p.inv = INVULN; s.ttl = -1;
+          spawnBlood(g, p.x + p.w / 2, p.y + p.h / 2);
+          if (p.lives <= 0) {
+            g.gameOver = true;
+            const wn = p.id === 0 ? "P2" : "P1";
+            setTimeout(() => { setWinner(wn); setScreen("result"); }, 500);
+          }
+        }
+      });
+    });
+    g.spears = g.spears.filter(s => s.ttl > 0);
+
+    // update fx
+    g.fx.forEach(f => {
+      f.life -= dt;
+      if (f.vx !== undefined) { f.x += f.vx; f.y += f.vy; f.vy += 0.1; }
+    });
+    g.fx = g.fx.filter(f => f.life > 0);
+
+    // ─── DRAW ───
+    const c = canvasRef.current; if (!c) return;
+    const ctx = c.getContext("2d");
+
+    ctx.fillStyle = "#1C3042"; ctx.fillRect(0, 0, cw, ch);
+
+    // pillars
+    const pw = cs * 0.56;
+    for (let i = 0; i < GRID; i++) {
+      const px = ax + i * cs + (cs - pw) / 2;
+      drawWoodLog(ctx, px, 0, pw, ay - 8, true);
+      drawMetalTip(ctx, px + pw / 2, ay - 6, "d", cs * 0.22);
+      drawWoodLog(ctx, px, ay + aSize + 8, pw, ch - ay - aSize - 8, true);
+      drawMetalTip(ctx, px + pw / 2, ay + aSize + 6, "u", cs * 0.22);
+    }
+
+    // edge diamonds
+    for (let i = 0; i < GRID; i++) {
+      drawDiamond(ctx, ax - 6, ay + i * cs + cs / 2, 11);
+      drawDiamond(ctx, ax + aSize + 6, ay + i * cs + cs / 2, 11);
+    }
+
+    // warning bars + arrows at lane positions
+    g.warnings.forEach(w => {
+      if (w.timer <= 0) return;
+      const intensity = 0.4 + 0.6 * Math.abs(Math.sin(g.t * 0.016));
+      ctx.fillStyle = `rgba(229,57,53,${intensity})`;
+      const tk = 5;
+      if (w.dir === "top") ctx.fillRect(ax, ay - tk - 12, aSize, tk);
+      else if (w.dir === "bottom") ctx.fillRect(ax, ay + aSize + 12, aSize, tk);
+      else if (w.dir === "left") ctx.fillRect(ax - tk - 12, ay, tk, aSize);
+      else ctx.fillRect(ax + aSize + 12, ay, tk, aSize);
+      // arrows showing exact lane positions
+      ctx.fillStyle = `rgba(229,57,53,${intensity * 0.85})`;
+      w.lanes.forEach(pos => {
+        const arrowSz = 7;
+        if (w.dir === "top") {
+          ctx.beginPath(); ctx.moveTo(pos - arrowSz, ay - 20); ctx.lineTo(pos + arrowSz, ay - 20); ctx.lineTo(pos, ay - 12); ctx.closePath(); ctx.fill();
+        } else if (w.dir === "bottom") {
+          ctx.beginPath(); ctx.moveTo(pos - arrowSz, ay + aSize + 20); ctx.lineTo(pos + arrowSz, ay + aSize + 20); ctx.lineTo(pos, ay + aSize + 12); ctx.closePath(); ctx.fill();
+        } else if (w.dir === "left") {
+          ctx.beginPath(); ctx.moveTo(ax - 20, pos - arrowSz); ctx.lineTo(ax - 20, pos + arrowSz); ctx.lineTo(ax - 12, pos); ctx.closePath(); ctx.fill();
+        } else {
+          ctx.beginPath(); ctx.moveTo(ax + aSize + 20, pos - arrowSz); ctx.lineTo(ax + aSize + 20, pos + arrowSz); ctx.lineTo(ax + aSize + 12, pos); ctx.closePath(); ctx.fill();
+        }
+      });
+    });
+
+    // arena floor
+    for (let r = 0; r < GRID; r++)
+      for (let c2 = 0; c2 < GRID; c2++) {
+        ctx.fillStyle = (r + c2) % 2 === 0 ? "#F5D0BA" : "#EABC9F";
+        ctx.fillRect(ax + c2 * cs, ay + r * cs, cs, cs);
+      }
+    ctx.strokeStyle = "#0D1B2A"; ctx.lineWidth = 4;
+    ctx.strokeRect(ax, ay, aSize, aSize);
+
+    // blocks
+    g.blocks.forEach(b => drawBlock(ctx, b));
+
+    // spears
+    g.spears.forEach(s => drawSpear(ctx, s));
+
+    // players
+    g.players.forEach(p => drawPlayer(ctx, p, g.t));
+
+    // fx
+    drawFX(ctx, g.fx);
+
+    // HUD left: lives
+    const hr = 22, hlx = ax - hr - 14, hy = ay + aSize / 2;
+    ctx.fillStyle = "#FFF";
+    ctx.beginPath(); ctx.arc(hlx, hy, hr, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#DDD"; ctx.lineWidth = 2; ctx.stroke();
+    ctx.font = `bold ${Math.round(hr * 0.62)}px system-ui`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#D63031"; ctx.fillText(g.players[0].lives, hlx - 7, hy);
+    ctx.fillStyle = "#AAA"; ctx.fillText("•", hlx + 1, hy - 1);
+    ctx.fillStyle = "#1E88E5"; ctx.fillText(g.players[1].lives, hlx + 9, hy);
+
+    // HUD right: EXIT
+    const hrx = ax + aSize + hr + 14;
+    ctx.fillStyle = "#FFF";
+    ctx.beginPath(); ctx.arc(hrx, hy, hr, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#DDD"; ctx.lineWidth = 2; ctx.stroke();
+    ctx.save(); ctx.translate(hrx, hy); ctx.rotate(-Math.PI / 2);
+    ctx.font = `bold ${Math.round(hr * 0.5)}px system-ui`; ctx.fillStyle = "#555";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("EXIT", 0, 0);
+    ctx.restore();
+
+    // wave
+    ctx.font = "bold 10px system-ui"; ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    ctx.fillText(`WAVE ${g.wave}`, cw / 2, ay - 22);
+
+    // joysticks
+    [jRef.current.p1, jRef.current.p2].forEach((j, idx) => {
+      if (!j || !j.active) return;
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = idx === 0 ? "#D63031" : "#1E88E5";
+      ctx.beginPath(); ctx.arc(j.bx, j.by, 46, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath(); ctx.arc(j.bx + j.dx * 30, j.by + j.dy * 30, 20, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+
+    animRef.current = requestAnimationFrame(loop);
+  }, [screen, pickLanes]);
+
+  // ─── TOUCH / MOUSE ───
+  const onTS = useCallback(e => {
+    e.preventDefault(); const c = canvasRef.current; if (!c) return;
+    const r = c.getBoundingClientRect();
+    for (const t of e.changedTouches) {
+      const tx = t.clientX - r.left, ty = t.clientY - r.top;
+      jRef.current[ty > D.current.ch / 2 ? "p1" : "p2"] = { active: true, tid: t.identifier, bx: tx, by: ty, dx: 0, dy: 0 };
+    }
+  }, []);
+  const onTM = useCallback(e => {
+    e.preventDefault(); const c = canvasRef.current; if (!c) return;
+    const r = c.getBoundingClientRect();
+    for (const t of e.changedTouches) {
+      ["p1", "p2"].forEach(k => {
+        const j = jRef.current[k];
+        if (j && j.tid === t.identifier) {
+          const dx = t.clientX - r.left - j.bx, dy = t.clientY - r.top - j.by;
+          const d = Math.sqrt(dx * dx + dy * dy) || 1;
+          const cd = Math.min(d, 42);
+          j.dx = (dx / d) * (cd / 42); j.dy = (dy / d) * (cd / 42);
+        }
+      });
+    }
+  }, []);
+  const onTE = useCallback(e => {
+    e.preventDefault();
+    for (const t of e.changedTouches)
+      ["p1", "p2"].forEach(k => { if (jRef.current[k]?.tid === t.identifier) jRef.current[k] = null; });
+  }, []);
+  const onClick = useCallback(e => {
+    const c = canvasRef.current; if (!c) return;
+    const r = c.getBoundingClientRect();
+    const { ax, ay, as: aSize } = D.current;
+    const tx = e.clientX - r.left, ty = e.clientY - r.top;
+    const ex = ax + aSize + 36, ey = ay + aSize / 2;
+    if (Math.sqrt((tx - ex) ** 2 + (ty - ey) ** 2) < 26) setScreen("menu");
+  }, []);
+  const mD = useRef(false);
+  const onMD = useCallback(e => {
+    const c = canvasRef.current; if (!c) return;
+    const r = c.getBoundingClientRect(); mD.current = true;
+    const tx = e.clientX - r.left, ty = e.clientY - r.top;
+    jRef.current[ty > D.current.ch / 2 ? "p1" : "p2"] = { active: true, tid: "m", bx: tx, by: ty, dx: 0, dy: 0 };
+  }, []);
+  const onMM = useCallback(e => {
+    if (!mD.current) return; const c = canvasRef.current; if (!c) return;
+    const r = c.getBoundingClientRect();
+    ["p1", "p2"].forEach(k => {
+      const j = jRef.current[k];
+      if (j && j.tid === "m") {
+        const dx = e.clientX - r.left - j.bx, dy = e.clientY - r.top - j.by;
+        const d = Math.sqrt(dx * dx + dy * dy) || 1;
+        const cd = Math.min(d, 42);
+        j.dx = (dx / d) * (cd / 42); j.dy = (dy / d) * (cd / 42);
+      }
+    });
+  }, []);
+  const onMU = useCallback(() => { mD.current = false; jRef.current.p1 = null; jRef.current.p2 = null; }, []);
+
+  useEffect(() => {
+    if (screen === "play") {
+      doLayout(); gRef.current = mkGame(); lastRef.current = performance.now();
+      animRef.current = requestAnimationFrame(loop);
+      return () => cancelAnimationFrame(animRef.current);
+    }
+  }, [screen, loop, doLayout, mkGame]);
+
+  useEffect(() => {
+    const h = () => { if (screen === "play") { doLayout(); gRef.current = mkGame(); } };
+    window.addEventListener("resize", h); return () => window.removeEventListener("resize", h);
+  }, [screen, doLayout, mkGame]);
+
+  // ─── SCREENS ───
+  if (screen === "menu") {
+    return (
+      <div style={{ width: "100%", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", overflow: "hidden", background: "linear-gradient(180deg, #0D1B2A, #1C3042, #253D52)", fontFamily: "system-ui, sans-serif", color: "#fff", position: "relative" }}>
+        {[12, 32, 56, 80].map((p, i) => <div key={`t${i}`} style={{ position: "absolute", top: 0, left: `${p}%`, width: 34, height: 80 + i * 18, background: "linear-gradient(90deg, #8B5E3C, #C89860, #A57442)", borderRadius: "0 0 3px 3px" }} />)}
+        {[20, 46, 72, 92].map((p, i) => <div key={`b${i}`} style={{ position: "absolute", bottom: 0, left: `${p}%`, width: 34, height: 65 + i * 15, background: "linear-gradient(90deg, #8B5E3C, #C89860, #A57442)", borderRadius: "3px 3px 0 0" }} />)}
+        <div style={{ fontSize: 12, letterSpacing: 8, color: "#E53935", fontWeight: 800, marginBottom: 6, zIndex: 1 }}>⚔ SPEAR</div>
+        <div style={{ fontSize: 48, fontWeight: 900, letterSpacing: -2, textShadow: "0 0 40px rgba(229,57,53,0.2)", marginBottom: 2, zIndex: 1 }}>ARENA</div>
+        <div style={{ fontSize: 12, color: "#607080", letterSpacing: 4, marginBottom: 48, zIndex: 1 }}>2 PLAYER BATTLE</div>
+        <div style={{ display: "flex", gap: 24, alignItems: "center", marginBottom: 42, zIndex: 1 }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ width: 54, height: 54, borderRadius: "50%", background: "#D63031", border: "3px solid #A01020", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 20px rgba(214,48,49,0.3)" }}>
+              <div style={{ width: 30, height: 11, background: "#FFF", borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 5px" }}>
+                <div style={{ width: 4, height: 4, background: "#111", borderRadius: "50%" }} /><div style={{ width: 4, height: 4, background: "#111", borderRadius: "50%" }} />
+              </div>
+            </div>
+            <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: "#D63031", letterSpacing: 2 }}>P1</div>
+          </div>
+          <div style={{ fontSize: 20, color: "#445", fontWeight: 800 }}>VS</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ width: 54, height: 54, borderRadius: "50%", background: "#222", border: "3px solid #111", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 20px rgba(30,136,229,0.3)" }}>
+              <div style={{ width: 30, height: 11, background: "#00E5FF", borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 5px" }}>
+                <div style={{ width: 4, height: 4, background: "#111", borderRadius: "50%" }} /><div style={{ width: 4, height: 4, background: "#111", borderRadius: "50%" }} />
+              </div>
+            </div>
+            <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: "#1E88E5", letterSpacing: 2 }}>P2</div>
+          </div>
+        </div>
+        <button onClick={startGame} style={{ padding: "18px 56px", fontSize: 18, fontWeight: 800, letterSpacing: 3, zIndex: 1, background: "linear-gradient(135deg, #E53935, #C62828)", color: "#fff", border: "none", borderRadius: 14, cursor: "pointer", boxShadow: "0 6px 24px rgba(229,57,53,0.4)" }}>START</button>
+        <div style={{ marginTop: 34, textAlign: "center", fontSize: 11, color: "#4A5A6A", lineHeight: 2.2, zIndex: 1 }}>
+          <div><span style={{ color: "#D63031", fontWeight: 700 }}>P1 (RED)</span> — Touch bottom half</div>
+          <div><span style={{ color: "#1E88E5", fontWeight: 700 }}>P2 (BLUE)</span> — Touch top half</div>
+          <div style={{ marginTop: 4, color: "#556" }}>3 spears per wave from 1 random wall</div>
+          <div style={{ color: "#556" }}>Push blocks & players · 3 lives each</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "result") {
+    const isP1 = winner === "P1"; const col = isP1 ? "#D63031" : "#1E88E5";
+    return (
+      <div style={{ width: "100%", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: `linear-gradient(180deg, #0D1118, ${isP1 ? "#1A0808" : "#08081A"})`, fontFamily: "system-ui, sans-serif", color: "#fff" }}>
+        <div style={{ fontSize: 12, letterSpacing: 5, color: "#667", marginBottom: 16 }}>WINNER</div>
+        <div style={{ width: 82, height: 82, borderRadius: "50%", background: isP1 ? "#D63031" : "#222", border: `4px solid ${isP1 ? "#A01020" : "#111"}`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20, boxShadow: `0 0 60px ${col}44` }}>
+          <div style={{ width: 38, height: 13, background: isP1 ? "#FFF" : "#00E5FF", borderRadius: 4 }} />
+        </div>
+        <div style={{ fontSize: 44, fontWeight: 900, color: col, marginBottom: 6 }}>{winner}</div>
+        <div style={{ fontSize: 13, color: "#667", marginBottom: 8, letterSpacing: 2 }}>WINS!</div>
+        <div style={{ fontSize: 11, color: "#556", marginBottom: 40 }}>Wave reached: {gRef.current?.wave || 0}</div>
+        <button onClick={startGame} style={{ padding: "16px 44px", fontSize: 16, fontWeight: 700, letterSpacing: 2, background: col, color: "#fff", border: "none", borderRadius: 12, cursor: "pointer", boxShadow: `0 4px 20px ${col}44` }}>REMATCH</button>
+        <button onClick={() => setScreen("menu")} style={{ marginTop: 14, padding: "10px 28px", fontSize: 12, fontWeight: 600, background: "transparent", color: "#556", border: "1px solid #334", borderRadius: 8, cursor: "pointer" }}>MENU</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: "100%", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#1C3042", touchAction: "none", userSelect: "none", overflow: "hidden" }}>
+      <div style={{ position: "relative", width: "100%", maxWidth: 430, flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <canvas ref={canvasRef}
+          onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE} onTouchCancel={onTE}
+          onClick={onClick} onMouseDown={onMD} onMouseMove={onMM} onMouseUp={onMU} onMouseLeave={onMU}
+          style={{ touchAction: "none", display: "block" }} />
+        <div style={{ position: "absolute", top: 6, left: "50%", transform: "translateX(-50%)", fontSize: 9, color: "rgba(30,136,229,0.35)", fontWeight: 700, letterSpacing: 3 }}>P2 ZONE ↑</div>
+        <div style={{ position: "absolute", bottom: 6, left: "50%", transform: "translateX(-50%)", fontSize: 9, color: "rgba(214,48,49,0.35)", fontWeight: 700, letterSpacing: 3 }}>↓ P1 ZONE</div>
+      </div>
+    </div>
+  );
+}

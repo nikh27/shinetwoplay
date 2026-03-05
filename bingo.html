@@ -1,0 +1,779 @@
+import { useState, useEffect, useCallback, useRef } from "react";
+
+const COLS = [
+  [1, 15],
+  [16, 30],
+  [31, 45],
+  [46, 60],
+  [61, 75],
+];
+const HEADER = ["B", "I", "N", "G", "O"];
+
+function generateCard() {
+  const card = [];
+  for (let r = 0; r < 5; r++) {
+    card.push([]);
+    for (let c = 0; c < 5; c++) card[r].push(null);
+  }
+  for (let c = 0; c < 5; c++) {
+    const [min, max] = COLS[c];
+    const pool = [];
+    for (let n = min; n <= max; n++) pool.push(n);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    for (let r = 0; r < 5; r++) card[r][c] = pool[r];
+  }
+  card[2][2] = 0;
+  return card;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function createMarked() {
+  const m = Array.from({ length: 5 }, () => Array(5).fill(false));
+  m[2][2] = true;
+  return m;
+}
+
+function checkWin(marked) {
+  for (let r = 0; r < 5; r++) if (marked[r].every(Boolean)) return true;
+  for (let c = 0; c < 5; c++) if (marked.every((row) => row[c])) return true;
+  if ([0, 1, 2, 3, 4].every((i) => marked[i][i])) return true;
+  if ([0, 1, 2, 3, 4].every((i) => marked[i][4 - i])) return true;
+  return false;
+}
+
+function getWinCells(marked) {
+  const cells = new Set();
+  for (let r = 0; r < 5; r++)
+    if (marked[r].every(Boolean)) for (let c = 0; c < 5; c++) cells.add(`${r}-${c}`);
+  for (let c = 0; c < 5; c++)
+    if (marked.every((row) => row[c])) for (let r = 0; r < 5; r++) cells.add(`${r}-${c}`);
+  if ([0, 1, 2, 3, 4].every((i) => marked[i][i]))
+    for (let i = 0; i < 5; i++) cells.add(`${i}-${i}`);
+  if ([0, 1, 2, 3, 4].every((i) => marked[i][4 - i]))
+    for (let i = 0; i < 5; i++) cells.add(`${i}-${4 - i}`);
+  return cells;
+}
+
+function Confetti() {
+  const pieces = useRef(
+    Array.from({ length: 60 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 2,
+      dur: 1.5 + Math.random() * 2,
+      color: ["#FFD700", "#FF006E", "#00F5D4", "#7B2FFF", "#FB5607", "#3A86FF"][i % 6],
+      size: 6 + Math.random() * 8,
+      rot: Math.random() * 360,
+    }))
+  ).current;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 999 }}>
+      {pieces.map((p) => (
+        <div
+          key={p.id}
+          style={{
+            position: "absolute",
+            left: `${p.left}%`,
+            top: "-10px",
+            width: p.size,
+            height: p.size * 0.6,
+            background: p.color,
+            borderRadius: "2px",
+            transform: `rotate(${p.rot}deg)`,
+            animation: `confettiFall ${p.dur}s ${p.delay}s ease-in both`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function BingoCell({ value, marked, isNew, isWinCell, onTap, disabled }) {
+  const isFree = value === 0;
+  return (
+    <button
+      onClick={onTap}
+      disabled={disabled || isFree}
+      style={{
+        width: "100%",
+        aspectRatio: "1",
+        border: "none",
+        borderRadius: "10px",
+        cursor: disabled || isFree ? "default" : "pointer",
+        fontFamily: "'Archivo Black', sans-serif",
+        fontSize: "clamp(14px, 4vw, 22px)",
+        fontWeight: 900,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        overflow: "hidden",
+        transition: "all 0.25s cubic-bezier(.4,0,.2,1)",
+        background: isWinCell
+          ? "linear-gradient(135deg, #FFD700, #FF006E)"
+          : marked
+          ? "linear-gradient(135deg, #7B2FFF, #3A86FF)"
+          : "rgba(255,255,255,0.06)",
+        color: marked || isWinCell ? "#fff" : "rgba(255,255,255,0.5)",
+        boxShadow: isWinCell
+          ? "0 0 20px rgba(255,215,0,0.6), inset 0 0 10px rgba(255,255,255,0.2)"
+          : marked
+          ? "0 0 15px rgba(123,47,255,0.4), inset 0 0 8px rgba(255,255,255,0.1)"
+          : "inset 0 0 0 1px rgba(255,255,255,0.08)",
+        transform: isNew ? "scale(1.15)" : "scale(1)",
+        animation: isWinCell ? "winPulse 0.8s ease infinite alternate" : "none",
+      }}
+    >
+      {isFree ? "★" : value}
+      {marked && !isFree && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)",
+          }}
+        />
+      )}
+    </button>
+  );
+}
+
+export default function BingoGame() {
+  const [screen, setScreen] = useState("menu");
+  const [p1Card, setP1Card] = useState([]);
+  const [p2Card, setP2Card] = useState([]);
+  const [p1Marked, setP1Marked] = useState(createMarked());
+  const [p2Marked, setP2Marked] = useState(createMarked());
+  const [callPool, setCallPool] = useState([]);
+  const [calledNumbers, setCalledNumbers] = useState([]);
+  const [currentNumber, setCurrentNumber] = useState(null);
+  const [activePlayer, setActivePlayer] = useState(1);
+  const [winner, setWinner] = useState(null);
+  const [scores, setScores] = useState({ p1: 0, p2: 0 });
+  const [round, setRound] = useState(1);
+  const [lastMarked, setLastMarked] = useState(null);
+  const [falseBingo, setFalseBingo] = useState(null);
+  const [autoMode, setAutoMode] = useState(true);
+  const timerRef = useRef(null);
+
+  const startGame = useCallback(() => {
+    setP1Card(generateCard());
+    setP2Card(generateCard());
+    setP1Marked(createMarked());
+    setP2Marked(createMarked());
+    const pool = shuffle(Array.from({ length: 75 }, (_, i) => i + 1));
+    setCallPool(pool);
+    setCalledNumbers([]);
+    setCurrentNumber(null);
+    setWinner(null);
+    setActivePlayer(1);
+    setLastMarked(null);
+    setFalseBingo(null);
+    setScreen("game");
+  }, []);
+
+  const callNext = useCallback(() => {
+    setCallPool((prev) => {
+      if (prev.length === 0) return prev;
+      const next = [...prev];
+      const num = next.pop();
+      setCurrentNumber(num);
+      setCalledNumbers((c) => [num, ...c]);
+      if (!autoMode) setActivePlayer((a) => (a === 1 ? 2 : 1));
+      return next;
+    });
+  }, [autoMode]);
+
+  useEffect(() => {
+    if (screen === "game" && autoMode && !winner) {
+      timerRef.current = setInterval(callNext, 3500);
+      return () => clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [screen, autoMode, winner, callNext]);
+
+  const markCell = (player, r, c) => {
+    if (winner) return;
+    const card = player === 1 ? p1Card : p2Card;
+    const marked = player === 1 ? [...p1Marked.map((row) => [...row])] : [...p2Marked.map((row) => [...row])];
+    const val = card[r][c];
+    if (val === 0 || marked[r][c]) return;
+    if (!calledNumbers.includes(val)) return;
+    marked[r][c] = true;
+    setLastMarked(`${player}-${r}-${c}`);
+    setTimeout(() => setLastMarked(null), 400);
+    if (player === 1) setP1Marked(marked);
+    else setP2Marked(marked);
+  };
+
+  const declareBingo = (player) => {
+    if (winner) return;
+    const marked = player === 1 ? p1Marked : p2Marked;
+    if (checkWin(marked)) {
+      setWinner(player);
+      setScores((s) => ({
+        ...s,
+        [player === 1 ? "p1" : "p2"]: s[player === 1 ? "p1" : "p2"] + 10,
+      }));
+    } else {
+      setFalseBingo(player);
+      setTimeout(() => setFalseBingo(null), 2000);
+    }
+  };
+
+  const nextRound = () => {
+    setRound((r) => r + 1);
+    startGame();
+  };
+
+  const p1WinCells = winner === 1 ? getWinCells(p1Marked) : new Set();
+  const p2WinCells = winner === 2 ? getWinCells(p2Marked) : new Set();
+
+  const renderCard = (card, marked, player, winCells) => (
+    <div style={{ width: "100%" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(5, 1fr)",
+          gap: "4px",
+          marginBottom: "6px",
+        }}
+      >
+        {HEADER.map((h, i) => (
+          <div
+            key={h}
+            style={{
+              textAlign: "center",
+              fontFamily: "'Archivo Black', sans-serif",
+              fontSize: "clamp(12px, 3.5vw, 18px)",
+              color: ["#FF006E", "#FFD700", "#00F5D4", "#7B2FFF", "#3A86FF"][i],
+              letterSpacing: "2px",
+              textShadow: `0 0 10px ${["#FF006E", "#FFD700", "#00F5D4", "#7B2FFF", "#3A86FF"][i]}40`,
+            }}
+          >
+            {h}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "4px" }}>
+        {card.map((row, r) =>
+          row.map((val, c) => (
+            <BingoCell
+              key={`${r}-${c}`}
+              value={val}
+              marked={marked[r][c]}
+              isNew={lastMarked === `${player}-${r}-${c}`}
+              isWinCell={winCells.has(`${r}-${c}`)}
+              onTap={() => markCell(player, r, c)}
+              disabled={!!winner}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(160deg, #0a0a1a 0%, #1a0a2e 40%, #0a1628 100%)",
+        fontFamily: "'DM Sans', sans-serif",
+        color: "#fff",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        @keyframes confettiFall {
+          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        @keyframes winPulse {
+          0% { filter: brightness(1); }
+          100% { filter: brightness(1.4); }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes numberPop {
+          0% { transform: scale(0.3); opacity: 0; }
+          60% { transform: scale(1.15); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(123,47,255,0.3); }
+          50% { box-shadow: 0 0 40px rgba(123,47,255,0.6); }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-8px); }
+          40% { transform: translateX(8px); }
+          60% { transform: translateX(-4px); }
+          80% { transform: translateX(4px); }
+        }
+        body { overflow-x: hidden; }
+      `}</style>
+
+      {/* Ambient background */}
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
+        <div style={{ position: "absolute", top: "-20%", right: "-20%", width: "60vw", height: "60vw", borderRadius: "50%", background: "radial-gradient(circle, rgba(123,47,255,0.08) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", bottom: "-10%", left: "-10%", width: "50vw", height: "50vw", borderRadius: "50%", background: "radial-gradient(circle, rgba(255,0,110,0.06) 0%, transparent 70%)" }} />
+      </div>
+
+      {winner && <Confetti />}
+
+      {/* =================== MENU SCREEN =================== */}
+      {screen === "menu" && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+            padding: "24px",
+            position: "relative",
+            zIndex: 1,
+            animation: "slideUp 0.6s ease",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "clamp(48px, 14vw, 80px)",
+              fontFamily: "'Archivo Black', sans-serif",
+              background: "linear-gradient(135deg, #FFD700, #FF006E, #7B2FFF, #3A86FF)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              letterSpacing: "-2px",
+              lineHeight: 1,
+              marginBottom: "8px",
+              animation: "float 3s ease-in-out infinite",
+            }}
+          >
+            BINGO
+          </div>
+          <div
+            style={{
+              fontSize: "clamp(14px, 4vw, 18px)",
+              color: "rgba(255,255,255,0.4)",
+              letterSpacing: "6px",
+              textTransform: "uppercase",
+              marginBottom: "48px",
+              fontWeight: 500,
+            }}
+          >
+            2 Player
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px", width: "100%", maxWidth: "320px" }}>
+            <div
+              style={{
+                display: "flex",
+                background: "rgba(255,255,255,0.06)",
+                borderRadius: "14px",
+                padding: "4px",
+                marginBottom: "8px",
+              }}
+            >
+              {[true, false].map((val) => (
+                <button
+                  key={String(val)}
+                  onClick={() => setAutoMode(val)}
+                  style={{
+                    flex: 1,
+                    padding: "12px",
+                    border: "none",
+                    borderRadius: "11px",
+                    background: autoMode === val ? "linear-gradient(135deg, #7B2FFF, #3A86FF)" : "transparent",
+                    color: autoMode === val ? "#fff" : "rgba(255,255,255,0.4)",
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.25s ease",
+                  }}
+                >
+                  {val ? "Auto Call" : "Turn Based"}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={startGame}
+              style={{
+                padding: "18px 36px",
+                border: "none",
+                borderRadius: "16px",
+                background: "linear-gradient(135deg, #FF006E, #FFD700)",
+                color: "#0a0a1a",
+                fontFamily: "'Archivo Black', sans-serif",
+                fontSize: "clamp(16px, 5vw, 20px)",
+                cursor: "pointer",
+                boxShadow: "0 8px 32px rgba(255,0,110,0.4)",
+                transition: "all 0.25s ease",
+                letterSpacing: "2px",
+              }}
+            >
+              START GAME
+            </button>
+          </div>
+
+          <div
+            style={{
+              marginTop: "40px",
+              padding: "20px",
+              borderRadius: "16px",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              maxWidth: "320px",
+              width: "100%",
+            }}
+          >
+            <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", letterSpacing: "3px", textTransform: "uppercase", marginBottom: "12px", fontWeight: 700 }}>
+              How to Play
+            </div>
+            <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)", lineHeight: 1.7 }}>
+              Tap called numbers on your card. Complete a row, column, or diagonal and hit BINGO to win!
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =================== GAME SCREEN =================== */}
+      {screen === "game" && (
+        <div style={{ position: "relative", zIndex: 1, maxWidth: "480px", margin: "0 auto", padding: "12px 12px 24px" }}>
+          {/* Scoreboard */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "12px",
+              padding: "10px 16px",
+              borderRadius: "14px",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "2px", fontWeight: 700 }}>P1</div>
+              <div style={{ fontSize: "20px", fontFamily: "'Archivo Black'", color: "#FF006E" }}>{scores.p1}</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "2px", fontWeight: 700 }}>ROUND</div>
+              <div style={{ fontSize: "16px", fontFamily: "'Archivo Black'", color: "rgba(255,255,255,0.6)" }}>{round}</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "2px", fontWeight: 700 }}>P2</div>
+              <div style={{ fontSize: "20px", fontFamily: "'Archivo Black'", color: "#3A86FF" }}>{scores.p2}</div>
+            </div>
+          </div>
+
+          {/* Current Number */}
+          <div style={{ textAlign: "center", marginBottom: "10px" }}>
+            {currentNumber ? (
+              <div
+                key={currentNumber}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "72px",
+                  height: "72px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #FFD700, #FF006E)",
+                  fontFamily: "'Archivo Black'",
+                  fontSize: "30px",
+                  color: "#0a0a1a",
+                  boxShadow: "0 0 30px rgba(255,215,0,0.5)",
+                  animation: "numberPop 0.4s cubic-bezier(.4,0,.2,1)",
+                }}
+              >
+                {currentNumber}
+              </div>
+            ) : (
+              <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.3)", padding: "24px 0" }}>
+                {autoMode ? "Numbers coming soon..." : "Draw a number to start!"}
+              </div>
+            )}
+          </div>
+
+          {/* Called history */}
+          <div
+            style={{
+              display: "flex",
+              gap: "6px",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              marginBottom: "14px",
+              minHeight: "28px",
+            }}
+          >
+            {calledNumbers.slice(1, 8).map((n, i) => (
+              <span
+                key={n}
+                style={{
+                  fontSize: "12px",
+                  color: `rgba(255,255,255,${0.4 - i * 0.04})`,
+                  background: "rgba(255,255,255,0.06)",
+                  padding: "3px 8px",
+                  borderRadius: "8px",
+                  fontWeight: 700,
+                  fontFamily: "'DM Sans'",
+                }}
+              >
+                {n}
+              </span>
+            ))}
+          </div>
+
+          {/* Manual draw button */}
+          {!autoMode && !winner && (
+            <div style={{ textAlign: "center", marginBottom: "12px" }}>
+              <button
+                onClick={callNext}
+                disabled={callPool.length === 0}
+                style={{
+                  padding: "10px 28px",
+                  border: "none",
+                  borderRadius: "12px",
+                  background: activePlayer === 1
+                    ? "linear-gradient(135deg, #FF006E, #FF4D8E)"
+                    : "linear-gradient(135deg, #3A86FF, #6AADFF)",
+                  color: "#fff",
+                  fontFamily: "'Archivo Black'",
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  letterSpacing: "1px",
+                  boxShadow: activePlayer === 1
+                    ? "0 4px 20px rgba(255,0,110,0.4)"
+                    : "0 4px 20px rgba(58,134,255,0.4)",
+                }}
+              >
+                P{activePlayer} — DRAW NUMBER
+              </button>
+            </div>
+          )}
+
+          {/* False Bingo */}
+          {falseBingo && (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "10px",
+                marginBottom: "10px",
+                borderRadius: "12px",
+                background: "rgba(255,70,70,0.15)",
+                border: "1px solid rgba(255,70,70,0.3)",
+                color: "#ff6b6b",
+                fontWeight: 700,
+                fontSize: "13px",
+                animation: "shake 0.5s ease",
+              }}
+            >
+              Player {falseBingo} — Not a valid Bingo!
+            </div>
+          )}
+
+          {/* Player tabs */}
+          <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
+            {[1, 2].map((p) => (
+              <button
+                key={p}
+                onClick={() => setActivePlayer(p)}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  border: "none",
+                  borderRadius: "12px",
+                  background:
+                    activePlayer === p
+                      ? p === 1
+                        ? "linear-gradient(135deg, #FF006E, #FF4D8E)"
+                        : "linear-gradient(135deg, #3A86FF, #6AADFF)"
+                      : "rgba(255,255,255,0.04)",
+                  color: activePlayer === p ? "#fff" : "rgba(255,255,255,0.35)",
+                  fontFamily: "'Archivo Black'",
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  letterSpacing: "1px",
+                  transition: "all 0.25s ease",
+                  boxShadow:
+                    activePlayer === p
+                      ? p === 1
+                        ? "0 4px 20px rgba(255,0,110,0.3)"
+                        : "0 4px 20px rgba(58,134,255,0.3)"
+                      : "none",
+                }}
+              >
+                PLAYER {p}
+              </button>
+            ))}
+          </div>
+
+          {/* Bingo Card */}
+          <div style={{ animation: "slideUp 0.3s ease", marginBottom: "16px" }}>
+            {activePlayer === 1
+              ? renderCard(p1Card, p1Marked, 1, p1WinCells)
+              : renderCard(p2Card, p2Marked, 2, p2WinCells)}
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button
+              onClick={() => declareBingo(activePlayer)}
+              disabled={!!winner}
+              style={{
+                flex: 2,
+                padding: "16px",
+                border: "none",
+                borderRadius: "14px",
+                background: winner
+                  ? "rgba(255,255,255,0.06)"
+                  : "linear-gradient(135deg, #FFD700, #FF006E)",
+                color: winner ? "rgba(255,255,255,0.3)" : "#0a0a1a",
+                fontFamily: "'Archivo Black'",
+                fontSize: "clamp(16px, 5vw, 20px)",
+                cursor: winner ? "default" : "pointer",
+                letterSpacing: "3px",
+                boxShadow: winner ? "none" : "0 6px 24px rgba(255,0,110,0.35)",
+                animation: !winner ? "glow 2s ease infinite" : "none",
+                transition: "all 0.25s ease",
+              }}
+            >
+              BINGO!
+            </button>
+            <button
+              onClick={() => {
+                setScreen("menu");
+                clearInterval(timerRef.current);
+              }}
+              style={{
+                flex: 1,
+                padding: "16px",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "14px",
+                background: "rgba(255,255,255,0.04)",
+                color: "rgba(255,255,255,0.4)",
+                fontFamily: "'DM Sans'",
+                fontSize: "13px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              MENU
+            </button>
+          </div>
+
+          {/* Winner Overlay */}
+          {winner && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(10,10,26,0.85)",
+                backdropFilter: "blur(8px)",
+                zIndex: 50,
+                animation: "slideUp 0.4s ease",
+              }}
+            >
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "40px 32px",
+                  borderRadius: "24px",
+                  background: "linear-gradient(160deg, rgba(123,47,255,0.15), rgba(255,0,110,0.1))",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  maxWidth: "340px",
+                  width: "90%",
+                }}
+              >
+                <div style={{ fontSize: "48px", marginBottom: "8px", animation: "float 2s ease-in-out infinite" }}>
+                  🎉
+                </div>
+                <div
+                  style={{
+                    fontFamily: "'Archivo Black'",
+                    fontSize: "32px",
+                    background: "linear-gradient(135deg, #FFD700, #FF006E)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    marginBottom: "8px",
+                  }}
+                >
+                  BINGO!
+                </div>
+                <div style={{ fontSize: "16px", color: "rgba(255,255,255,0.6)", marginBottom: "28px" }}>
+                  Player {winner} wins the round!
+                </div>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    onClick={nextRound}
+                    style={{
+                      flex: 1,
+                      padding: "14px",
+                      border: "none",
+                      borderRadius: "14px",
+                      background: "linear-gradient(135deg, #7B2FFF, #3A86FF)",
+                      color: "#fff",
+                      fontFamily: "'Archivo Black'",
+                      fontSize: "14px",
+                      cursor: "pointer",
+                      letterSpacing: "1px",
+                    }}
+                  >
+                    NEXT ROUND
+                  </button>
+                  <button
+                    onClick={() => {
+                      setScreen("menu");
+                      setScores({ p1: 0, p2: 0 });
+                      setRound(1);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: "14px",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "14px",
+                      background: "rgba(255,255,255,0.04)",
+                      color: "rgba(255,255,255,0.5)",
+                      fontFamily: "'DM Sans'",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    NEW GAME
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

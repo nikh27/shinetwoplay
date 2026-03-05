@@ -91,6 +91,14 @@ GAMES = [
         'description': 'Panda tile-breaking battle! Move across bamboo tiles that crack under you. Push your opponent into holes!',
         'min_players': 2,
         'max_players': 2,
+    },
+    {
+        'game_id': 'simonduel',
+        'name': 'Simon Duel',
+        'image_url': '/static/games/simonduel.png',
+        'description': 'Memory battle! Extend the color sequence and repeat it perfectly. One wrong tap costs a life!',
+        'min_players': 2,
+        'max_players': 2,
     }
 ]
 

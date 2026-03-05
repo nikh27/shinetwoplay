@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Corridor Duel</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+--p1:#00b4ff;--p1g:#0066cc;--p1s:rgba(0,180,255,.35);
+--p2:#ff4060;--p2g:#cc0030;--p2s:rgba(255,64,96,.35);
+--board:#1a1a2e;--cell:#16213e;--cellH:#1a1a3a;
+--wall:#e0a040;--wallG:#c08020;
+--bg1:#0f0f1a;--bg2:#1a1028;
+--text:#e8e8f0;--sub:#8888aa;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg1);font-family:'Rajdhani',sans-serif;color:var(--text)}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;
+background:radial-gradient(ellipse at 50% 30%,var(--bg2),var(--bg1) 70%)}
+
+/* Ambient particles */
+.particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:hidden}
+.particle{position:absolute;width:2px;height:2px;background:rgba(255,255,255,.15);border-radius:50%;animation:float linear infinite}
+@keyframes float{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-10vh) scale(1);opacity:0}}
+
+#app{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%;max-width:480px;height:100%;padding:8px}
+
+/* Header */
+.header{width:100%;text-align:center;padding:8px 0;flex-shrink:0}
+.title{font-family:'Orbitron',monospace;font-size:clamp(16px,4vw,24px);font-weight:900;
+letter-spacing:4px;text-transform:uppercase;
+background:linear-gradient(135deg,var(--p1),#fff,var(--p2));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+.info-bar{display:flex;justify-content:space-between;align-items:center;width:100%;padding:6px 4px;margin-top:4px}
+.player-info{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;border-radius:10px;
+background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);transition:all .4s;min-width:90px}
+.player-info.active{border-color:currentColor;box-shadow:0 0 20px currentColor;transform:scale(1.05)}
+.player-info.p1{color:var(--p1)}.player-info.p2{color:var(--p2)}
+.player-label{font-family:'Orbitron',monospace;font-size:clamp(9px,2.2vw,12px);font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.wall-count{font-size:clamp(11px,2.5vw,14px);font-weight:500;color:var(--sub)}
+.wall-pips{display:flex;gap:2px;margin-top:1px}
+.pip{width:6px;height:6px;border-radius:1px;background:rgba(255,255,255,.1);transition:all .3s}
+.pip.filled{background:var(--wall)}
+
+.turn-indicator{font-family:'Orbitron',monospace;font-size:clamp(10px,2.5vw,13px);font-weight:700;
+padding:4px 14px;border-radius:20px;letter-spacing:1px;transition:all .4s;
+animation:pulse 2s infinite}
+.turn-indicator.p1-turn{color:var(--p1);background:rgba(0,180,255,.1);border:1px solid rgba(0,180,255,.3)}
+.turn-indicator.p2-turn{color:var(--p2);background:rgba(255,64,96,.1);border:1px solid rgba(255,64,96,.3)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+
+/* Board Container */
+.board-wrap{flex:1;display:flex;align-items:center;justify-content:center;width:100%;perspective:800px;overflow:visible}
+.board-3d{transform:rotateX(28deg) rotateZ(0deg);transform-style:preserve-3d;transition:transform .6s cubic-bezier(.23,1,.32,1)}
+
+.board{display:grid;position:relative;
+grid-template-columns:repeat(17,1fr);
+grid-template-rows:repeat(17,1fr);
+gap:0;
+transform-style:preserve-3d}
+
+.cell{border-radius:3px;cursor:pointer;position:relative;transition:all .15s;transform-style:preserve-3d}
+.cell-space{background:var(--cell);border:1px solid rgba(255,255,255,.04);
+box-shadow:inset 0 1px 2px rgba(255,255,255,.03),0 2px 4px rgba(0,0,0,.4);
+transform:translateZ(0px)}
+.cell-space:hover{background:var(--cellH);transform:translateZ(2px)}
+.cell-space.valid-move{background:rgba(255,255,255,.08);animation:validPulse 1.5s infinite;cursor:pointer}
+.cell-space.valid-move::after{content:'';position:absolute;inset:20%;border-radius:50%;
+border:2px solid rgba(255,255,255,.3);animation:ringPulse 1.5s infinite}
+@keyframes validPulse{0%,100%{box-shadow:inset 0 0 8px rgba(255,255,255,.1)}50%{box-shadow:inset 0 0 15px rgba(255,255,255,.2)}}
+@keyframes ringPulse{0%,100%{transform:scale(.8);opacity:.3}50%{transform:scale(1);opacity:.7}}
+
+/* Wall gaps */
+.h-gap{cursor:pointer;position:relative;border-radius:1px;transition:background .2s}
+.v-gap{cursor:pointer;position:relative;border-radius:1px;transition:background .2s}
+.corner{background:transparent}
+
+.h-gap:hover,.v-gap:hover{background:rgba(224,160,64,.2)}
+.h-gap.preview,.v-gap.preview{background:rgba(224,160,64,.5)!important;box-shadow:0 0 8px rgba(224,160,64,.3)}
+.h-gap.wall-placed,.v-gap.wall-placed{
+background:linear-gradient(135deg,var(--wall),var(--wallG));
+box-shadow:0 0 6px rgba(224,160,64,.4),inset 0 1px 1px rgba(255,255,255,.2);
+transform:translateZ(4px);border-radius:2px;
+animation:wallDrop .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes wallDrop{0%{transform:translateZ(20px);opacity:0}100%{transform:translateZ(4px);opacity:1}}
+
+.h-gap.invalid,.v-gap.invalid{background:rgba(255,0,0,.4)!important;animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+
+/* Pawns */
+.pawn{position:absolute;border-radius:50%;z-index:10;pointer-events:none;
+transform-style:preserve-3d;transition:all .35s cubic-bezier(.23,1,.32,1)}
+.pawn::before{content:'';position:absolute;inset:-3px;border-radius:50%;
+animation:pawnGlow 2s infinite}
+.pawn::after{content:'';position:absolute;bottom:-4px;left:10%;width:80%;height:6px;
+border-radius:50%;background:rgba(0,0,0,.4);filter:blur(3px);transform:translateZ(-2px)}
+.pawn.p1{background:radial-gradient(circle at 35% 35%,#66d4ff,var(--p1),var(--p1g));
+box-shadow:0 0 15px var(--p1s),inset 0 -2px 4px rgba(0,0,0,.3);transform:translateZ(8px)}
+.pawn.p1::before{box-shadow:0 0 20px var(--p1s)}
+.pawn.p2{background:radial-gradient(circle at 35% 35%,#ff8090,var(--p2),var(--p2g));
+box-shadow:0 0 15px var(--p2s),inset 0 -2px 4px rgba(0,0,0,.3);transform:translateZ(8px)}
+.pawn.p2::before{box-shadow:0 0 20px var(--p2s)}
+@keyframes pawnGlow{0%,100%{opacity:.4}50%{opacity:.8}}
+
+/* Goal rows */
+.cell-space.goal-p1{border-bottom:2px solid rgba(0,180,255,.3)}
+.cell-space.goal-p2{border-top:2px solid rgba(255,64,96,.3)}
+
+/* Mode buttons */
+.controls{width:100%;display:flex;gap:8px;padding:6px 4px;flex-shrink:0}
+.btn{flex:1;padding:10px 8px;border:none;border-radius:10px;font-family:'Orbitron',monospace;
+font-size:clamp(9px,2.2vw,12px);font-weight:700;letter-spacing:1px;text-transform:uppercase;
+cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+.btn::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.08),transparent);pointer-events:none}
+.btn-move{background:rgba(255,255,255,.06);color:var(--text);border:1px solid rgba(255,255,255,.1)}
+.btn-move.active{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);box-shadow:0 0 15px rgba(255,255,255,.1)}
+.btn-wall{background:rgba(224,160,64,.1);color:var(--wall);border:1px solid rgba(224,160,64,.2)}
+.btn-wall.active{background:rgba(224,160,64,.2);border-color:rgba(224,160,64,.5);box-shadow:0 0 15px rgba(224,160,64,.2)}
+.btn-wall:disabled{opacity:.3;cursor:not-allowed}
+.btn-restart{background:rgba(255,255,255,.04);color:var(--sub);border:1px solid rgba(255,255,255,.06)}
+.btn-restart:active{background:rgba(255,255,255,.1)}
+
+/* Win overlay */
+.overlay{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
+background:rgba(0,0,0,.85);backdrop-filter:blur(10px);animation:fadeIn .5s}
+.overlay.show{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.win-card{text-align:center;padding:40px 30px;border-radius:20px;
+background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+animation:cardPop .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes cardPop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.trophy{font-size:60px;margin-bottom:12px}
+.win-title{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;margin-bottom:6px}
+.win-stats{color:var(--sub);font-size:15px;margin-bottom:20px;line-height:1.6}
+.win-btn{padding:12px 40px;border:none;border-radius:12px;font-family:'Orbitron',monospace;
+font-size:14px;font-weight:700;cursor:pointer;letter-spacing:2px;
+background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;
+box-shadow:0 4px 20px rgba(0,180,255,.3);transition:transform .2s}
+.win-btn:active{transform:scale(.95)}
+
+/* Wall orientation toggle */
+.orient-toggle{display:none;align-items:center;justify-content:center;gap:10px;padding:4px 0}
+.orient-toggle.show{display:flex}
+.orient-btn{padding:6px 16px;border:1px solid rgba(224,160,64,.3);border-radius:8px;
+background:rgba(224,160,64,.05);color:var(--wall);font-family:'Orbitron',monospace;
+font-size:clamp(8px,2vw,11px);font-weight:700;cursor:pointer;transition:all .3s;letter-spacing:1px}
+.orient-btn.active{background:rgba(224,160,64,.25);border-color:var(--wall);box-shadow:0 0 10px rgba(224,160,64,.2)}
+</style>
+</head>
+<body>
+
+<div class="particles" id="particles"></div>
+
+<div id="app">
+  <div class="header">
+    <div class="title">Corridor Duel</div>
+    <div class="info-bar">
+      <div class="player-info p1" id="p1info">
+        <div class="player-label">Player 1</div>
+        <div class="wall-count" id="p1walls">Walls: 10</div>
+        <div class="wall-pips" id="p1pips"></div>
+      </div>
+      <div class="turn-indicator p1-turn" id="turnInd">P1 Turn</div>
+      <div class="player-info p2" id="p2info">
+        <div class="player-label">Player 2</div>
+        <div class="wall-count" id="p2walls">Walls: 10</div>
+        <div class="wall-pips" id="p2pips"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board-3d" id="board3d">
+      <div class="board" id="board"></div>
+    </div>
+  </div>
+
+  <div class="orient-toggle" id="orientToggle">
+    <button class="orient-btn active" id="btnHoriz" onclick="setOrientation('h')">━ Horizontal</button>
+    <button class="orient-btn" id="btnVert" onclick="setOrientation('v')">┃ Vertical</button>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-move active" id="btnMove" onclick="setMode('move')">⬡ Move</button>
+    <button class="btn btn-wall" id="btnWall" onclick="setMode('wall')">▬ Wall</button>
+    <button class="btn btn-restart" onclick="restartGame()">↺ Reset</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="win-card">
+    <div class="trophy">🏆</div>
+    <div class="win-title" id="winTitle">Player 1 Wins!</div>
+    <div class="win-stats" id="winStats">Moves: 0 • Walls: 0</div>
+    <button class="win-btn" onclick="restartGame()">Play Again</button>
+  </div>
+</div>
+
+<script>
+// Game State
+const GRID=9;
+let state,mode='move',wallOrient='h';
+
+function initState(){
+  return{
+    players:[{r:0,c:4,walls:10,goalRow:8,moves:0,wallsUsed:0},{r:8,c:4,walls:10,goalRow:0,moves:0,wallsUsed:0}],
+    turn:0,
+    hWalls:new Set(),
+    vWalls:new Set(),
+    gameOver:false
+  };
+}
+
+// Board rendering - 17x17 grid (9 cells + 8 gaps)
+function cellSize(){
+  const wrap=document.querySelector('.board-wrap');
+  const maxW=wrap.clientWidth-16;
+  const maxH=wrap.clientHeight-16;
+  const s=Math.min(maxW,maxH)/17;
+  return Math.floor(s);
+}
+
+function buildBoard(){
+  const board=document.getElementById('board');
+  board.innerHTML='';
+  const cs=cellSize();
+  board.style.width=cs*17+'px';
+  board.style.height=cs*17+'px';
+  board.style.gridTemplateColumns=`repeat(9,${cs*1.7}px) repeat(8,${cs*.3}px)`.replace(/repeat\(9.*?\)/,
+    Array(9).fill(cs*1.7+'px').join(' '));
+  
+  // Proper interleaved grid
+  const cols=[];
+  for(let i=0;i<9;i++){cols.push(cs*1.7);if(i<8)cols.push(cs*.3);}
+  const rows=[...cols];
+  board.style.gridTemplateColumns=cols.map(c=>c+'px').join(' ');
+  board.style.gridTemplateRows=rows.map(r=>r+'px').join(' ');
+  
+  for(let r=0;r<17;r++){
+    for(let c=0;c<17;c++){
+      const div=document.createElement('div');
+      const isRowCell=r%2===0,isColCell=c%2===0;
+      if(isRowCell&&isColCell){
+        // Cell space
+        const gr=r/2,gc=c/2;
+        div.className='cell cell-space';
+        if(gr===8)div.classList.add('goal-p1');
+        if(gr===0)div.classList.add('goal-p2');
+        div.dataset.r=gr;div.dataset.c=gc;
+        div.addEventListener('click',()=>onCellClick(gr,gc));
+      }else if(isRowCell&&!isColCell){
+        // Vertical gap (between columns)
+        const gr=r/2,gc=(c-1)/2;
+        div.className='cell v-gap';
+        div.dataset.gr=gr;div.dataset.gc=gc;
+        div.addEventListener('click',()=>onGapClick(gr,gc,'v'));
+      }else if(!isRowCell&&isColCell){
+        // Horizontal gap (between rows)
+        const gr=(r-1)/2,gc=c/2;
+        div.className='cell h-gap';
+        div.dataset.gr=gr;div.dataset.gc=gc;
+        div.addEventListener('click',()=>onGapClick(gr,gc,'h'));
+      }else{
+        // Corner intersection
+        div.className='cell corner';
+        const gr=(r-1)/2,gc=(c-1)/2;
+        div.dataset.gr=gr;div.dataset.gc=gc;
+        div.addEventListener('click',()=>onCornerClick(gr,gc));
+      }
+      board.appendChild(div);
+    }
+  }
+  renderPawns();
+  if(mode==='move')showValidMoves();
+}
+
+function renderPawns(){
+  document.querySelectorAll('.pawn').forEach(p=>p.remove());
+  const board=document.getElementById('board');
+  const cs=cellSize();
+  state.players.forEach((p,i)=>{
+    const pawn=document.createElement('div');
+    pawn.className=`pawn p${i+1}`;
+    const cellW=cs*1.7,gapW=cs*.3;
+    const x=p.c*(cellW+gapW)+cellW*.15;
+    const y=p.r*(cellW+gapW)+cellW*.15;
+    pawn.style.width=cellW*.7+'px';
+    pawn.style.height=cellW*.7+'px';
+    pawn.style.left=x+'px';
+    pawn.style.top=y+'px';
+    board.appendChild(pawn);
+  });
+}
+
+function showValidMoves(){
+  document.querySelectorAll('.valid-move').forEach(c=>c.classList.remove('valid-move'));
+  if(state.gameOver||mode!=='move')return;
+  const moves=getValidMoves(state.turn);
+  moves.forEach(([r,c])=>{
+    const cell=document.querySelector(`.cell-space[data-r="${r}"][data-c="${c}"]`);
+    if(cell)cell.classList.add('valid-move');
+  });
+}
+
+function getValidMoves(pi){
+  const p=state.players[pi];
+  const o=state.players[1-pi];
+  const moves=[];
+  // Normal moves
+  [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>{
+    const nr=p.r+dr,nc=p.c+dc;
+    if(nr<0||nr>=GRID||nc<0||nc>=GRID)return;
+    if(isWallBetween(p.r,p.c,nr,nc))return;
+    if(nr===o.r&&nc===o.c){
+      // Jump
+      const jr=nr+dr,jc=nc+dc;
+      if(jr>=0&&jr<GRID&&jc>=0&&jc<GRID&&!isWallBetween(nr,nc,jr,jc)){
+        moves.push([jr,jc]);
+      }else{
+        // Diagonal
+        [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr2,dc2])=>{
+          if(dr2===-dr&&dc2===-dc)return;
+          const sr=nr+dr2,sc=nc+dc2;
+          if(sr>=0&&sr<GRID&&sc>=0&&sc<GRID&&!isWallBetween(nr,nc,sr,sc)&&!(sr===p.r&&sc===p.c))
+            moves.push([sr,sc]);
+        });
+      }
+    }else{
+      moves.push([nr,nc]);
+    }
+  });
+  return moves;
+}
+
+function isWallBetween(r1,c1,r2,c2){
+  if(r2===r1-1&&c2===c1){
+    // Moving up: check horizontal wall at (r1-1, c1) or (r1-1, c1-1)
+    return state.hWalls.has(`${r1-1},${c1}`)||state.hWalls.has(`${r1-1},${c1-1}`);
+  }
+  if(r2===r1+1&&c2===c1){
+    return state.hWalls.has(`${r1},${c1}`)||state.hWalls.has(`${r1},${c1-1}`);
+  }
+  if(c2===c1-1&&r2===r1){
+    return state.vWalls.has(`${r1},${c1-1}`)||state.vWalls.has(`${r1-1},${c1-1}`);
+  }
+  if(c2===c1+1&&r2===r1){
+    return state.vWalls.has(`${r1},${c1}`)||state.vWalls.has(`${r1-1},${c1}`);
+  }
+  return false;
+}
+
+function onCellClick(r,c){
+  if(state.gameOver||mode!=='move')return;
+  const moves=getValidMoves(state.turn);
+  if(!moves.some(m=>m[0]===r&&m[1]===c))return;
+  state.players[state.turn].r=r;
+  state.players[state.turn].c=c;
+  state.players[state.turn].moves++;
+  // Check win
+  if(r===state.players[state.turn].goalRow){
+    state.gameOver=true;
+    renderPawns();
+    showWin(state.turn);
+    return;
+  }
+  nextTurn();
+}
+
+function onGapClick(gr,gc,type){
+  if(state.gameOver||mode!=='wall')return;
+  placeWallAt(gr,gc,wallOrient);
+}
+
+function onCornerClick(gr,gc){
+  if(state.gameOver||mode!=='wall')return;
+  placeWallAt(gr,gc,wallOrient);
+}
+
+function placeWallAt(gr,gc,orient){
+  const p=state.players[state.turn];
+  if(p.walls<=0)return;
+  
+  const key=`${gr},${gc}`;
+  if(orient==='h'){
+    if(gc<0||gc>=GRID-1||gr<0||gr>=GRID-1)return showInvalid(gr,gc,orient);
+    if(state.hWalls.has(key))return showInvalid(gr,gc,orient);
+    if(state.hWalls.has(`${gr},${gc+1}`)||state.hWalls.has(`${gr},${gc-1}`)){
+      // Check overlap - walls are 2 cells wide
+    }
+    // Check crossing
+    if(state.vWalls.has(key))return showInvalid(gr,gc,orient);
+    // Check overlap with adjacent h walls
+    if(state.hWalls.has(`${gr},${gc-1}`)||state.hWalls.has(`${gr},${gc+1}`))return showInvalid(gr,gc,orient);
+    
+    state.hWalls.add(key);
+    if(!bfsCheck()){
+      state.hWalls.delete(key);
+      return showInvalid(gr,gc,orient);
+    }
+  }else{
+    if(gr<0||gr>=GRID-1||gc<0||gc>=GRID-1)return showInvalid(gr,gc,orient);
+    if(state.vWalls.has(key))return showInvalid(gr,gc,orient);
+    if(state.hWalls.has(key))return showInvalid(gr,gc,orient);
+    if(state.vWalls.has(`${gr-1},${gc}`)||state.vWalls.has(`${gr+1},${gc}`))return showInvalid(gr,gc,orient);
+    
+    state.vWalls.add(key);
+    if(!bfsCheck()){
+      state.vWalls.delete(key);
+      return showInvalid(gr,gc,orient);
+    }
+  }
+  p.walls--;
+  p.wallsUsed++;
+  renderWalls();
+  nextTurn();
+}
+
+function showInvalid(gr,gc,orient){
+  // Flash invalid
+  const sel=orient==='h'?'.h-gap':'.v-gap';
+  document.querySelectorAll(`${sel}[data-gr="${gr}"][data-gc="${gc}"]`).forEach(el=>{
+    el.classList.add('invalid');
+    setTimeout(()=>el.classList.remove('invalid'),400);
+  });
+}
+
+function bfsCheck(){
+  for(let pi=0;pi<2;pi++){
+    const p=state.players[pi];
+    if(!bfsPath(p.r,p.c,p.goalRow))return false;
+  }
+  return true;
+}
+
+function bfsPath(sr,sc,goalRow){
+  const visited=new Set();
+  const q=[[sr,sc]];
+  visited.add(`${sr},${sc}`);
+  while(q.length){
+    const[r,c]=q.shift();
+    if(r===goalRow)return true;
+    [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>{
+      const nr=r+dr,nc=c+dc;
+      if(nr<0||nr>=GRID||nc<0||nc>=GRID)return;
+      const k=`${nr},${nc}`;
+      if(visited.has(k))return;
+      if(isWallBetween(r,c,nr,nc))return;
+      visited.add(k);
+      q.push([nr,nc]);
+    });
+  }
+  return false;
+}
+
+function renderWalls(){
+  document.querySelectorAll('.wall-placed').forEach(w=>w.classList.remove('wall-placed'));
+  const cs=cellSize();
+  state.hWalls.forEach(key=>{
+    const[r,c]=key.split(',').map(Number);
+    // Horizontal wall at gap row between r and r+1, spanning columns c and c+1
+    const gapRow=r*2+1;
+    // Mark two h-gap cells and the corner between
+    [[gapRow,c*2],[gapRow,c*2+2]].forEach(([gr,gc])=>{
+      const el=document.querySelector(`.board>:nth-child(${gr*17+gc+1})`);
+      if(el)el.classList.add('wall-placed');
+    });
+    // Corner
+    const corner=document.querySelector(`.board>:nth-child(${gapRow*17+(c*2+1)+1})`);
+    if(corner)corner.classList.add('wall-placed');
+  });
+  state.vWalls.forEach(key=>{
+    const[r,c]=key.split(',').map(Number);
+    const gapCol=c*2+1;
+    [[r*2,gapCol],[r*2+2,gapCol]].forEach(([gr,gc])=>{
+      const el=document.querySelector(`.board>:nth-child(${gr*17+gc+1})`);
+      if(el)el.classList.add('wall-placed');
+    });
+    const corner=document.querySelector(`.board>:nth-child(${(r*2+1)*17+gapCol+1})`);
+    if(corner)corner.classList.add('wall-placed');
+  });
+}
+
+function nextTurn(){
+  state.turn=1-state.turn;
+  renderPawns();
+  renderWalls();
+  updateUI();
+  if(mode==='move')showValidMoves();
+}
+
+function updateUI(){
+  const ti=document.getElementById('turnInd');
+  ti.textContent=`P${state.turn+1} Turn`;
+  ti.className=`turn-indicator p${state.turn+1}-turn`;
+  
+  document.getElementById('p1info').classList.toggle('active',state.turn===0);
+  document.getElementById('p2info').classList.toggle('active',state.turn===1);
+  
+  state.players.forEach((p,i)=>{
+    document.getElementById(`p${i+1}walls`).textContent=`Walls: ${p.walls}`;
+    const pips=document.getElementById(`p${i+1}pips`);
+    pips.innerHTML='';
+    for(let j=0;j<10;j++){
+      const pip=document.createElement('div');
+      pip.className='pip'+(j<p.walls?' filled':'');
+      pips.appendChild(pip);
+    }
+  });
+  
+  // Disable wall button if no walls
+  document.getElementById('btnWall').disabled=state.players[state.turn].walls<=0;
+  if(state.players[state.turn].walls<=0&&mode==='wall')setMode('move');
+}
+
+function setMode(m){
+  mode=m;
+  document.getElementById('btnMove').classList.toggle('active',m==='move');
+  document.getElementById('btnWall').classList.toggle('active',m==='wall');
+  document.getElementById('orientToggle').classList.toggle('show',m==='wall');
+  document.querySelectorAll('.valid-move').forEach(c=>c.classList.remove('valid-move'));
+  if(m==='move')showValidMoves();
+}
+
+function setOrientation(o){
+  wallOrient=o;
+  document.getElementById('btnHoriz').classList.toggle('active',o==='h');
+  document.getElementById('btnVert').classList.toggle('active',o==='v');
+}
+
+function showWin(pi){
+  const ol=document.getElementById('overlay');
+  ol.classList.add('show');
+  const p=state.players[pi];
+  document.getElementById('winTitle').textContent=`Player ${pi+1} Wins!`;
+  document.getElementById('winTitle').style.color=pi===0?'var(--p1)':'var(--p2)';
+  document.getElementById('winStats').textContent=`Moves: ${p.moves} • Walls Used: ${p.wallsUsed}`;
+}
+
+function restartGame(){
+  document.getElementById('overlay').classList.remove('show');
+  state=initState();
+  mode='move';
+  wallOrient='h';
+  buildBoard();
+  updateUI();
+  setMode('move');
+}
+
+// Particles
+function createParticles(){
+  const cont=document.getElementById('particles');
+  for(let i=0;i<30;i++){
+    const p=document.createElement('div');
+    p.className='particle';
+    p.style.left=Math.random()*100+'%';
+    p.style.animationDuration=(8+Math.random()*12)+'s';
+    p.style.animationDelay=Math.random()*10+'s';
+    p.style.width=p.style.height=(1+Math.random()*2)+'px';
+    cont.appendChild(p);
+  }
+}
+
+// Init
+state=initState();
+createParticles();
+buildBoard();
+updateUI();
+
+window.addEventListener('resize',()=>{buildBoard();renderWalls();updateUI();});
+</script>
+</body>
+</html>
