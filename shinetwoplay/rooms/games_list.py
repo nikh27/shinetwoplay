@@ -115,6 +115,14 @@ GAMES = [
         'description': 'Duel of Minds! Flip cards and find matching pairs. Match a pair and keep your turn — most pairs wins!',
         'min_players': 2,
         'max_players': 2,
+    },
+    {
+        'game_id': 'bingo',
+        'name': 'Bingo',
+        'image_url': '/static/games/bingo.png',
+        'description': 'Classic Bingo showdown! Mark called numbers on your card. Complete a line and shout BINGO to win!',
+        'min_players': 2,
+        'max_players': 2,
     }
 ]
 

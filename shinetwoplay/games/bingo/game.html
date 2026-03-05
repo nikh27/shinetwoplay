@@ -1,0 +1,690 @@
+<!-- Bingo Game — Online Multiplayer -->
+
+<div class="bg-wrap" id="bg-wrap">
+
+  <!-- ===== TOP BAR ===== -->
+  <div class="bg-topbar">
+    <div class="bg-topbar-left">
+      <button class="bg-tb-btn" onclick="exitGame()" title="Exit">✕</button>
+      <button class="bg-tb-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+      <button class="bg-tb-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Spk">🔊</button>
+    </div>
+    <div class="bg-topbar-mid">
+      <div class="bg-mini-card bg-mc-p1" id="bg-mc-p1">
+        <div class="bg-mini-av" id="bg-av1"></div>
+        <div class="bg-mini-info">
+          <div class="bg-mini-name" id="bg-name1">P1</div>
+          <div class="bg-mini-pts" id="bg-pts1">0</div>
+        </div>
+      </div>
+      <div class="bg-round-badge" id="bg-round-badge">R 1/3</div>
+      <div class="bg-mini-card bg-mc-p2" id="bg-mc-p2">
+        <div class="bg-mini-info" style="text-align:right">
+          <div class="bg-mini-name" id="bg-name2">P2</div>
+          <div class="bg-mini-pts" id="bg-pts2">0</div>
+        </div>
+        <div class="bg-mini-av" id="bg-av2"></div>
+      </div>
+    </div>
+    <div class="bg-topbar-right"></div>
+  </div>
+
+  <!-- ===== CALLED NUMBER BALL ===== -->
+  <div class="bg-call-area">
+    <div class="bg-ball" id="bg-ball">
+      <span id="bg-ball-num">?</span>
+    </div>
+    <div class="bg-history" id="bg-history"></div>
+  </div>
+
+  <!-- ===== BINGO HEADER ===== -->
+  <div class="bg-header-row">
+    <span class="bg-hdr" style="color:#FF006E">B</span>
+    <span class="bg-hdr" style="color:#FFD700">I</span>
+    <span class="bg-hdr" style="color:#00F5D4">N</span>
+    <span class="bg-hdr" style="color:#7B2FFF">G</span>
+    <span class="bg-hdr" style="color:#3A86FF">O</span>
+  </div>
+
+  <!-- ===== CARD GRID ===== -->
+  <div class="bg-board-area">
+    <div class="bg-grid" id="bg-grid"></div>
+  </div>
+
+  <!-- ===== BINGO BUTTON ===== -->
+  <div class="bg-footer">
+    <button class="bg-bingo-btn" id="bg-bingo-btn" onclick="currentGame && currentGame.declareBingo()">
+      BINGO!
+    </button>
+  </div>
+
+  <!-- ===== FALSE BINGO TOAST ===== -->
+  <div class="bg-false-toast" id="bg-false-toast" style="display:none">
+    <span id="bg-false-text">Not a valid Bingo!</span>
+  </div>
+
+  <!-- ===== PAUSE ===== -->
+  <div class="bg-overlay" id="bg-pause-ov" style="display:none">
+    <div class="bg-modal">
+      <div style="font-size:40px">⏸️</div>
+      <h2>Game Paused</h2>
+      <p><span id="bg-disconnected">Player</span> disconnected</p>
+      <p>Waiting... <span id="bg-countdown">30</span>s</p>
+    </div>
+  </div>
+
+  <!-- ===== ROUND RESULT ===== -->
+  <div class="bg-overlay" id="bg-result-ov" style="display:none">
+    <div class="bg-modal bg-result-modal">
+      <div class="bg-res-icon" id="bg-res-icon">🎉</div>
+      <div class="bg-res-title" id="bg-res-title">BINGO!</div>
+      <div class="bg-res-sub" id="bg-res-sub">Player wins the round!</div>
+      <div class="bg-res-scores" id="bg-res-scores"></div>
+      <div class="bg-res-note" id="bg-res-note">Next round in 5s...</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================ CSS -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap');
+
+.bg-wrap *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.bg-wrap{
+  position:relative;display:flex;flex-direction:column;align-items:center;
+  width:100%;height:100%;
+  background:linear-gradient(160deg,#0a0a1a 0%,#1a0a2e 40%,#0a1628 100%);
+  font-family:'DM Sans','Segoe UI',sans-serif;
+  color:#fff;overflow:hidden;user-select:none;
+}
+/* Ambient orbs */
+.bg-wrap::before,.bg-wrap::after{
+  content:'';position:absolute;border-radius:50%;pointer-events:none;
+}
+.bg-wrap::before{
+  top:-20%;right:-20%;width:60vw;height:60vw;
+  background:radial-gradient(circle,rgba(123,47,255,.08) 0%,transparent 70%);
+}
+.bg-wrap::after{
+  bottom:-10%;left:-10%;width:50vw;height:50vw;
+  background:radial-gradient(circle,rgba(255,0,110,.06) 0%,transparent 70%);
+}
+.bg-wrap > *{position:relative;z-index:1}
+
+/* ===== TOP BAR ===== */
+.bg-topbar{
+  width:100%;display:flex;align-items:center;
+  padding:5px 8px 4px;gap:6px;flex-shrink:0;
+  background:rgba(10,10,26,.75);backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(255,255,255,.05);z-index:95;
+}
+.bg-topbar-left{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.bg-tb-btn{
+  width:28px;height:28px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.1);color:#fff;font-size:12px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .2s;flex-shrink:0;
+}
+.bg-tb-btn:hover{background:rgba(255,255,255,.22)}
+.bg-topbar-mid{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-width:0}
+.bg-topbar-right{flex-shrink:0;width:28px}
+.bg-round-badge{
+  font-family:'Archivo Black',sans-serif;
+  font-size:9px;letter-spacing:3px;color:#FFD700;
+  background:rgba(255,215,0,.1);padding:3px 10px;border-radius:20px;
+  border:1px solid rgba(255,215,0,.3);white-space:nowrap;flex-shrink:0;
+}
+.bg-mini-card{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.04);border-radius:10px;
+  padding:3px 6px;border:1px solid transparent;transition:all .3s;
+  min-width:0;flex-shrink:1;
+}
+.bg-mini-av{
+  width:22px;height:22px;border-radius:50%;flex-shrink:0;
+  background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.12);overflow:hidden;
+}
+.bg-mini-av img{width:100%;height:100%;object-fit:cover}
+.bg-mini-info{min-width:0;line-height:1.15}
+.bg-mini-name{font-size:7px;letter-spacing:1.5px;font-weight:700;opacity:.65;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55px}
+.bg-mc-p1 .bg-mini-name{color:#FF006E}
+.bg-mc-p2 .bg-mini-name{color:#3A86FF}
+.bg-mini-pts{font-size:13px;font-weight:900;color:#fff;font-family:'Archivo Black',sans-serif;line-height:1}
+
+/* ===== CALLED NUMBER BALL ===== */
+.bg-call-area{
+  display:flex;flex-direction:column;align-items:center;
+  padding:6px 0 4px;flex-shrink:0;
+}
+.bg-ball{
+  width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,#FFD700,#FF006E);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Archivo Black',sans-serif;font-size:24px;color:#0a0a1a;
+  box-shadow:0 0 24px rgba(255,215,0,.45);
+  transition:all .3s;
+}
+.bg-ball.bg-pop{animation:bgNumPop .4s cubic-bezier(.4,0,.2,1)}
+@keyframes bgNumPop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.bg-history{
+  display:flex;gap:4px;flex-wrap:wrap;justify-content:center;
+  margin-top:4px;min-height:22px;max-width:90vw;
+}
+.bg-hist-num{
+  font-size:10px;font-weight:700;background:rgba(255,255,255,.06);
+  padding:2px 6px;border-radius:6px;color:rgba(255,255,255,.35);
+  font-family:'DM Sans',sans-serif;
+}
+
+/* ===== BINGO HEADER ===== */
+.bg-header-row{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  gap:4px;width:min(calc(100vw - 20px),calc((100dvh - 220px)/1.15));
+  max-width:320px;flex-shrink:0;margin-bottom:2px;
+}
+.bg-hdr{
+  text-align:center;font-family:'Archivo Black',sans-serif;
+  font-size:clamp(12px,3.5vw,18px);letter-spacing:2px;
+}
+
+/* ===== CARD GRID ===== */
+.bg-board-area{
+  flex:1;display:flex;align-items:flex-start;justify-content:center;
+  width:100%;padding:0 10px;min-height:0;overflow:hidden;
+}
+.bg-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  gap:4px;
+  width:min(calc(100vw - 20px),calc((100dvh - 220px)/1.15));
+  max-width:320px;
+}
+
+/* ===== BINGO CELL ===== */
+.bg-cell{
+  aspect-ratio:1;border:none;border-radius:10px;
+  font-family:'Archivo Black',sans-serif;
+  font-size:clamp(14px,4vw,22px);font-weight:900;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;cursor:pointer;
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+  background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.bg-cell.bg-free{cursor:default;background:linear-gradient(135deg,#7B2FFF,#3A86FF);
+  color:#fff;box-shadow:0 0 15px rgba(123,47,255,.4),inset 0 0 8px rgba(255,255,255,.1)}
+.bg-cell.bg-marked{
+  background:linear-gradient(135deg,#7B2FFF,#3A86FF);color:#fff;
+  box-shadow:0 0 15px rgba(123,47,255,.4),inset 0 0 8px rgba(255,255,255,.1);
+}
+.bg-cell.bg-marked::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle,rgba(255,255,255,.15) 0%,transparent 70%);
+}
+.bg-cell.bg-win-cell{
+  background:linear-gradient(135deg,#FFD700,#FF006E)!important;color:#fff!important;
+  box-shadow:0 0 20px rgba(255,215,0,.6),inset 0 0 10px rgba(255,255,255,.2)!important;
+  animation:bgWinPulse .8s ease infinite alternate;
+}
+.bg-cell.bg-pop-mark{transform:scale(1.15)}
+.bg-cell.bg-callable{box-shadow:inset 0 0 0 1px rgba(255,215,0,.25);
+  color:rgba(255,255,255,.7)}
+@keyframes bgWinPulse{0%{filter:brightness(1)}100%{filter:brightness(1.4)}}
+
+/* ===== BINGO BUTTON ===== */
+.bg-footer{
+  padding:6px 12px 10px;flex-shrink:0;width:100%;
+  display:flex;justify-content:center;
+}
+.bg-bingo-btn{
+  width:min(90vw,320px);padding:14px;border:none;border-radius:14px;
+  background:linear-gradient(135deg,#FFD700,#FF006E);
+  color:#0a0a1a;font-family:'Archivo Black',sans-serif;
+  font-size:clamp(16px,5vw,20px);letter-spacing:3px;cursor:pointer;
+  box-shadow:0 6px 24px rgba(255,0,110,.35);
+  animation:bgGlow 2s ease infinite;transition:all .25s ease;
+}
+.bg-bingo-btn:disabled{opacity:.4;pointer-events:none;animation:none;box-shadow:none}
+.bg-bingo-btn:active:not(:disabled){transform:scale(.96)}
+@keyframes bgGlow{0%,100%{box-shadow:0 0 20px rgba(123,47,255,.3)}50%{box-shadow:0 0 40px rgba(123,47,255,.6)}}
+
+/* ===== FALSE BINGO TOAST ===== */
+.bg-false-toast{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:90;
+  padding:12px 24px;border-radius:14px;
+  background:rgba(255,70,70,.15);border:1px solid rgba(255,70,70,.3);
+  color:#ff6b6b;font-weight:700;font-size:13px;white-space:nowrap;
+  animation:bgShake .5s ease;pointer-events:none;
+}
+@keyframes bgShake{0%,100%{transform:translate(-50%,-50%) translateX(0)}20%{transform:translate(-50%,-50%) translateX(-8px)}40%{transform:translate(-50%,-50%) translateX(8px)}60%{transform:translate(-50%,-50%) translateX(-4px)}80%{transform:translate(-50%,-50%) translateX(4px)}}
+
+/* ===== OVERLAYS ===== */
+.bg-overlay{
+  position:absolute;inset:0;z-index:80;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(10,10,26,.88);backdrop-filter:blur(12px);
+}
+.bg-modal{
+  text-align:center;padding:24px 20px;max-width:340px;width:92%;
+  animation:bgSlideUp .4s ease;
+}
+@keyframes bgSlideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.bg-modal h2{font-family:'Archivo Black',sans-serif;font-size:16px;letter-spacing:3px;margin:8px 0 4px}
+.bg-modal p{font-size:11px;color:rgba(255,255,255,.4);margin:2px 0}
+
+.bg-result-modal{
+  border-radius:24px;
+  background:linear-gradient(160deg,rgba(123,47,255,.15),rgba(255,0,110,.1));
+  border:1px solid rgba(255,255,255,.1);
+}
+.bg-res-icon{font-size:48px;margin-bottom:8px;animation:bgFloat 2s ease-in-out infinite}
+@keyframes bgFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.bg-res-title{
+  font-family:'Archivo Black',sans-serif;font-size:32px;
+  background:linear-gradient(135deg,#FFD700,#FF006E);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:6px;
+}
+.bg-res-sub{font-size:14px;color:rgba(255,255,255,.6);margin-bottom:16px}
+.bg-res-scores{display:flex;gap:10px;justify-content:center;margin-bottom:12px}
+.bg-res-sc{
+  flex:1;max-width:100px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 6px;text-align:center;
+}
+.bg-res-sc.bg-sc-winner{border-color:rgba(255,215,0,.3);box-shadow:0 0 16px rgba(255,215,0,.15)}
+.bg-res-sc-name{font-size:8px;letter-spacing:2px;opacity:.6;margin-bottom:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bg-res-sc-pts{font-family:'Archivo Black',sans-serif;font-size:22px;color:#fff;line-height:1}
+.bg-res-note{font-size:10px;color:rgba(255,255,255,.3);letter-spacing:2px}
+</style>
+
+<script>
+// ===================================================================
+// Bingo Game — Multiplayer Frontend
+// ===================================================================
+const BG_CALL_INTERVAL = 3500; // auto-call every 3.5s
+
+class BingoGame extends BaseGame {
+  constructor(){
+    super();
+    this.gameMode      = 'turn_based';
+    this.state         = null;
+    this._cells        = [];
+    this._callTimer    = null;
+    this._lastCallIdx  = -1;
+    this._falseBingoT  = null;
+    this._lastMarked   = null;
+    this._lastMarkT    = null;
+  }
+
+  init(state){
+    this.state = state;
+    this._buildGrid();
+    this._renderAll();
+    this._startCallingLoop();
+  }
+
+  update(state){
+    const prev = this.state;
+    const isNewRound = prev && prev.current_round !== state.current_round;
+    this.state = state;
+
+    if(state.paused){ this._showPause(); this._stopCallingLoop(); return; }
+    this._hidePause();
+
+    if(isNewRound){
+      this._lastCallIdx = -1;
+      this._buildGrid();
+      this._startCallingLoop();
+    }
+    this._renderAll();
+
+    // Detect new number called
+    if(state.call_index > this._lastCallIdx && state.current_number){
+      this._animateBall(state.current_number);
+      this._lastCallIdx = state.call_index;
+    }
+
+    // False bingo
+    if(state.false_bingo){
+      this._showFalseBingo(state.false_bingo);
+    }
+  }
+
+  onRoundEnd(result){
+    this._stopCallingLoop();
+    // Highlight winning cells
+    this._highlightWin();
+    setTimeout(()=> this._showRoundResult(result), 800);
+  }
+
+  onGameEnd(result){
+    this._stopCallingLoop();
+    this._highlightWin();
+    setTimeout(()=>{
+      const isWin  = result.game_winner === USER;
+      const isDraw = result.game_winner === 'draw';
+      const icon   = document.getElementById('bg-res-icon');
+      const title  = document.getElementById('bg-res-title');
+      const note   = document.getElementById('bg-res-note');
+      if(icon)  icon.textContent = isDraw ? '🤝' : isWin ? '🎉' : '😞';
+      if(title) title.textContent = isDraw ? "DRAW!" : isWin ? 'YOU WIN!' : 'GAME OVER';
+      if(note)  note.textContent = 'Returning to lobby...';
+      if(isWin) this._confetti();
+      this._showResultOv();
+    }, 800);
+  }
+
+  // ── Auto-call loop ─────────────────────────────────────────────
+  _startCallingLoop(){
+    this._stopCallingLoop();
+    this._callTimer = setInterval(()=>{
+      if(!this.state || this.state.winner || this.state.paused) return;
+      this.sendMove('call_number', {});
+    }, BG_CALL_INTERVAL);
+    // Call first number after short delay if none called yet
+    if(this.state && !this.state.current_number){
+      setTimeout(()=>{
+        if(this.state && !this.state.current_number)
+          this.sendMove('call_number', {});
+      }, 800);
+    }
+  }
+
+  _stopCallingLoop(){
+    clearInterval(this._callTimer);
+    this._callTimer = null;
+  }
+
+  // ── Build 5×5 grid ────────────────────────────────────────────
+  _buildGrid(){
+    const grid = document.getElementById('bg-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    this._cells = [];
+
+    // My card
+    const myCard = this._getMyCard();
+    if(!myCard) return;
+
+    for(let r=0;r<5;r++){
+      for(let c=0;c<5;c++){
+        const val = myCard[r][c];
+        const cell = document.createElement('button');
+        cell.className = 'bg-cell';
+        if(val === 0){
+          cell.classList.add('bg-free');
+          cell.textContent = '★';
+        } else {
+          cell.textContent = val;
+        }
+        cell.addEventListener('pointerdown',(e)=>{
+          e.preventDefault();
+          this._onCellTap(r, c);
+        });
+        grid.appendChild(cell);
+        this._cells.push({el: cell, r, c, val});
+      }
+    }
+  }
+
+  _getMyCard(){
+    if(!this.state) return null;
+    return this.state.cards ? this.state.cards[USER] : null;
+  }
+
+  _getMyMarked(){
+    if(!this.state) return null;
+    return this.state.marked ? this.state.marked[USER] : null;
+  }
+
+  _onCellTap(r, c){
+    if(!this.state || this.state.winner) return;
+    const card = this._getMyCard();
+    const marked = this._getMyMarked();
+    if(!card || !marked) return;
+
+    const val = card[r][c];
+    if(val === 0 || marked[r][c]) return;
+
+    // Check if number is in called list
+    if(!(this.state.called_numbers || []).includes(val)) return;
+
+    this.sendMove('mark', {row: r, col: c});
+  }
+
+  declareBingo(){
+    if(!this.state || this.state.winner) return;
+    this.sendMove('bingo', {});
+  }
+
+  // ── Render ────────────────────────────────────────────────────
+  _renderAll(){
+    if(!this.state) return;
+    this._updateTopBar();
+    this._updateCells();
+    this._updateBall();
+    this._updateHistory();
+    this._updateBingoBtn();
+  }
+
+  _updateTopBar(){
+    const {players, scores, current_round, total_rounds} = this.state;
+    const p1 = players['P1'], p2 = players['P2'];
+    this._setText('bg-name1', p1);
+    this._setText('bg-name2', p2);
+    this._setText('bg-pts1', scores[p1] ?? 0);
+    this._setText('bg-pts2', scores[p2] ?? 0);
+    this._setText('bg-round-badge', `R ${current_round}/${total_rounds}`);
+    this._setAvatar('bg-av1', p1);
+    this._setAvatar('bg-av2', p2);
+  }
+
+  _updateCells(){
+    const marked = this._getMyMarked();
+    const called = new Set(this.state.called_numbers || []);
+    if(!marked) return;
+
+    this._cells.forEach(({el, r, c, val})=>{
+      if(val === 0) return; // FREE
+      const isMarked = marked[r][c];
+      el.classList.toggle('bg-marked', isMarked);
+      // Highlight callable (in called list but not yet marked)
+      el.classList.toggle('bg-callable', !isMarked && called.has(val));
+    });
+  }
+
+  _updateBall(){
+    const num = this.state.current_number;
+    const el = document.getElementById('bg-ball-num');
+    if(el) el.textContent = num || '?';
+  }
+
+  _updateHistory(){
+    const hist = document.getElementById('bg-history');
+    if(!hist) return;
+    const nums = this.state.called_numbers || [];
+    hist.innerHTML = '';
+    nums.slice(1, 8).forEach((n, i)=>{
+      const sp = document.createElement('span');
+      sp.className = 'bg-hist-num';
+      sp.style.opacity = String(0.5 - i * 0.05);
+      sp.textContent = n;
+      hist.appendChild(sp);
+    });
+  }
+
+  _updateBingoBtn(){
+    const btn = document.getElementById('bg-bingo-btn');
+    if(!btn) return;
+    btn.disabled = !!this.state.winner;
+  }
+
+  _animateBall(num){
+    const ball = document.getElementById('bg-ball');
+    const el   = document.getElementById('bg-ball-num');
+    if(!ball || !el) return;
+    el.textContent = num;
+    ball.classList.remove('bg-pop');
+    void ball.offsetHeight;
+    ball.classList.add('bg-pop');
+    this._playTone(660, 100);
+  }
+
+  // ── Win highlight ─────────────────────────────────────────────
+  _highlightWin(){
+    const marked = this._getMyMarked();
+    if(!marked) return;
+    const winCells = this._getWinCells(marked);
+    this._cells.forEach(({el, r, c})=>{
+      if(winCells.has(`${r}-${c}`)) el.classList.add('bg-win-cell');
+    });
+  }
+
+  _getWinCells(marked){
+    const cells = new Set();
+    for(let r=0;r<5;r++)
+      if(marked[r].every(Boolean)) for(let c=0;c<5;c++) cells.add(`${r}-${c}`);
+    for(let c=0;c<5;c++)
+      if([0,1,2,3,4].every(r=>marked[r][c])) for(let r=0;r<5;r++) cells.add(`${r}-${c}`);
+    if([0,1,2,3,4].every(i=>marked[i][i]))
+      for(let i=0;i<5;i++) cells.add(`${i}-${i}`);
+    if([0,1,2,3,4].every(i=>marked[i][4-i]))
+      for(let i=0;i<5;i++) cells.add(`${i}-${4-i}`);
+    return cells;
+  }
+
+  // ── False Bingo ───────────────────────────────────────────────
+  _showFalseBingo(player){
+    const t = document.getElementById('bg-false-toast');
+    const tx = document.getElementById('bg-false-text');
+    if(!t) return;
+    if(tx) tx.textContent = `${player} — Not a valid Bingo!`;
+    t.style.display = 'block';
+    t.style.animation = 'none'; void t.offsetHeight; t.style.animation = 'bgShake .5s ease';
+    this._playTone(200, 400);
+    clearTimeout(this._falseBingoT);
+    this._falseBingoT = setTimeout(()=>{ t.style.display='none'; }, 2200);
+  }
+
+  // ── Round result ──────────────────────────────────────────────
+  _showRoundResult(result){
+    const state = result.game_state || this.state;
+    if(!state) return;
+    const p1n = state.players['P1'], p2n = state.players['P2'];
+    const s1 = state.scores[p1n] ?? 0, s2 = state.scores[p2n] ?? 0;
+    const rw = result.round_winner;
+
+    const icon  = document.getElementById('bg-res-icon');
+    const title = document.getElementById('bg-res-title');
+    const sub   = document.getElementById('bg-res-sub');
+    const note  = document.getElementById('bg-res-note');
+    const sc    = document.getElementById('bg-res-scores');
+
+    if(icon)  icon.textContent = rw===USER?'🎉':'😔';
+    if(title) title.textContent = 'BINGO!';
+    if(sub)   sub.textContent = `${rw} wins the round!`;
+    if(note)  note.textContent = result.game_ended ? 'Final result coming...' : 'Next round in 5s...';
+
+    if(sc){
+      sc.innerHTML = '';
+      [[p1n,s1],[p2n,s2]].forEach(([name,score])=>{
+        const d = document.createElement('div');
+        d.className = 'bg-res-sc' + (rw===name?' bg-sc-winner':'');
+        d.innerHTML = `<div class="bg-res-sc-name">${name}</div><div class="bg-res-sc-pts">${score}</div>`;
+        sc.appendChild(d);
+      });
+    }
+
+    if(rw===USER) this._confetti();
+    this._showResultOv();
+
+    if(!result.game_ended){
+      setTimeout(()=>{
+        const ov=document.getElementById('bg-result-ov');
+        if(ov) ov.style.display='none';
+      }, 5000);
+    }
+  }
+
+  _showResultOv(){
+    const ov = document.getElementById('bg-result-ov');
+    if(ov) ov.style.display='flex';
+  }
+
+  // ── Pause ─────────────────────────────────────────────────────
+  _showPause(){
+    const ov = document.getElementById('bg-pause-ov');
+    if(ov) ov.style.display='flex';
+    const d = (this.state.disconnected_players||[])[0]||'Player';
+    this._setText('bg-disconnected', d);
+  }
+  _hidePause(){
+    const ov = document.getElementById('bg-pause-ov');
+    if(ov) ov.style.display='none';
+  }
+  updateCountdown(s){ this._setText('bg-countdown',s); }
+
+  // ── Avatar ────────────────────────────────────────────────────
+  _setAvatar(elId, username){
+    const el = document.getElementById(elId);
+    if(!el || el.querySelector('img')) return;
+    if(typeof window.players !== 'undefined'){
+      const pd = window.players[username];
+      if(pd && pd.gender){
+        const src = pd.gender==='female'?'/static/games/icons/avatar_female.png':'/static/games/icons/avatar_male.png';
+        el.innerHTML=`<img src="${src}" alt="av">`;
+      }
+    }
+  }
+
+  // ── Audio ─────────────────────────────────────────────────────
+  _playTone(freq, ms){
+    try{
+      const ac = window._bgAC = window._bgAC || new (window.AudioContext||window.webkitAudioContext)();
+      const o=ac.createOscillator(), g=ac.createGain();
+      o.type='sine'; o.frequency.value=freq;
+      g.gain.setValueAtTime(.12,ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+ms/1000);
+      o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+ms/1000);
+    }catch(e){}
+  }
+
+  // ── Confetti ──────────────────────────────────────────────────
+  _confetti(){
+    const colors=['#FFD700','#FF006E','#00F5D4','#7B2FFF','#FB5607','#3A86FF'];
+    for(let i=0;i<40;i++){
+      setTimeout(()=>{
+        const c=document.createElement('div');
+        c.style.cssText=`position:fixed;width:${6+Math.random()*8}px;height:${(6+Math.random()*8)*.6}px;
+          top:-10px;left:${Math.random()*100}%;
+          background:${colors[i%6]};border-radius:2px;
+          transform:rotate(${Math.random()*360}deg);
+          animation:bgConfFall ${1.5+Math.random()*2}s ${Math.random()*2}s ease-in both;z-index:999;`;
+        document.body.appendChild(c);
+        c.addEventListener('animationend',()=>c.remove());
+      },i*30);
+    }
+    if(!document.getElementById('bgConfKF')){
+      const s=document.createElement('style');s.id='bgConfKF';
+      s.textContent='@keyframes bgConfFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}';
+      document.head.appendChild(s);
+    }
+  }
+
+  // ── Utils ─────────────────────────────────────────────────────
+  _setText(id,val){ const e=document.getElementById(id); if(e) e.textContent=val; }
+}
+
+// ── Register ────────────────────────────────────────────────────
+window.GameClasses = window.GameClasses || {};
+window.GameClasses.bingo = BingoGame;
+
+window.exitGame = window.exitGame || function(){
+  if(confirm('Leave the game? Both players will return to lobby.')){
+    if(typeof socket!=='undefined'&&socket&&socket.readyState===WebSocket.OPEN)
+      socket.send(JSON.stringify({event:'game_exit'}));
+  }
+};
+</script>
