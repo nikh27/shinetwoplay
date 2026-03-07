@@ -357,7 +357,11 @@ class TimberChopGame extends BaseGame {
         // P1 generates branches and shares
         if (this.isP1) {
             this.genBranches();
+            // Send branches multiple times with delays to handle race conditions
+            // (P2 may not have loaded yet when first send arrives)
             this.sendInput({ type: 'branches', data: this.branches });
+            setTimeout(() => this.sendInput({ type: 'branches', data: this.branches }), 500);
+            setTimeout(() => this.sendInput({ type: 'branches', data: this.branches }), 1500);
             this.startGame();
         }
     }

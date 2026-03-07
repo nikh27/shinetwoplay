@@ -287,6 +287,7 @@
 
 
 <script>
+{ // guard to prevent re-declaration errors
 // ===================================================================
 // Dots & Boxes — Multiplayer Frontend
 // ===================================================================
@@ -710,4 +711,5 @@ window.exitGame = window.exitGame || function(){
       socket.send(JSON.stringify({event:'game_exit'}));
   }
 };
+} // end guard
 </script>

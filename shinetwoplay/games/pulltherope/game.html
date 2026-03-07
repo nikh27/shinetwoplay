@@ -148,6 +148,7 @@ class PullTheRopeGame extends BaseGame {
         this.bgImg = null;
         this.W = 0; this.H = 0;
         this.roundEndSent = false;
+        this.gameEnded = false;
         this.currentRound = 1;
     }
 
@@ -381,6 +382,7 @@ class PullTheRopeGame extends BaseGame {
 
         if (gameEnded) {
             /* Game fully over — show lobby button */
+            this.gameEnded = true;
             this.endRound(iWon, false, 'Game Over!', true);
         } else {
             /* More rounds remain — brief result, auto-hide, next round starts via update() */
@@ -393,6 +395,7 @@ class PullTheRopeGame extends BaseGame {
     }
 
     onGameEnd(payload) {
+        this.gameEnded = true;
         const winner = payload.game_winner;
         const myName = this.state.players[this.myRole];
         const iWon = (winner === myName);
@@ -416,6 +419,7 @@ class PullTheRopeGame extends BaseGame {
     update(state) {
         this.state = state;
         this.updateRoundInfo();
+        if (this.gameEnded) return; // Don't restart after game over
         const newRound = state.current_round || 1;
         // Fire when a genuinely new round starts, OR when server resends round 1 right after game_loaded
         // (in that case gs is still 'play' from init countdown, so we guard against double-start)

@@ -668,7 +668,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
         # Get current game state
         game_state = get_game_state(self.room_code)
         if not game_state:
-            await self.send_error('NO_GAME', 'No active game')
+            # Silently ignore — game state was already cleared (game ended)
             return
         
         # Check if game is paused
@@ -689,7 +689,9 @@ class RoomConsumer(AsyncWebsocketConsumer):
         result = handler.handle_move(self.room_code, self.username, action, move_data)
         
         if result.get('error'):
-            await self.send_error('INVALID_MOVE', result['error'])
+            # Silently ignore harmless "Not your turn" errors (prevents console spam from fast clicks)
+            if 'Not your turn' not in result['error']:
+                await self.send_error('INVALID_MOVE', result['error'])
             return
         
         new_state = result.get('state')
@@ -705,6 +707,18 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 'game_state': new_state
             }
         )
+
+        # If a player submitted but round isn't done yet, notify and return
+        if result.get('waiting_for_opponent'):
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'broadcast_player_submitted',
+                    'player': result.get('player_submitted', self.username),
+                    'game_state': new_state,
+                }
+            )
+            return
 
         # Check for round end
         if result.get('round_ended'):

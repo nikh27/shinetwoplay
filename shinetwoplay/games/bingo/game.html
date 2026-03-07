@@ -300,10 +300,11 @@
 </style>
 
 <script>
+{ // guard to prevent re-declaration errors
 // ===================================================================
 // Bingo Game — Multiplayer Frontend
 // ===================================================================
-const BG_CALL_INTERVAL = 3500; // auto-call every 3.5s
+const BG_CALL_INTERVAL = 4500; // auto-call every 4.5s
 
 class BingoGame extends BaseGame {
   constructor(){
@@ -379,6 +380,8 @@ class BingoGame extends BaseGame {
   // ── Auto-call loop ─────────────────────────────────────────────
   _startCallingLoop(){
     this._stopCallingLoop();
+    // Only P1 calls numbers to avoid duplicate calls from both clients
+    if (this.state && this.state.players['P1'] !== USER) return;
     this._callTimer = setInterval(()=>{
       if(!this.state || this.state.winner || this.state.paused) return;
       this.sendMove('call_number', {});
@@ -687,4 +690,5 @@ window.exitGame = window.exitGame || function(){
       socket.send(JSON.stringify({event:'game_exit'}));
   }
 };
+} // end guard
 </script>

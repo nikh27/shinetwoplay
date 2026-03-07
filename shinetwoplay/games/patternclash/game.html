@@ -437,6 +437,7 @@
 </style>
 
 <script>
+{ // guard to prevent re-declaration errors
 // ===================================================================
 // Pattern Clash — Game Class
 // ===================================================================
@@ -893,4 +894,5 @@ window.exitGame = window.exitGame || function(){
       socket.send(JSON.stringify({event:'game_exit'}));
   }
 };
+} // end guard
 </script>

@@ -126,6 +126,7 @@ class BambooBreakerGame extends BaseGame {
         this._waitingForServer = false;
         this.roundEndSent = false;
         this.winShown = false;
+        this.gameEnded = false;
 
         // Virtual fixed dimensions so both players share identical coords
         this.VW = 375; this.VH = 500;
@@ -136,8 +137,8 @@ class BambooBreakerGame extends BaseGame {
 
         // Config
         this.COLS = 8; this.ROWS = 10;
-        this.SPEED = 350; this.MAX_CRACKS = 5;
-        this.IDLE_CRACK_TIME = 0.3; this.BREAK_COUNTDOWN = 0.3;
+        this.SPEED = 220; this.MAX_CRACKS = 3;
+        this.IDLE_CRACK_TIME = 0.8; this.BREAK_COUNTDOWN = 1.2;
         this.PUSH_FORCE = 550; this.HIT_R = 0;
 
         this.grid = []; this.particles = [];
@@ -1300,6 +1301,7 @@ class BambooBreakerGame extends BaseGame {
         const cr = this.state && this.state.current_round ? this.state.current_round - 1 : '';
 
         if (gameEnded) {
+            this.gameEnded = true;
             /* Game fully over — show lobby button */
             if (!this.winShown) {
                 const roundWinner = payload.round_winner;
@@ -1357,6 +1359,7 @@ class BambooBreakerGame extends BaseGame {
     }
 
     onGameEnd(payload) {
+        this.gameEnded = true;
         if (this.playing) {
             this.playing = false;
             if (this._raf) cancelAnimationFrame(this._raf);
@@ -1392,6 +1395,7 @@ class BambooBreakerGame extends BaseGame {
     update(state) {
         this.state = state;
         this._updateRoundBadge();
+        if (this.gameEnded) return; // Don't restart after game over
         const newRound = state.current_round || 1;
         if (newRound > this.currentRound) {
             this.currentRound = newRound;

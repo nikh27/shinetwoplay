@@ -84,17 +84,20 @@ class PatternClashHandler(BaseGameHandler):
 
             state['submissions'][player] = selection
 
-            # First submit ends the round immediately.
-            # The other player's current selection (empty [] if none) is used as-is.
             p1_name = state['players']['P1']
             p2_name = state['players']['P2']
-            # Fill in the other player with empty selection if they haven't submitted
-            if p1_name not in state['submissions']:
-                state['submissions'][p1_name] = []
-            if p2_name not in state['submissions']:
-                state['submissions'][p2_name] = []
 
-            return self._end_round(room_code, state)
+            # Check if BOTH players have submitted
+            if p1_name in state['submissions'] and p2_name in state['submissions']:
+                return self._end_round(room_code, state)
+            else:
+                # Only one player submitted — save state and wait for other
+                set_game_state(room_code, state)
+                return {
+                    'state': state,
+                    'player_submitted': player,
+                    'waiting_for_opponent': True,
+                }
 
         return {'error': f'Unknown action: {action}', 'state': state}
 

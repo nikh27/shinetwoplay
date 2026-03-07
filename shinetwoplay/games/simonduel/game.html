@@ -345,6 +345,7 @@
 </style>
 
 <script>
+{ // guard to prevent re-declaration errors
 // ========== AUDIO ENGINE ==========
 const sdAC = window.AudioContext || window.webkitAudioContext;
 let sdAx;
@@ -775,4 +776,5 @@ window.exitGame = function(){
     }
   }
 };
+} // end guard
 </script>

@@ -655,6 +655,7 @@
 </style>
 
 <script>
+{ // guard to prevent re-declaration errors
 /* ===== Connect4 Panda Phrases ===== */
 const c4Phrases = {
     start: [
@@ -1268,4 +1269,5 @@ window.exitGame = function() {
         }
     }
 };
+} // end guard
 </script>

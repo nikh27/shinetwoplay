@@ -313,6 +313,7 @@
 <div id="mg-toast"><div id="mg-toast-inner"></div></div>
 
 <script>
+{ // guard to prevent re-declaration errors
 // ===================================================================
 // Memory Card Game — Multiplayer Frontend
 // ===================================================================
@@ -341,6 +342,7 @@ class MemoryGame extends BaseGame {
     this._inputLocked = false;    // block taps during reveal animation
     this._tapLocked   = false;    // block taps between client-tap → server-ack
     this._lastMatchKey = null;   // de-dup match toast/tone
+    this._gameEnded   = false;    // block all taps after game ends
   }
 
   init(state){
@@ -353,8 +355,10 @@ class MemoryGame extends BaseGame {
     const prev = this.state;
     const isNewRound = prev && prev.current_round !== state.current_round;
     this.state = state;
-    // Every server ack unlocks the tap gate
-    this._tapLocked = false;
+    // Only unlock tap gate if it's still our turn
+    const cpKey  = state.current_player;
+    const cpName = state.players && state.players[cpKey];
+    if(cpName === USER) this._tapLocked = false;
 
     if(state.paused){ this._showPause(); return; }
     this._hidePause();
@@ -406,6 +410,7 @@ class MemoryGame extends BaseGame {
   }
 
   onGameEnd(result){
+    this._gameEnded = true;
     const isWin  = result.game_winner === USER;
     const isDraw = result.game_winner === 'draw';
     const icon  = document.getElementById('mg-res-icon');
@@ -486,6 +491,10 @@ class MemoryGame extends BaseGame {
     if(this.state.paused) return;
     if(this._inputLocked) return;  // locked during mismatch reveal
     if(this._tapLocked)   return;  // locked waiting for server ack
+    if(this._gameEnded)   return;  // game is over
+
+    // Don't accept taps during result phase
+    if(this.state.phase === 'result') return;
 
     // My turn?
     const cpKey  = this.state.current_player;
@@ -767,4 +776,5 @@ window.exitGame = window.exitGame || function(){
       socket.send(JSON.stringify({event:'game_exit'}));
   }
 };
+} // end guard
 </script>
