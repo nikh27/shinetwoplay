@@ -137,9 +137,9 @@ class BambooBreakerGame extends BaseGame {
 
         // Config
         this.COLS = 8; this.ROWS = 10;
-        this.SPEED = 220; this.MAX_CRACKS = 3;
-        this.IDLE_CRACK_TIME = 0.8; this.BREAK_COUNTDOWN = 1.2;
-        this.PUSH_FORCE = 550; this.HIT_R = 0;
+        this.SPEED = 160; this.MAX_CRACKS = 5;
+        this.IDLE_CRACK_TIME = 0.6; this.BREAK_COUNTDOWN = 1.0;
+        this.PUSH_FORCE = 400; this.HIT_R = 0;
 
         this.grid = []; this.particles = [];
         this.screenShake = 0; this.gameTime = 0;
@@ -498,10 +498,8 @@ class BambooBreakerGame extends BaseGame {
             if (d.gt !== undefined) this.gameTime = d.gt;
         } else if (d.type === 'round_result') {
             if (this.myRole === 'P2' && this.playing) {
-                this.playing = false;
-                if (this._raf) cancelAnimationFrame(this._raf);
-                this.winnerIdx = d.winner;
-                this._showGameOver(d.winner);
+                // Let the server's onRoundEnd/onGameEnd definitively handle the state switch
+                // Instead of immediately stopping the game here.
             }
         }
     }
@@ -711,51 +709,74 @@ class BambooBreakerGame extends BaseGame {
 
         if (!this.roundEndSent) {
             this.roundEndSent = true;
-            // Notify P2
-            this.sendInput({ type:'round_result', winner });
-            // Notify server
-            this.sendMove('round_end', { winner: winner===0?'P1':'P2' });
+            // Only P1 is authoritative to declare round over to server
+            if (this.myRole === 'P1') {
+                this.sendInput({ type:'round_result', winner });
+                this.sendMove('round_end', { winner: winner===0?'P1':'P2' });
+            }
         }
 
         setTimeout(() => {
-            this.playing = false;
-            if (this._raf) cancelAnimationFrame(this._raf);
+            if (this.playing) {
+                this.playing = false;
+                if (this._raf) cancelAnimationFrame(this._raf);
+                if (this._inputTimer) clearInterval(this._inputTimer);
+                if (this._syncTimer) clearInterval(this._syncTimer);
+            }
             this.winnerIdx = winner;
-            this._showGameOver(winner);
+            // Removed _showGameOver here. Let onRoundEnd or onGameEnd handle it.
         }, 900);
     }
 
-    _showGameOver(winner, subText, showLobbyBtn) {
+    _showGameOver(winner, subText, gameIsFullyOver) {
         this.winShown = true;
         const myIdx = this.myRole==='P1' ? 0 : 1;
         const iWon = winner === myIdx;
+        const pColor = (winner === 0 || winner === 1) ? this.P[winner].color : '#aaa';
+        
         const emoji = document.getElementById('bb-go-emoji');
         const text = document.getElementById('bb-go-text');
         const sub = document.getElementById('bb-go-sub');
         const btn = document.getElementById('bb-lobby-btn');
-        emoji.textContent = iWon ? '🏆🐼' : '😢🐼';
-        text.textContent = iWon ? 'YOU WIN!' : 'YOU LOST!';
-        text.style.color = iWon ? '#4caf50' : '#ef5350';
-        sub.textContent = `${this.P[winner].color==='#4fc3f7'?'Blue':'Red'} Panda survives!`;
-        document.getElementById('bb-next-text').textContent = subText || 'Round Over!';
-        /* Always hide lobby button initially, show winner first */
+        const nextText = document.getElementById('bb-next-text');
+        
+        if (emoji) emoji.textContent = iWon ? '🏆🐼' : '😢🐼';
+        if (text) {
+            text.textContent = iWon ? 'YOU WIN!' : 'YOU LOST!';
+            text.style.color = iWon ? '#4caf50' : '#ef5350';
+        }
+        if (sub) {
+            sub.textContent = (winner === 0 || winner === 1) ? `${pColor==='#4fc3f7'?'Blue':'Red'} Panda survives!` : `It's a draw!`;
+        }
+        if (nextText) {
+            nextText.textContent = subText || 'Round Over!';
+        }
+        
+        /* Always hide lobby button initially */
         if (btn) { btn.style.display = 'none'; btn.style.opacity = '0'; }
-        document.getElementById('bb-gameover').classList.remove('hidden');
-        /* After a short delay, fade in lobby button */
-        if (showLobbyBtn) {
+        
+        const goOverlay = document.getElementById('bb-gameover');
+        if (goOverlay) goOverlay.classList.remove('hidden');
+        
+        if (gameIsFullyOver) {
             window._bbBreakerReturnLobby = () => {
                 if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
                     socket.send(JSON.stringify({ event: 'game_exit' }));
                 }
                 if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
             };
-            setTimeout(() => {
-                if (btn) {
+            
+            if (btn) {
+                setTimeout(() => {
                     btn.style.display = '';
                     btn.style.transition = 'opacity 0.4s ease';
                     requestAnimationFrame(() => { btn.style.opacity = '1'; });
-                }
-            }, 1800);
+                }, 1800);
+            }
+            
+            setTimeout(() => {
+                if (window._bbBreakerReturnLobby) window._bbBreakerReturnLobby();
+            }, 3000);
         }
     }
 
@@ -1292,103 +1313,68 @@ class BambooBreakerGame extends BaseGame {
 
     // ===== ROUND/GAME END HANDLERS =====
     onRoundEnd(payload) {
-        // Stop game if still running
-        if (this.playing) {
-            this.playing = false;
-            if (this._raf) cancelAnimationFrame(this._raf);
-        }
         const gameEnded = payload && payload.game_ended;
         const cr = this.state && this.state.current_round ? this.state.current_round - 1 : '';
+        const winnerName = payload.round_winner;
+        const iWon = (winnerName === this.state.players[this.myRole]);
+        let winIdx = iWon ? (this.myRole==='P1'?0:1) : (this.myRole==='P1'?1:0);
+        if (winnerName === 'draw') winIdx = 'draw';
 
-        if (gameEnded) {
-            this.gameEnded = true;
-            /* Game fully over — show lobby button */
-            if (!this.winShown) {
-                const roundWinner = payload.round_winner;
-                const myName = this.state.players[this.myRole];
-                const iWon = (roundWinner === myName);
-                const winIdx = iWon ? (this.myRole==='P1'?0:1) : (this.myRole==='P1'?1:0);
-                this._showGameOver(winIdx, 'Game Over!', true);
-            } else {
-                const sub = document.getElementById('bb-next-text');
-                if (sub) sub.textContent = 'Game Over!';
-                const btn = document.getElementById('bb-lobby-btn');
-                if (btn) {
-                    btn.style.display = 'none'; btn.style.opacity = '0';
-                    setTimeout(() => {
-                        btn.style.display = '';
-                        btn.style.transition = 'opacity 0.4s ease';
-                        requestAnimationFrame(() => { btn.style.opacity = '1'; });
-                    }, 1800);
-                }
-                window._bbBreakerReturnLobby = () => {
-                    if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({ event: 'game_exit' }));
-                    }
-                    if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
-                };
+        const finalize = () => {
+            if (this.playing) {
+                this.playing = false;
+                if (this._raf) cancelAnimationFrame(this._raf);
+                if (this._inputTimer) clearInterval(this._inputTimer);
+                if (this._syncTimer) clearInterval(this._syncTimer);
             }
+            if (!this.winShown) {
+                if (gameEnded) {
+                    this.gameEnded = true;
+                    this._showGameOver(winIdx, 'Game Over!', true);
+                } else {
+                    this._showGameOver(winIdx, `Round ${cr} Complete!`, false);
+                }
+            }
+        };
+
+        if (this.playing) {
+            // Give 900ms for pandas to visually finish falling before showing UI overlay
+            setTimeout(finalize, 900);
         } else {
-            /* More rounds remain — show result with lobby button */
-            if (!this.winShown) {
-                const roundWinner = payload.round_winner;
-                const myName = this.state.players[this.myRole];
-                const iWon = (roundWinner === myName);
-                const winIdx = iWon ? (this.myRole==='P1'?0:1) : (this.myRole==='P1'?1:0);
-                this._showGameOver(winIdx, `Round ${cr} Complete!`, true);
-            } else {
-                const sub = document.getElementById('bb-next-text');
-                if (sub) sub.textContent = `Round ${cr} Complete!`;
-                const btn = document.getElementById('bb-lobby-btn');
-                if (btn) {
-                    btn.style.display = 'none'; btn.style.opacity = '0';
-                    setTimeout(() => {
-                        btn.style.display = '';
-                        btn.style.transition = 'opacity 0.4s ease';
-                        requestAnimationFrame(() => { btn.style.opacity = '1'; });
-                    }, 1800);
-                }
-                window._bbBreakerReturnLobby = () => {
-                    if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({ event: 'game_exit' }));
-                    }
-                    if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
-                };
-            }
+            finalize();
         }
     }
 
     onGameEnd(payload) {
         this.gameEnded = true;
-        if (this.playing) {
-            this.playing = false;
-            if (this._raf) cancelAnimationFrame(this._raf);
-        }
-        const winner = payload.game_winner;
-        const myName = this.state.players[this.myRole];
-        const iWon = winner === myName;
-        const subText = winner === 'draw' ? "It's a Draw!" : 'Game Over!';
-        if (!this.winShown) {
-            const winIdx = iWon ? (this.myRole==='P1'?0:1) : (this.myRole==='P1'?1:0);
-            this._showGameOver(winIdx, subText, true);
-        } else {
-            const sub = document.getElementById('bb-next-text');
-            if (sub) sub.textContent = subText;
-            const btn = document.getElementById('bb-lobby-btn');
-            if (btn) {
-                btn.style.display = 'none'; btn.style.opacity = '0';
-                setTimeout(() => {
-                    btn.style.display = '';
-                    btn.style.transition = 'opacity 0.4s ease';
-                    requestAnimationFrame(() => { btn.style.opacity = '1'; });
-                }, 1800);
+        
+        const finalize = () => {
+            if (this.playing) {
+                this.playing = false;
+                if (this._raf) cancelAnimationFrame(this._raf);
+                if (this._inputTimer) clearInterval(this._inputTimer);
+                if (this._syncTimer) clearInterval(this._syncTimer);
             }
-            window._bbBreakerReturnLobby = () => {
-                if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({ event: 'game_exit' }));
-                }
-                if (btn) { btn.disabled = true; btn.textContent = '⏳ Leaving...'; }
-            };
+            const gameWinnerName = payload.game_winner;
+            let subText = 'Game Over!';
+            let winIdx;
+            if (gameWinnerName === 'draw') {
+                subText = "It's a Draw!";
+                winIdx = 'draw';
+            } else {
+                const iWon = gameWinnerName === this.state.players[this.myRole];
+                winIdx = iWon ? (this.myRole==='P1'?0:1) : (this.myRole==='P1'?1:0);
+            }
+            
+            if (!this.winShown) {
+                this._showGameOver(winIdx, subText, true);
+            }
+        };
+
+        if (this.playing) {
+            setTimeout(finalize, 900);
+        } else {
+            finalize();
         }
     }
 
