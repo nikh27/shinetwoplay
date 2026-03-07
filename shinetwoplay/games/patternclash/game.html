@@ -689,6 +689,14 @@ class PatternClashGame extends BaseGame {
     this._cells.forEach(c=>c.classList.remove('pc-selected'));
   }
 
+  // Called via room.html when the server broadcasts 'player_submitted'
+  onOpponentSubmitted(player){
+    if(player !== USER && !this._submitted && this.state && this.state.phase === 'input'){
+      // Opponent clicked Done. Force submit our grid immediately.
+      this.submitGrid();
+    }
+  }
+
   submitGrid(){
     if(this._submitted) return;
     this._submitted = true;
