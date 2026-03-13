@@ -1333,6 +1333,10 @@ class BambooBreakerGame extends BaseGame {
                     this._showGameOver(winIdx, 'Game Over!', true);
                 } else {
                     this._showGameOver(winIdx, `Round ${cr} Complete!`, false);
+                    setTimeout(() => {
+                        const goOverlay = document.getElementById('bb-gameover');
+                        if (goOverlay) goOverlay.classList.add('hidden');
+                    }, 2500);
                 }
             }
         };
@@ -1384,10 +1388,11 @@ class BambooBreakerGame extends BaseGame {
         if (this.gameEnded) return; // Don't restart after game over
         const newRound = state.current_round || 1;
         if (newRound > this.currentRound) {
-            this.currentRound = newRound;
+            this.currentRound = newRound; 
             this.roundEndSent = false;
             this.winShown = false;
-            setTimeout(() => this._startMatch(), 500);
+            // Native delay to let the Round Complete overlay be visible before countdown
+            setTimeout(() => this._startMatch(), 2500);
         }
     }
 

@@ -1,4 +1,48 @@
-venv/
+# ──── Python ────
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+
+# ──── Virtual Environment ────
+venv/
+.venv/
+env/
+
+# ──── Django ────
 db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+*.log
+
+# ──── Environment Variables ────
+.env
+.env.local
+.env.production
+
+# ──── Logs ────
+logs/
+*.log
+
+# ──── IDE / Editor ────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ──── OS Files ────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ──── Secrets / Keys ────
+*.pem
+*.key
+
+# ──── Deployment Notes (personal) ────
+deploye_command.txt
