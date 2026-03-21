@@ -4,70 +4,197 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>S2P Gaming Platform — ShineTwoPlay | Free 2 Player Online Games</title>
-    <meta name="description" content="S2P stands for ShineTwoPlay — the free 2-player online gaming platform. Play S2P games with friends in real-time from your browser. No download, no signup needed!">
+    <meta name="description" content="S2P stands for ShineTwoPlay — the free 2-player online gaming platform. Play 16+ S2P games with friends in real-time from your browser. No download, no signup needed!">
     <meta name="keywords" content="S2P, S2P game, S2P gaming, S2P platform, S2P shinetwoplay, shinetwoplay, shine2play, 2 player online game, free online multiplayer game, browser game, play with friends">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://shinetwoplay.online/s2p/">
+
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon-180x180.png">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --sunshine-yellow: #FFD93D;
+            --sunshine-orange: #FFB84D;
+            --sunshine-peach: #FFA559;
+            --sunshine-light: #FFF4DC;
+            --sunshine-cream: #FFFAEF;
+            --text-dark: #4A3F35;
+            --text-medium: #8B7355;
+            --shadow-soft: rgba(255, 185, 77, 0.3);
+            --white: #FFFFFF;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: 'Quicksand', sans-serif;
-            background: linear-gradient(135deg, #FFFAEF 0%, #FFF4DC 50%, #FFE8CC 100%);
-            color: #4A3F35;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0;
-            padding: 20px;
+            background: linear-gradient(135deg, var(--sunshine-cream) 0%, var(--sunshine-light) 50%, #FFE8CC 100%);
+            min-height: 100vh; color: var(--text-dark); overflow-x: hidden;
         }
-        .seo-container {
-            max-width: 600px;
-            background: #FFFFFF;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(255,185,77,0.15);
+
+        body::before, body::after {
+            content: ''; position: fixed; border-radius: 50%;
+            pointer-events: none; animation: sunPulse 6s ease-in-out infinite; z-index: -1;
+        }
+        body::before {
+            top: -50%; right: -30%; width: 800px; height: 800px;
+            background: radial-gradient(circle, rgba(255,217,61,0.15), transparent 70%);
+        }
+        body::after {
+            bottom: -40%; left: -20%; width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(255,165,89,0.1), transparent 70%);
+            animation-direction: reverse;
+        }
+        @keyframes sunPulse {
+            0%,100% { transform: scale(1); opacity: .5; }
+            50% { transform: scale(1.1); opacity: .3; }
+        }
+
+        .container { max-width: 720px; margin: auto; padding: 0 20px; }
+
+        /* Header */
+        .header {
+            padding: 20px 0; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .logo-section { display: flex; gap: 12px; align-items: center; text-decoration: none; }
+        .logo {
+            width: 44px; height: 44px; border-radius: 14px;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 4px 16px var(--shadow-soft);
+        }
+        .logo::before {
+            content: ""; display: block; width: 26px; height: 26px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
+        }
+        .app-name {
+            font-family: 'Fredoka', sans-serif; font-size: 22px; font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-orange), var(--sunshine-peach));
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        /* SEO Card */
+        .seo-card {
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(16px);
+            border-radius: 20px; padding: 40px; margin: 20px 0 40px;
+            box-shadow: 0 4px 20px rgba(255,185,77,.12);
+            border: 1px solid rgba(255,217,61,0.2);
             text-align: center;
         }
         h1 {
-            font-family: 'Fredoka', sans-serif;
-            font-size: 32px;
-            color: #FFB84D;
+            font-family: 'Fredoka', sans-serif; font-size: 32px; font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange), var(--sunshine-peach));
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
             margin-bottom: 20px;
         }
         p {
-            font-size: 18px;
-            line-height: 1.6;
-            margin-bottom: 20px;
+            font-size: 16px; color: var(--text-medium); line-height: 1.7; margin-bottom: 16px;
         }
-        a.btn {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #FFD93D, #FFB84D);
-            color: #4A3F35;
-            text-decoration: none;
-            font-family: 'Fredoka', sans-serif;
-            font-size: 18px;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(255,185,77,.3);
-            transition: transform 0.2s;
+        p strong { color: var(--text-dark); }
+        
+        /* Features */
+        .features-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 30px 0;
+            text-align: left;
         }
-        a.btn:hover {
-            transform: translateY(-2px);
+        .feature-item {
+            background: var(--sunshine-cream); padding: 16px; border-radius: 12px;
+            border: 1px solid rgba(255,217,61,0.15);
+        }
+        .feature-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+        .feature-title { font-family: 'Fredoka', sans-serif; font-size: 14px; font-weight: 600; color: var(--text-dark); }
+        .feature-desc { font-size: 12px; color: var(--text-medium); margin-top: 4px; }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            margin-top: 10px; padding: 14px 28px;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            color: var(--text-dark); text-decoration: none;
+            font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 16px;
+            border-radius: 14px; box-shadow: 0 4px 16px var(--shadow-soft);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px); box-shadow: 0 6px 20px var(--shadow-soft);
+        }
+
+        /* Footer */
+        .footer { padding: 24px 0; font-size: 11px; text-align: center; color: var(--text-medium); }
+
+        @media (max-width: 520px) {
+            .features-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 28px; }
+            .seo-card { padding: 24px; }
         }
     </style>
 </head>
 <body>
-    <div class="seo-container">
+<div class="container">
+    <div class="header">
+        <a href="/" class="logo-section">
+            <div class="logo"></div>
+            <div class="app-name">ShineTwoPlay</div>
+        </a>
+    </div>
+
+    <div class="seo-card">
         <h1>S2P — 2 Player Online Games Platform</h1>
         <p><strong>S2P</strong> is an acronym that stands for <strong>ShineTwoPlay</strong>, also known as <strong>Shine2Play</strong>.</p>
-        <p>S2P is the best free platform for 2-player online games. Jump into exciting competitive games from any device with no download required. Just share a room code and play!</p>
-        <p>ShineTwoPlay (S2P) features real-time browser games like snakes, beach ball, paddle arena, and more — all free, all instant.</p>
-        <a href="/" class="btn">Play S2P Games Now</a>
+        <p>S2P is the best free platform for 2-player online games. Jump into exciting competitive games from any device with no download required. Just share a room code and play instantly!</p>
+        
+        <div class="features-grid">
+            <div class="feature-item">
+                <span class="feature-icon">🎮</span>
+                <div class="feature-title"><a href="/games/" style="color: inherit; text-decoration: none;">16+ Games Available</a></div>
+                <div class="feature-desc">Play Ludo, Dots & Boxes, Bingo, Snakes, Pattern Clash, and more.</div>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">🗣️</span>
+                <div class="feature-title">Voice Chat</div>
+                <div class="feature-desc">Connect with your friends via live voice chat while you play.</div>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">🌍</span>
+                <div class="feature-title"><a href="/community/" style="color: inherit; text-decoration: none;">Community Hub</a></div>
+                <div class="feature-desc">Join our vibrant community board, suggest ideas, and be heard.</div>
+            </div>
+        </div>
+
+        <p>Whether you're looking for real-time action like Paddle Arena and Beach Ball, or turn-based strategy like Connect 4 and Memory — S2P has it all. Entirely free, all in your browser.</p>
+        
+        <p>Learn more about our platform on our new <a href="/about/" style="color: var(--sunshine-peach); font-weight: bold; text-decoration: none;">About</a> page, or browse the entire collection in our <a href="/games/" style="color: var(--sunshine-peach); font-weight: bold; text-decoration: none;">Games Library</a>.</p>
+
+        <a href="/" class="btn">
+            ▶ Play S2P Games Now
+        </a>
     </div>
+
+    <div class="footer">
+        <div style="margin-bottom: 8px;">
+            <svg width="18" height="18" viewBox="0 0 64 64" fill="none" style="vertical-align:middle;margin-right:6px;">
+                <circle cx="18" cy="18" r="10" fill="black"/>
+                <circle cx="46" cy="18" r="10" fill="black"/>
+                <circle cx="32" cy="34" r="22" fill="white" stroke="black" stroke-width="3"/>
+                <ellipse cx="22" cy="34" rx="6" ry="8" fill="black"/>
+                <ellipse cx="42" cy="34" rx="6" ry="8" fill="black"/>
+                <circle cx="22" cy="34" r="3" fill="white"/>
+                <circle cx="42" cy="34" r="3" fill="white"/>
+                <ellipse cx="32" cy="42" rx="4" ry="3" fill="black"/>
+                <path d="M26 48 Q32 52 38 48" stroke="black" stroke-width="2" fill="none"/>
+            </svg>
+            © 2026 ShineTwoPlay
+        </div>
+        <div style="font-size: 12px; display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 8px;">
+            <a href="/" style="color: inherit; text-decoration: none; font-weight: 500; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">🏠 Home</a>
+            <a href="/games/" style="color: inherit; text-decoration: none; font-weight: 500; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">🎮 Games</a>
+            <a href="/about/" style="color: inherit; text-decoration: none; font-weight: 500; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">👤 About</a>
+            <a href="/contribute/" style="color: inherit; text-decoration: none; font-weight: 500; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">💬 Contribute</a>
+            <a href="/community/" style="color: inherit; text-decoration: none; font-weight: 500; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">🗣️ Community</a>
+        </div>
+    </div>
+</div>
 </body>
 </html>
