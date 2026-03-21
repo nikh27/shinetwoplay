@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>All Games — ShineTwoPlay | 16 Free 2-Player Online Games</title>
+    <meta name="description" content="Browse all 16 free 2-player online games on ShineTwoPlay. Ludo, Tic Tac Toe, Carrom, Connect 4, and more! Create a room and play instantly.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://shinetwoplay.online/games/">
+
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon-180x180.png">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://shinetwoplay.online/games/">
+    <meta property="og:title" content="All Games — ShineTwoPlay">
+    <meta property="og:description" content="Browse 16 free 2-player online games. Create a room and play with friends instantly!">
+    <meta property="og:site_name" content="ShineTwoPlay">
+
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --sunshine-yellow: #FFD93D;
+            --sunshine-orange: #FFB84D;
+            --sunshine-peach: #FFA559;
+            --sunshine-light: #FFF4DC;
+            --sunshine-cream: #FFFAEF;
+            --text-dark: #4A3F35;
+            --text-medium: #8B7355;
+            --shadow-soft: rgba(255, 185, 77, 0.3);
+            --white: #FFFFFF;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, var(--sunshine-cream) 0%, var(--sunshine-light) 50%, #FFE8CC 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sunPulse 6s ease-in-out infinite;
+        }
+        body::before {
+            top: -50%; right: -30%; width: 800px; height: 800px;
+            background: radial-gradient(circle, rgba(255,217,61,0.15), transparent 70%);
+        }
+        body::after {
+            bottom: -40%; left: -20%; width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(255,165,89,0.1), transparent 70%);
+            animation-direction: reverse;
+        }
+
+        @keyframes sunPulse {
+            0%,100% { transform: scale(1); opacity: .5; }
+            50% { transform: scale(1.1); opacity: .3; }
+        }
+
+        .container { max-width: 720px; margin: auto; padding: 0 20px; }
+
+        /* Header */
+        .header {
+            padding: 20px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex; gap: 12px; align-items: center; text-decoration: none;
+        }
+
+        .logo {
+            width: 44px; height: 44px; border-radius: 14px;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 4px 16px var(--shadow-soft);
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+        .logo::before {
+            content: ""; display: block; width: 26px; height: 26px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
+            animation: logoRotate 20s linear infinite;
+        }
+        @keyframes logoFloat { 50% { transform: translateY(-5px) rotate(5deg); } }
+        @keyframes logoRotate { to { transform: rotate(360deg); } }
+
+        .app-name {
+            font-family: 'Fredoka', sans-serif; font-size: 22px; font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-orange), var(--sunshine-peach));
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .back-link {
+            padding: 10px 18px; background: var(--white); border-radius: 12px;
+            text-decoration: none; color: var(--text-dark); font-weight: 600; font-size: 14px;
+            box-shadow: 0 2px 12px rgba(255,185,77,.2); transition: all 0.3s ease;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .back-link:hover { transform: translateY(-2px); box-shadow: 0 4px 16px var(--shadow-soft); }
+
+        /* Hero */
+        .hero { text-align: center; padding: 28px 0 20px; animation: fadeInUp 0.6s ease; }
+
+        .hero-title {
+            font-family: 'Fredoka', sans-serif; font-size: 32px; font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange), var(--sunshine-peach));
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .hero-subtitle {
+            color: var(--text-medium); font-size: 15px; font-weight: 500; line-height: 1.6;
+        }
+
+        .game-count-badge {
+            display: inline-block; margin-top: 12px;
+            padding: 6px 16px; border-radius: 20px;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 14px;
+            color: var(--text-dark);
+        }
+
+        /* How to Play */
+        .how-to-play {
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(16px);
+            border-radius: 20px; padding: 24px; margin-bottom: 28px;
+            box-shadow: 0 4px 20px rgba(255,185,77,.12);
+            border: 1px solid rgba(255,217,61,0.2);
+            animation: fadeInUp 0.6s ease 0.1s both;
+        }
+
+        .section-title {
+            font-family: 'Fredoka', sans-serif; font-size: 20px; font-weight: 600;
+            margin-bottom: 16px; color: var(--text-dark);
+        }
+
+        .steps {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+        }
+
+        .step {
+            text-align: center; padding: 14px 8px;
+            border-radius: 16px; background: var(--sunshine-cream);
+            position: relative;
+        }
+
+        .step-num {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            display: inline-flex; align-items: center; justify-content: center;
+            font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .step-icon { font-size: 24px; display: block; margin-bottom: 4px; }
+        .step-text { font-size: 11px; font-weight: 600; color: var(--text-dark); line-height: 1.4; }
+
+        /* Games Grid */
+        .games-section { animation: fadeInUp 0.6s ease 0.2s both; margin-bottom: 32px; }
+
+        .games-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+        }
+
+        .game-card {
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(16px);
+            border-radius: 20px; overflow: hidden;
+            box-shadow: 0 4px 20px rgba(255,185,77,.12);
+            border: 1px solid rgba(255,217,61,0.2);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer; text-decoration: none; color: var(--text-dark);
+            display: block; position: relative;
+        }
+
+        .game-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, var(--sunshine-yellow), var(--sunshine-orange));
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 36px rgba(255,185,77,.25);
+        }
+        .game-card:hover::before { opacity: 1; }
+
+        .game-image {
+            width: 100%; aspect-ratio: 1; object-fit: cover;
+            border-bottom: 1px solid rgba(255,217,61,0.15);
+        }
+
+        .game-info { padding: 14px 16px; }
+
+        .game-name {
+            font-family: 'Fredoka', sans-serif; font-size: 16px; font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .game-desc {
+            font-size: 12px; color: var(--text-medium); line-height: 1.5;
+            display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .game-badge {
+            display: inline-block; margin-top: 8px;
+            padding: 3px 10px; border-radius: 8px;
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge-realtime {
+            background: rgba(255,165,89,0.2); color: #D4792C;
+        }
+        .badge-turnbased {
+            background: rgba(255,217,61,0.3); color: #B89520;
+        }
+
+        .play-overlay {
+            position: absolute; inset: 0;
+            background: rgba(255,217,61,0.15);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        .game-card:hover .play-overlay { opacity: 1; }
+
+        .play-btn-overlay {
+            padding: 10px 24px; border-radius: 14px;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 14px;
+            color: var(--text-dark); box-shadow: 0 4px 16px var(--shadow-soft);
+        }
+
+        /* Footer */
+        .footer {
+            padding: 24px 0; font-size: 11px; text-align: center; color: var(--text-medium);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 520px) {
+            .games-grid { grid-template-columns: 1fr; }
+            .steps { grid-template-columns: repeat(2, 1fr); }
+            .hero-title { font-size: 26px; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <div class="header">
+        <a href="/" class="logo-section">
+            <div class="logo"></div>
+            <div class="app-name">ShineTwoPlay</div>
+        </a>
+        <a href="/" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+            Home
+        </a>
+    </div>
+
+    <div class="hero">
+        <h1 class="hero-title">🎮 All Games</h1>
+        <p class="hero-subtitle">Pick a game, create a room, and play with a friend — all in your browser!</p>
+        <span class="game-count-badge">{{ games|length }} Games Available</span>
+    </div>
+
+    <!-- How to Play -->
+    <div class="how-to-play">
+        <h2 class="section-title">📖 How to Play</h2>
+        <div class="steps">
+            <div class="step">
+                <span class="step-num">1</span>
+                <span class="step-icon">🏠</span>
+                <span class="step-text">Create a Room</span>
+            </div>
+            <div class="step">
+                <span class="step-num">2</span>
+                <span class="step-icon">🔗</span>
+                <span class="step-text">Share the 4-letter Code</span>
+            </div>
+            <div class="step">
+                <span class="step-num">3</span>
+                <span class="step-icon">🎮</span>
+                <span class="step-text">Pick a Game</span>
+            </div>
+            <div class="step">
+                <span class="step-num">4</span>
+                <span class="step-icon">⚡</span>
+                <span class="step-text">Play & Have Fun!</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Games Grid -->
+    <div class="games-section">
+        <h2 class="section-title">Choose Your Game</h2>
+        <div class="games-grid">
+            {% for game in games %}
+            <a class="game-card" href="/?play={{ game.game_id }}" title="Play {{ game.name }}">
+                <img class="game-image" src="{{ game.image_url }}" alt="{{ game.name }}" loading="lazy">
+                <div class="game-info">
+                    <div class="game-name">{{ game.name }}</div>
+                    <div class="game-desc">{{ game.description }}</div>
+                    {% if game.game_id in 'paddlearena,beachball,stealthering,treecutter,snakes,pulltherope,bamboobreaker' %}
+                        <span class="game-badge badge-realtime">⚡ Real-time</span>
+                    {% else %}
+                        <span class="game-badge badge-turnbased">♟️ Turn-based</span>
+                    {% endif %}
+                </div>
+                <div class="play-overlay">
+                    <span class="play-btn-overlay">▶ Play Now</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="footer">
+        <svg width="18" height="18" viewBox="0 0 64 64" fill="none" style="vertical-align:middle;margin-right:6px;">
+            <circle cx="18" cy="18" r="10" fill="black"/>
+            <circle cx="46" cy="18" r="10" fill="black"/>
+            <circle cx="32" cy="34" r="22" fill="white" stroke="black" stroke-width="3"/>
+            <ellipse cx="22" cy="34" rx="6" ry="8" fill="black"/>
+            <ellipse cx="42" cy="34" rx="6" ry="8" fill="black"/>
+            <circle cx="22" cy="34" r="3" fill="white"/>
+            <circle cx="42" cy="34" r="3" fill="white"/>
+            <ellipse cx="32" cy="42" rx="4" ry="3" fill="black"/>
+            <path d="M26 48 Q32 52 38 48" stroke="black" stroke-width="2" fill="none"/>
+        </svg>
+        © 2026 ShineTwoPlay
+    </div>
+</div>
+</body>
+</html>

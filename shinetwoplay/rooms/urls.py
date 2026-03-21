@@ -12,6 +12,10 @@ urlpatterns = [
 
     # Template views
     path("", views.home, name="home"),
+    path("contribute/", views.contribute, name="contribute"),
+    path("games/", views.games_page, name="games_page"),
+    path("about/", views.about, name="about"),
+    path("community/", views.community, name="community"),
     path("rooms/<str:room_code>/", views.room_page, name="room_page"),
     
     # Room Management API (Redis only)

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Community — ShineTwoPlay | Discuss & Share</title>
+    <meta name="description" content="Join the ShineTwoPlay community! Discuss games, share feedback, suggest ideas, and connect with other players.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://shinetwoplay.online/community/">
+
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon-180x180.png">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://shinetwoplay.online/community/">
+    <meta property="og:title" content="Community — ShineTwoPlay">
+    <meta property="og:description" content="Join the ShineTwoPlay community — discuss games, share ideas, and connect with players!">
+    <meta property="og:site_name" content="ShineTwoPlay">
+
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --sunshine-yellow: #FFD93D;
+            --sunshine-orange: #FFB84D;
+            --sunshine-peach: #FFA559;
+            --sunshine-light: #FFF4DC;
+            --sunshine-cream: #FFFAEF;
+            --text-dark: #4A3F35;
+            --text-medium: #8B7355;
+            --shadow-soft: rgba(255, 185, 77, 0.3);
+            --white: #FFFFFF;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, var(--sunshine-cream) 0%, var(--sunshine-light) 50%, #FFE8CC 100%);
+            min-height: 100vh; color: var(--text-dark); overflow-x: hidden;
+        }
+
+        body::before, body::after {
+            content: ''; position: fixed; border-radius: 50%;
+            pointer-events: none; animation: sunPulse 6s ease-in-out infinite;
+        }
+        body::before {
+            top: -50%; right: -30%; width: 800px; height: 800px;
+            background: radial-gradient(circle, rgba(255,217,61,0.15), transparent 70%);
+        }
+        body::after {
+            bottom: -40%; left: -20%; width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(255,165,89,0.1), transparent 70%);
+            animation-direction: reverse;
+        }
+        @keyframes sunPulse {
+            0%,100% { transform: scale(1); opacity: .5; }
+            50% { transform: scale(1.1); opacity: .3; }
+        }
+
+        .container { max-width: 700px; margin: auto; padding: 0 20px; }
+
+        /* Header */
+        .header {
+            padding: 20px 0; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .logo-section { display: flex; gap: 12px; align-items: center; text-decoration: none; }
+        .logo {
+            width: 44px; height: 44px; border-radius: 14px;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 4px 16px var(--shadow-soft);
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+        .logo::before {
+            content: ""; display: block; width: 26px; height: 26px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
+            animation: logoRotate 20s linear infinite;
+        }
+        @keyframes logoFloat { 50% { transform: translateY(-5px) rotate(5deg); } }
+        @keyframes logoRotate { to { transform: rotate(360deg); } }
+        .app-name {
+            font-family: 'Fredoka', sans-serif; font-size: 22px; font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-orange), var(--sunshine-peach));
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .back-link {
+            padding: 10px 18px; background: var(--white); border-radius: 12px;
+            text-decoration: none; color: var(--text-dark); font-weight: 600; font-size: 14px;
+            box-shadow: 0 2px 12px rgba(255,185,77,.2); transition: all 0.3s ease;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .back-link:hover { transform: translateY(-2px); box-shadow: 0 4px 16px var(--shadow-soft); }
+
+        /* Hero */
+        .hero { text-align: center; padding: 28px 0 24px; animation: fadeInUp 0.6s ease; }
+        .hero-title {
+            font-family: 'Fredoka', sans-serif; font-size: 32px; font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange), var(--sunshine-peach));
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .hero-subtitle { color: var(--text-medium); font-size: 15px; font-weight: 500; line-height: 1.6; }
+
+        /* Info Banner */
+        .info-banner {
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(16px);
+            border-radius: 16px; padding: 16px 20px; margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(255,185,77,.12);
+            border: 1px solid rgba(255,217,61,0.2);
+            display: flex; gap: 12px; align-items: flex-start;
+            animation: fadeInUp 0.6s ease 0.1s both;
+        }
+        .info-icon { font-size: 22px; flex-shrink: 0; }
+        .info-text { font-size: 13px; color: var(--text-medium); line-height: 1.6; }
+        .info-text a { color: var(--sunshine-peach); font-weight: 700; text-decoration: none; }
+        .info-text a:hover { text-decoration: underline; }
+
+        /* Discussion Links */
+        .discussion-links {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+            margin-bottom: 20px; animation: fadeInUp 0.6s ease 0.15s both;
+        }
+
+        .disc-link {
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(16px);
+            border-radius: 16px; padding: 18px; text-align: center;
+            text-decoration: none; color: var(--text-dark);
+            box-shadow: 0 4px 20px rgba(255,185,77,.12);
+            border: 1px solid rgba(255,217,61,0.2);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .disc-link:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 28px rgba(255,185,77,.25);
+        }
+        .disc-link-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+        .disc-link-title { font-family: 'Fredoka', sans-serif; font-size: 14px; font-weight: 600; }
+        .disc-link-desc { font-size: 11px; color: var(--text-medium); margin-top: 4px; }
+
+        /* Giscus Container */
+        .comments-section {
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(16px);
+            border-radius: 20px; padding: 24px; margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(255,185,77,.12);
+            border: 1px solid rgba(255,217,61,0.2);
+            animation: fadeInUp 0.6s ease 0.2s both;
+        }
+        .section-title {
+            font-family: 'Fredoka', sans-serif; font-size: 20px; font-weight: 600;
+            margin-bottom: 16px; color: var(--text-dark);
+        }
+
+        .giscus-placeholder {
+            text-align: center; padding: 40px 20px;
+            border: 2px dashed rgba(255,217,61,0.4); border-radius: 14px;
+            background: var(--sunshine-cream);
+        }
+        .giscus-placeholder-icon { font-size: 36px; margin-bottom: 10px; }
+        .giscus-placeholder-text {
+            font-size: 14px; color: var(--text-medium); line-height: 1.6; max-width: 380px; margin: 0 auto;
+        }
+        .giscus-placeholder-text a { color: var(--sunshine-peach); font-weight: 700; text-decoration: none; }
+
+        /* Footer */
+        .footer { padding: 24px 0; font-size: 11px; text-align: center; color: var(--text-medium); }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 480px) {
+            .hero-title { font-size: 26px; }
+            .discussion-links { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="header">
+        <a href="/" class="logo-section">
+            <div class="logo"></div>
+            <div class="app-name">ShineTwoPlay</div>
+        </a>
+        <a href="/" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+            Home
+        </a>
+    </div>
+
+    <div class="hero">
+        <h1 class="hero-title">🗣️ Community</h1>
+        <p class="hero-subtitle">Discuss games, share ideas, ask questions, and connect with the ShineTwoPlay community!</p>
+    </div>
+
+    <!-- Info Banner -->
+    <div class="info-banner">
+        <span class="info-icon">💡</span>
+        <div class="info-text">
+            Comments are powered by <a href="https://github.com/nikh27/shinetwoplay/discussions" target="_blank">GitHub Discussions</a>. Sign in with your GitHub account to join the conversation!
+        </div>
+    </div>
+
+    <!-- Quick Discussion Links -->
+    <div class="discussion-links">
+        <a href="https://github.com/nikh27/shinetwoplay/discussions/categories/general" target="_blank" rel="noopener" class="disc-link">
+            <span class="disc-link-icon">💬</span>
+            <span class="disc-link-title">General Chat</span>
+            <span class="disc-link-desc">Talk about anything</span>
+        </a>
+        <a href="https://github.com/nikh27/shinetwoplay/discussions/categories/ideas" target="_blank" rel="noopener" class="disc-link">
+            <span class="disc-link-icon">💡</span>
+            <span class="disc-link-title">Ideas & Suggestions</span>
+            <span class="disc-link-desc">Share your game ideas</span>
+        </a>
+        <a href="https://github.com/nikh27/shinetwoplay/discussions/categories/q-a" target="_blank" rel="noopener" class="disc-link">
+            <span class="disc-link-icon">❓</span>
+            <span class="disc-link-title">Q&A</span>
+            <span class="disc-link-desc">Ask questions & get help</span>
+        </a>
+        <a href="https://github.com/nikh27/shinetwoplay/discussions/categories/show-and-tell" target="_blank" rel="noopener" class="disc-link">
+            <span class="disc-link-icon">🏆</span>
+            <span class="disc-link-title">Show & Tell</span>
+            <span class="disc-link-desc">Share your creations</span>
+        </a>
+    </div>
+
+    <!-- Giscus Comments -->
+    <div class="comments-section">
+        <h2 class="section-title">💬 Discussion Board</h2>
+
+        <!-- Giscus widget -->
+        <script src="https://giscus.app/client.js"
+            data-repo="nikh27/shinetwoplay"
+            data-repo-id=""
+            data-category="General"
+            data-category-id=""
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="light"
+            data-lang="en"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+        </script>
+
+        <!-- Fallback if Giscus hasn't been configured yet -->
+        <noscript>
+            <div class="giscus-placeholder">
+                <div class="giscus-placeholder-icon">💬</div>
+                <div class="giscus-placeholder-text">
+                    Enable JavaScript to see the discussion board, or visit
+                    <a href="https://github.com/nikh27/shinetwoplay/discussions" target="_blank">GitHub Discussions</a>
+                    directly.
+                </div>
+            </div>
+        </noscript>
+    </div>
+
+    <div class="footer">
+        <svg width="18" height="18" viewBox="0 0 64 64" fill="none" style="vertical-align:middle;margin-right:6px;">
+            <circle cx="18" cy="18" r="10" fill="black"/>
+            <circle cx="46" cy="18" r="10" fill="black"/>
+            <circle cx="32" cy="34" r="22" fill="white" stroke="black" stroke-width="3"/>
+            <ellipse cx="22" cy="34" rx="6" ry="8" fill="black"/>
+            <ellipse cx="42" cy="34" rx="6" ry="8" fill="black"/>
+            <circle cx="22" cy="34" r="3" fill="white"/>
+            <circle cx="42" cy="34" r="3" fill="white"/>
+            <ellipse cx="32" cy="42" rx="4" ry="3" fill="black"/>
+            <path d="M26 48 Q32 52 38 48" stroke="black" stroke-width="2" fill="none"/>
+        </svg>
+        © 2026 ShineTwoPlay
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>About — ShineTwoPlay | Free 2-Player Online Games</title>
+    <meta name="description" content="Learn about ShineTwoPlay — a free, open-source 2-player online gaming platform. FAQ, recent updates, privacy policy, and more.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://shinetwoplay.online/about/">
+
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon-180x180.png">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://shinetwoplay.online/about/">
+    <meta property="og:title" content="About — ShineTwoPlay">
+    <meta property="og:description" content="Learn about ShineTwoPlay, the free 2-player online gaming platform. FAQ, updates, and privacy.">
+    <meta property="og:site_name" content="ShineTwoPlay">
+
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --sunshine-yellow: #FFD93D;
+            --sunshine-orange: #FFB84D;
+            --sunshine-peach: #FFA559;
+            --sunshine-light: #FFF4DC;
+            --sunshine-cream: #FFFAEF;
+            --text-dark: #4A3F35;
+            --text-medium: #8B7355;
+            --shadow-soft: rgba(255, 185, 77, 0.3);
+            --white: #FFFFFF;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, var(--sunshine-cream) 0%, var(--sunshine-light) 50%, #FFE8CC 100%);
+            min-height: 100vh; color: var(--text-dark); overflow-x: hidden;
+        }
+
+        body::before, body::after {
+            content: ''; position: fixed; border-radius: 50%;
+            pointer-events: none; animation: sunPulse 6s ease-in-out infinite;
+        }
+        body::before {
+            top: -50%; right: -30%; width: 800px; height: 800px;
+            background: radial-gradient(circle, rgba(255,217,61,0.15), transparent 70%);
+        }
+        body::after {
+            bottom: -40%; left: -20%; width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(255,165,89,0.1), transparent 70%);
+            animation-direction: reverse;
+        }
+        @keyframes sunPulse {
+            0%,100% { transform: scale(1); opacity: .5; }
+            50% { transform: scale(1.1); opacity: .3; }
+        }
+
+        .container { max-width: 640px; margin: auto; padding: 0 20px; }
+
+        /* Header */
+        .header {
+            padding: 20px 0; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .logo-section { display: flex; gap: 12px; align-items: center; text-decoration: none; }
+        .logo {
+            width: 44px; height: 44px; border-radius: 14px;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 4px 16px var(--shadow-soft);
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+        .logo::before {
+            content: ""; display: block; width: 26px; height: 26px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
+            animation: logoRotate 20s linear infinite;
+        }
+        @keyframes logoFloat { 50% { transform: translateY(-5px) rotate(5deg); } }
+        @keyframes logoRotate { to { transform: rotate(360deg); } }
+        .app-name {
+            font-family: 'Fredoka', sans-serif; font-size: 22px; font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-orange), var(--sunshine-peach));
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .back-link {
+            padding: 10px 18px; background: var(--white); border-radius: 12px;
+            text-decoration: none; color: var(--text-dark); font-weight: 600; font-size: 14px;
+            box-shadow: 0 2px 12px rgba(255,185,77,.2); transition: all 0.3s ease;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .back-link:hover { transform: translateY(-2px); box-shadow: 0 4px 16px var(--shadow-soft); }
+
+        /* Hero */
+        .hero { text-align: center; padding: 28px 0 24px; animation: fadeInUp 0.6s ease; }
+        .hero-title {
+            font-family: 'Fredoka', sans-serif; font-size: 32px; font-weight: 700;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange), var(--sunshine-peach));
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .hero-subtitle { color: var(--text-medium); font-size: 15px; font-weight: 500; line-height: 1.6; }
+
+        /* Card sections */
+        .card {
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(16px);
+            border-radius: 20px; padding: 24px; margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(255,185,77,.12);
+            border: 1px solid rgba(255,217,61,0.2);
+        }
+
+        .section-title {
+            font-family: 'Fredoka', sans-serif; font-size: 20px; font-weight: 600;
+            margin-bottom: 14px; color: var(--text-dark);
+        }
+
+        .card p, .card li {
+            font-size: 14px; color: var(--text-medium); line-height: 1.7;
+        }
+        .card p + p { margin-top: 10px; }
+
+        /* About creator */
+        .creator {
+            display: flex; gap: 14px; align-items: center;
+            padding: 14px; border-radius: 14px; background: var(--sunshine-cream); margin-top: 14px;
+        }
+        .creator-avatar {
+            width: 48px; height: 48px; border-radius: 14px;
+            background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+            flex-shrink: 0;
+        }
+        .creator-name { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 16px; }
+        .creator-link {
+            color: var(--sunshine-peach); text-decoration: none; font-size: 13px; font-weight: 600;
+        }
+
+        /* Tech stack */
+        .tech-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .tech-tag {
+            padding: 6px 14px; border-radius: 10px;
+            background: var(--sunshine-cream); font-size: 12px; font-weight: 700;
+            color: var(--text-dark); border: 1px solid rgba(255,217,61,0.3);
+        }
+
+        /* FAQ */
+        .faq-item { margin-bottom: 12px; border-bottom: 1px solid rgba(255,217,61,0.2); }
+        .faq-item:last-child { border-bottom: none; margin-bottom: 0; }
+
+        .faq-question {
+            width: 100%; background: none; border: none; cursor: pointer;
+            padding: 12px 0; display: flex; justify-content: space-between; align-items: center;
+            font-family: 'Quicksand', sans-serif; font-size: 14px; font-weight: 700;
+            color: var(--text-dark); text-align: left;
+        }
+
+        .faq-arrow {
+            transition: transform 0.3s ease; font-size: 12px; color: var(--text-medium);
+            flex-shrink: 0; margin-left: 12px;
+        }
+        .faq-item.open .faq-arrow { transform: rotate(180deg); }
+
+        .faq-answer {
+            max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease;
+            font-size: 13px; color: var(--text-medium); line-height: 1.7;
+        }
+        .faq-item.open .faq-answer { max-height: 200px; padding-bottom: 12px; }
+
+        /* Timeline */
+        .timeline { margin-top: 8px; }
+        .timeline-item {
+            display: flex; gap: 14px; padding: 10px 0;
+            border-bottom: 1px solid rgba(255,217,61,0.15);
+        }
+        .timeline-item:last-child { border-bottom: none; }
+        .timeline-date {
+            font-size: 11px; font-weight: 700; color: var(--sunshine-peach);
+            min-width: 65px; padding-top: 2px;
+        }
+        .timeline-content { flex: 1; }
+        .timeline-title { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+        .timeline-desc { font-size: 12px; color: var(--text-medium); line-height: 1.5; }
+
+        /* Privacy */
+        .privacy-item {
+            display: flex; gap: 12px; padding: 10px 0; align-items: flex-start;
+        }
+        .privacy-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+        .privacy-text { font-size: 13px; color: var(--text-medium); line-height: 1.6; }
+        .privacy-text strong { color: var(--text-dark); }
+
+        /* Footer */
+        .footer { padding: 24px 0; font-size: 11px; text-align: center; color: var(--text-medium); }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card:nth-child(2) { animation: fadeInUp 0.6s ease 0.1s both; }
+        .card:nth-child(3) { animation: fadeInUp 0.6s ease 0.15s both; }
+        .card:nth-child(4) { animation: fadeInUp 0.6s ease 0.2s both; }
+        .card:nth-child(5) { animation: fadeInUp 0.6s ease 0.25s both; }
+
+        @media (max-width: 480px) {
+            .hero-title { font-size: 26px; }
+            .creator { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="header">
+        <a href="/" class="logo-section">
+            <div class="logo"></div>
+            <div class="app-name">ShineTwoPlay</div>
+        </a>
+        <a href="/" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+            Home
+        </a>
+    </div>
+
+    <div class="hero">
+        <h1 class="hero-title">About ShineTwoPlay</h1>
+        <p class="hero-subtitle">A world built for just two players — where connection, creativity, and fun come together ☀️</p>
+    </div>
+
+    <!-- About -->
+    <div class="card">
+        <h2 class="section-title">☀️ What is ShineTwoPlay?</h2>
+        <p>ShineTwoPlay is a <strong>free, open-source</strong> browser-based platform for playing 2-player online games with friends. No downloads, no sign-ups — just create a room, share the code, and start playing!</p>
+        <p>With <strong>16 multiplayer games</strong>, real-time voice chat, image sharing, and a beautiful interface, ShineTwoPlay makes playing with a friend feel effortless and fun.</p>
+
+        <div class="creator">
+            <div class="creator-avatar">👨‍💻</div>
+            <div>
+                <div class="creator-name">Nikhil Pandey</div>
+                <a href="https://github.com/nikh27" target="_blank" rel="noopener" class="creator-link">@nikh27 on GitHub →</a>
+            </div>
+        </div>
+
+        <div class="tech-grid">
+            <span class="tech-tag">Django 4.2</span>
+            <span class="tech-tag">WebSockets</span>
+            <span class="tech-tag">Redis</span>
+            <span class="tech-tag">WebRTC</span>
+            <span class="tech-tag">Daphne ASGI</span>
+            <span class="tech-tag">Open Source</span>
+        </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="card">
+        <h2 class="section-title">❓ Frequently Asked Questions</h2>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                Is ShineTwoPlay free?
+                <span class="faq-arrow">▼</span>
+            </button>
+            <div class="faq-answer">
+                Yes, 100% free! ShineTwoPlay is open-source and will always be free to use. No hidden fees, no premium tiers.
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                Do I need to sign up or create an account?
+                <span class="faq-arrow">▼</span>
+            </button>
+            <div class="faq-answer">
+                Nope! Just enter a username, create or join a room, and start playing. No email, no password, no account needed.
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                How many players can play?
+                <span class="faq-arrow">▼</span>
+            </button>
+            <div class="faq-answer">
+                ShineTwoPlay is designed exclusively for <strong>2 players</strong>. Create a room, share the code with your friend, and play together!
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                Does it work on mobile?
+                <span class="faq-arrow">▼</span>
+            </button>
+            <div class="faq-answer">
+                Yes! ShineTwoPlay works on any modern browser — desktop, tablet, or mobile. For the best experience, use Chrome or Safari.
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                Can I voice chat while playing?
+                <span class="faq-arrow">▼</span>
+            </button>
+            <div class="faq-answer">
+                Absolutely! ShineTwoPlay has built-in WebRTC voice calling. Just click the call button in the room to talk with your friend live while playing.
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                Is my data stored?
+                <span class="faq-arrow">▼</span>
+            </button>
+            <div class="faq-answer">
+                No permanent data is stored. Room data is kept temporarily in Redis and automatically deleted when the room expires. We don't track or store personal information.
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">
+                Can I add my own game?
+                <span class="faq-arrow">▼</span>
+            </button>
+            <div class="faq-answer">
+                Yes! ShineTwoPlay is open-source and welcomes game contributions. Check out our <a href="/contribute/" style="color: var(--sunshine-peach); font-weight: 700;">Contribute page</a> to learn how.
+            </div>
+        </div>
+    </div>
+
+    <!-- What's New -->
+    <div class="card">
+        <h2 class="section-title">📰 What's New</h2>
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-date">Mar 2026</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">🎮 16 Games Now Available!</div>
+                    <div class="timeline-desc">Added Dots & Boxes, Bingo, Memory, Pattern Clash, and Simon Duel to the collection.</div>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-date">Feb 2026</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">🗣️ Voice Chat & Messages</div>
+                    <div class="timeline-desc">WebRTC voice calling, voice messages, and image sharing now live in rooms.</div>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-date">Jan 2026</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">☀️ ShineTwoPlay Launched</div>
+                    <div class="timeline-desc">The platform went live with 10 initial games, real-time rooms, and chat functionality.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Privacy Policy -->
+    <div class="card">
+        <h2 class="section-title">🔒 Privacy Policy</h2>
+
+        <div class="privacy-item">
+            <span class="privacy-icon">🚫</span>
+            <div class="privacy-text">
+                <strong>No Account Required.</strong> We don't collect emails, passwords, or any personal information. Your username is temporary and only used during a game session.
+            </div>
+        </div>
+
+        <div class="privacy-item">
+            <span class="privacy-icon">💾</span>
+            <div class="privacy-text">
+                <strong>No Permanent Data Storage.</strong> Room data, messages, and chat history are stored temporarily in Redis and automatically deleted when the room expires (typically within a few hours).
+            </div>
+        </div>
+
+        <div class="privacy-item">
+            <span class="privacy-icon">🎤</span>
+            <div class="privacy-text">
+                <strong>Microphone Access.</strong> Voice calling and voice messages require microphone permission. Audio is transmitted peer-to-peer via WebRTC and is <strong>never stored on our servers</strong>.
+            </div>
+        </div>
+
+        <div class="privacy-item">
+            <span class="privacy-icon">📷</span>
+            <div class="privacy-text">
+                <strong>Shared Images.</strong> Images sent in chat are temporarily stored on the server for the duration of the room session and are automatically cleaned up afterward.
+            </div>
+        </div>
+
+        <div class="privacy-item">
+            <span class="privacy-icon">🍪</span>
+            <div class="privacy-text">
+                <strong>Cookies & Local Storage.</strong> We use browser localStorage to remember your username and gender preference. No tracking cookies are used.
+            </div>
+        </div>
+
+        <div class="privacy-item">
+            <span class="privacy-icon">📊</span>
+            <div class="privacy-text">
+                <strong>No Analytics or Tracking.</strong> We do not use Google Analytics, Facebook Pixel, or any third-party tracking services.
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <svg width="18" height="18" viewBox="0 0 64 64" fill="none" style="vertical-align:middle;margin-right:6px;">
+            <circle cx="18" cy="18" r="10" fill="black"/>
+            <circle cx="46" cy="18" r="10" fill="black"/>
+            <circle cx="32" cy="34" r="22" fill="white" stroke="black" stroke-width="3"/>
+            <ellipse cx="22" cy="34" rx="6" ry="8" fill="black"/>
+            <ellipse cx="42" cy="34" rx="6" ry="8" fill="black"/>
+            <circle cx="22" cy="34" r="3" fill="white"/>
+            <circle cx="42" cy="34" r="3" fill="white"/>
+            <ellipse cx="32" cy="42" rx="4" ry="3" fill="black"/>
+            <path d="M26 48 Q32 52 38 48" stroke="black" stroke-width="2" fill="none"/>
+        </svg>
+        © 2026 ShineTwoPlay
+    </div>
+</div>
+
+<script>
+function toggleFaq(btn) {
+    const item = btn.parentElement;
+    const wasOpen = item.classList.contains('open');
+
+    // Close all
+    document.querySelectorAll('.faq-item').forEach(el => el.classList.remove('open'));
+
+    // Toggle clicked
+    if (!wasOpen) item.classList.add('open');
+}
+</script>
+</body>
+</html>

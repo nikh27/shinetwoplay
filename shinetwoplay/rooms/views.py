@@ -43,6 +43,27 @@ def home(request):
     return render(request, "home.html")
 
 
+def contribute(request):
+    """Contribute & Feedback page"""
+    return render(request, "contribute.html")
+
+
+def games_page(request):
+    """Games listing page"""
+    games = get_all_games()
+    return render(request, "games.html", {"games": games})
+
+
+def about(request):
+    """About page — FAQ, What's New, Privacy Policy"""
+    return render(request, "about.html")
+
+
+def community(request):
+    """Community discussion page"""
+    return render(request, "community.html")
+
+
 def room_page(request, room_code):
     """Room page - serves the room.html template"""
     username = request.GET.get("name", "")

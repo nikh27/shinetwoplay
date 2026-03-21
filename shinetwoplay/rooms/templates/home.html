@@ -507,10 +507,11 @@
             </svg>
             © 2026 ShineTwoPlay
         </div>
-        <div style="font-size: 11px; display: flex; gap: 12px; opacity: 0.6;">
-            <a href="/shine2play/" style="color: inherit; text-decoration: none;">Shine2Play</a>
-            <a href="/stp/" style="color: inherit; text-decoration: none;">STP Games</a>
-            <a href="/s2p/" style="color: inherit; text-decoration: none;">S2P Platform</a>
+        <div style="font-size: 12px; display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+            <a href="/games/" style="color: inherit; text-decoration: none; font-weight: 600;">🎮 Games</a>
+            <a href="/about/" style="color: inherit; text-decoration: none; font-weight: 600;">👤 About</a>
+            <a href="/contribute/" style="color: inherit; text-decoration: none; font-weight: 600;">💬 Contribute</a>
+            <a href="/community/" style="color: inherit; text-decoration: none; font-weight: 600;">🗣️ Community</a>
         </div>
     </div>
 </div>
@@ -564,6 +565,18 @@ window.addEventListener('DOMContentLoaded', () => {
         } else {
             // Open modal to get username, then join
             sessionStorage.setItem("pendingRoomCode", joinRoomCode);
+            openModal();
+        }
+    }
+    
+    // Check for play parameter (from Games page — auto-create room)
+    const playGameId = urlParams.get('play');
+    if (playGameId && !joinRoomCode) {
+        sessionStorage.setItem("pendingGameId", playGameId);
+        if (userName && gender) {
+            createRoomAPI(userName, gender);
+        } else {
+            sessionStorage.setItem("pendingAction", "createRoom");
             openModal();
         }
     }
