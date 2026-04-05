@@ -141,22 +141,25 @@
 
         .back-link {
             padding: 10px 18px;
-            background: var(--white);
+            background: var(--player-bg, rgba(255,255,255,0.7));
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             border-radius: 12px;
             text-decoration: none;
             color: var(--text-dark);
             font-weight: 600;
             font-size: 14px;
-            box-shadow: 0 2px 12px rgba(255,185,77,.2);
+            box-shadow: 0 2px 12px var(--shadow-color, rgba(255,185,77,.2));
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             gap: 6px;
+            border: 1px solid var(--border-color, rgba(255,185,77,.2));
         }
 
         .back-link:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 16px var(--shadow-soft);
+            box-shadow: 0 4px 16px var(--shadow-color, var(--shadow-soft));
         }
 
         /* Hero */
@@ -203,13 +206,14 @@
         }
 
         .contribute-card {
-            background: rgba(255, 255, 255, 0.85);
+            background: var(--player-bg, rgba(255,255,255,0.7));
             backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border-radius: 20px;
             padding: 24px 18px;
             text-align: center;
-            box-shadow: 0 4px 20px rgba(255,185,77,.12);
-            border: 1px solid rgba(255,217,61,0.2);
+            box-shadow: 0 4px 20px var(--shadow-color, rgba(255,185,77,.12));
+            border: 1px solid var(--border-color, rgba(255,217,61,0.2));
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             text-decoration: none;
             color: var(--text-dark);
@@ -235,7 +239,7 @@
 
         .contribute-card:hover {
             transform: translateY(-6px);
-            box-shadow: 0 8px 32px rgba(255,185,77,.25);
+            box-shadow: 0 8px 32px var(--shadow-color, rgba(255,185,77,.25));
         }
 
         .contribute-card:hover::before {
@@ -265,12 +269,13 @@
         }
 
         .feedback-card {
-            background: rgba(255, 255, 255, 0.85);
+            background: var(--player-bg, rgba(255,255,255,0.7));
             backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border-radius: 24px;
             padding: 28px 24px;
-            box-shadow: 0 4px 24px rgba(255,185,77,.15);
-            border: 1px solid rgba(255,217,61,0.15);
+            box-shadow: 0 4px 24px var(--shadow-color, rgba(255,185,77,.15));
+            border: 1px solid var(--border-color, rgba(255,217,61,0.15));
         }
 
         .form-group {
@@ -289,8 +294,8 @@
             width: 100%;
             padding: 14px;
             border-radius: 14px;
-            border: 2px solid var(--sunshine-light);
-            background: var(--sunshine-cream);
+            border: 2px solid var(--border-color, var(--sunshine-light));
+            background: var(--header-bg, var(--sunshine-cream));
             font-family: 'Quicksand', sans-serif;
             font-size: 14px;
             font-weight: 500;
@@ -359,8 +364,9 @@
         }
 
         .quick-link {
-            background: rgba(255, 255, 255, 0.75);
+            background: var(--player-bg, rgba(255,255,255,0.7));
             backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-radius: 16px;
             padding: 16px 20px;
             display: flex;
@@ -370,15 +376,14 @@
             color: var(--text-dark);
             font-weight: 600;
             font-size: 14px;
-            box-shadow: 0 2px 12px rgba(255,185,77,.1);
-            border: 1px solid rgba(255,217,61,0.15);
+            box-shadow: 0 2px 12px var(--shadow-color, rgba(255,185,77,.1));
+            border: 1px solid var(--border-color, rgba(255,217,61,0.15));
             transition: all 0.3s ease;
         }
 
         .quick-link:hover {
             transform: translateX(6px);
-            box-shadow: 0 4px 16px rgba(255,185,77,.2);
-            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 16px var(--shadow-color, rgba(255,185,77,.2));
         }
 
         .link-icon {
@@ -414,11 +419,12 @@
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--nav-bg, rgba(255,255,255,0.95));
             backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             padding: 14px 28px;
             border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(255,185,77,.3);
+            box-shadow: 0 8px 32px var(--shadow-color, rgba(255,185,77,.3));
             font-weight: 600;
             font-size: 14px;
             color: var(--text-dark);
@@ -427,6 +433,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            border: 1px solid var(--border-color, transparent);
         }
 
         .toast.show {
