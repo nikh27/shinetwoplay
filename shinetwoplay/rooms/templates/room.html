@@ -688,7 +688,9 @@
 
         .chat-container {
             flex: 1;
-            background: linear-gradient(180deg, #fffaf0 0%, #ffffff 100%);
+            background: var(--chat-bg, linear-gradient(180deg, #fffaf0 0%, #ffffff 100%));
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             border-radius: 24px 24px 0 0;
             box-shadow: 0 -6px 30px rgba(255, 185, 77, 0.15);
             display: flex;
@@ -774,8 +776,8 @@
 
         .chat-message.own {
             align-self: flex-end;
-            background: linear-gradient(135deg, #FFD97D 0%, #FFB84D 100%);
-            color: #3d2e00;
+            background: var(--msg-own-bg, linear-gradient(135deg, #FFD97D 0%, #FFB84D 100%));
+            color: var(--msg-own-text, #3d2e00);
             border-bottom-right-radius: 6px;
             box-shadow: 0 2px 8px rgba(255, 185, 77, 0.25);
         }
@@ -785,19 +787,19 @@
 
         .chat-message.other {
             align-self: flex-start;
-            background: #fff;
-            color: var(--text-dark);
+            background: var(--msg-oth-bg, #fff);
+            color: var(--msg-oth-text, var(--text-dark));
             border-bottom-left-radius: 6px;
             box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-            border: 1px solid rgba(255,185,77,0.12);
+            border: 1px solid var(--msg-border, rgba(255,185,77,0.12));
         }
 
         .chat-message.other .message-sender { color: var(--sunshine-orange); }
 
         .chat-message.notification {
             align-self: center;
-            background: rgba(255, 184, 77, 0.12);
-            color: var(--text-medium);
+            background: var(--msg-sys-bg, rgba(255, 184, 77, 0.12));
+            color: var(--msg-sys-text, var(--text-medium));
             font-size: 12px;
             font-style: italic;
             font-weight: 500;
@@ -883,10 +885,10 @@
 
         .chat-input-container {
             padding: 10px 12px;
-            background: rgba(255,255,255,0.92);
+            background: var(--nav-bg, rgba(255,255,255,0.92));
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border-top: 1px solid rgba(255,185,77,0.15);
+            border-top: 1px solid var(--chat-border, rgba(255,185,77,0.15));
             display: flex;
             gap: 8px;
             align-items: center;
@@ -898,21 +900,21 @@
         .chat-input {
             flex: 1;
             padding: 11px 18px;
-            border: 1.5px solid rgba(255,185,77,0.25);
+            border: 1.5px solid var(--chat-border, rgba(255,185,77,0.25));
             border-radius: 24px;
             font-family: 'Quicksand', sans-serif;
             font-size: 15px;
             font-weight: 500;
             color: var(--text-dark);
-            background: #fefcf7;
+            background: var(--player-bg, #fefcf7);
             transition: all 0.25s ease;
         }
 
         .chat-input:focus {
             outline: none;
             border-color: var(--sunshine-orange);
-            background: #fff;
-            box-shadow: 0 0 0 3px rgba(255, 184, 77, 0.12);
+            background: var(--nav-bg, #fff);
+            box-shadow: 0 0 0 3px var(--msg-border, rgba(255, 184, 77, 0.12));
         }
 
         .chat-input::placeholder {
@@ -924,7 +926,7 @@
             width: 42px;
             height: 42px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #FFD97D, #FF9F43);
+            background: var(--msg-own-bg, linear-gradient(135deg, #FFD97D, #FF9F43));
             border: none;
             display: flex;
             align-items: center;
@@ -932,9 +934,9 @@
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
             font-size: 20px;
-            box-shadow: 0 3px 12px rgba(255,159,67,0.3);
+            box-shadow: 0 3px 12px var(--shadow-color, rgba(255,159,67,0.3));
             flex-shrink: 0;
-            color: #5a3e00;
+            color: var(--msg-own-text, #5a3e00);
         }
 
         .send-btn:hover {
@@ -956,7 +958,7 @@
             height: 40px;
             border-radius: 50%;
             background: var(--sunshine-cream);
-            border: 2px solid var(--sunshine-light);
+            border: 2px solid var(--sunshine-yellow);
             font-size: 24px;
             font-weight: 600;
             color: var(--sunshine-orange);
@@ -969,7 +971,7 @@
         }
 
         .media-toggle-btn:hover {
-            background: var(--sunshine-light);
+            background: var(--sunshine-yellow);
             transform: rotate(45deg);
         }
 
@@ -2202,6 +2204,11 @@
         .vc-status.disconnected { background: #9e9e9e; }
         @keyframes vc-blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
     </style>
+    
+    <!-- Theme Engine -->
+    <link rel="stylesheet" href="/static/themes/themes.css">
+    <link rel="stylesheet" href="/static/themes/theme-picker.css">
+    <script src="/static/themes/theme-engine.js"></script>
 </head>
 <body>
     <div class="container">
@@ -2220,6 +2227,7 @@
             </div>
             <div class="header-right">
                 <div class="player-count">player <span id="playerCount">1</span>/2</div>
+                <button class="theme-picker-toggle" onclick="window.ThemeEngine && window.ThemeEngine.openPicker()" title="Theme">🎨</button>
             </div>
         </div>
 

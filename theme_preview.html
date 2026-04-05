@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShineTwoPlay — Theme Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  font-family:'Quicksand',sans-serif;
+  background:#080810;
+  min-height:100vh;
+  padding:36px 20px 60px;
+}
+
+h1{
+  font-family:'Fredoka',sans-serif;
+  color:#fff;
+  text-align:center;
+  font-size:30px;
+  margin-bottom:6px;
+  letter-spacing:0.5px;
+}
+.subtitle{color:#666;text-align:center;font-size:13px;margin-bottom:36px}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:28px;
+  max-width:1100px;
+  margin:0 auto;
+}
+
+/* ——— THEME WRAPPER ——— */
+.tw{display:flex;flex-direction:column;align-items:center;gap:10px}
+
+.swatch-row{display:flex;gap:5px}
+.sw{width:16px;height:16px;border-radius:50%;border:1.5px solid rgba(255,255,255,.15)}
+
+.tlabel{
+  font-family:'Fredoka',sans-serif;
+  color:#ccc;
+  font-size:14px;
+  letter-spacing:0.3px;
+}
+.tbase{color:#555;font-size:11px}
+
+/* ——— THE CARD ——— */
+.tc{
+  width:100%;
+  border-radius:22px;
+  overflow:hidden;
+  box-shadow:0 10px 50px rgba(0,0,0,.7);
+  border:1.5px solid rgba(255,255,255,.07);
+  cursor:pointer;
+  transition:transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+  position:relative;
+}
+.tc:hover{transform:translateY(-8px);box-shadow:0 20px 60px rgba(0,0,0,.8)}
+.tc.sel{border-color:rgba(255,217,61,.7);box-shadow:0 0 0 3px rgba(255,217,61,.3),0 20px 60px rgba(0,0,0,.8)}
+
+/* ——— APP MOCKUP ——— */
+.app{
+  height:400px;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  overflow:hidden;
+}
+
+/* CANVAS layer behind everything */
+canvas.bg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  z-index:0;
+}
+
+/* Solid bg fallback */
+.app-inner{
+  position:relative;
+  z-index:1;
+  display:flex;
+  flex-direction:column;
+  height:100%;
+}
+
+/* ——— HEADER ——— */
+.hd{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:11px 14px;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  flex-shrink:0;
+}
+.hd-l{display:flex;align-items:center;gap:7px}
+.logo-box{
+  width:30px;height:30px;
+  border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;
+  flex-shrink:0;
+}
+.app-nm{
+  font-family:'Fredoka',sans-serif;
+  font-size:13px;font-weight:700;
+}
+.hd-r{display:flex;align-items:center;gap:6px}
+.chip{
+  display:flex;align-items:center;gap:4px;
+  border-radius:20px;
+  padding:4px 9px;
+  font-size:11px;font-weight:700;
+}
+.tbtn{
+  width:30px;height:30px;
+  border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;
+  cursor:pointer;
+  flex-shrink:0;
+}
+
+/* ——— BODY ——— */
+.bd{
+  flex:1;
+  padding:10px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  min-height:0;
+}
+
+.pc-card{
+  border-radius:12px;
+  padding:8px 10px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+.av{
+  width:30px;height:30px;
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+  flex-shrink:0;
+}
+.pi{flex:1}
+.pn{font-family:'Fredoka',sans-serif;font-size:12px;font-weight:600}
+.bdg{
+  font-size:8px;padding:2px 5px;border-radius:5px;font-weight:700;
+  vertical-align:middle;margin-left:4px;
+}
+.rdy{font-size:9px;font-weight:700;color:#4CAF50;background:rgba(76,175,80,.12);padding:2px 7px;border-radius:6px}
+
+/* CHAT */
+.chat{
+  flex:1;
+  border-radius:14px 14px 0 0;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  overflow:hidden;
+}
+.msg{padding:6px 10px;border-radius:10px;font-size:10.5px;font-weight:600;max-width:78%}
+.msg.own{align-self:flex-end;border-bottom-right-radius:3px}
+.msg.oth{align-self:flex-start;border-bottom-left-radius:3px}
+.msg.sys{align-self:center;font-size:9.5px;border-radius:8px}
+
+/* ACTION */
+.act{
+  display:flex;gap:7px;
+  padding:0 12px 11px;
+  flex-shrink:0;
+}
+.btn{
+  flex:1;padding:8px;border-radius:9px;border:none;
+  font-family:'Fredoka',sans-serif;font-size:12px;font-weight:700;cursor:pointer;
+}
+
+/* ——————————————————
+   THEME COLOUR TOKENS
+   —————————————————— */
+
+/* LIGHT */
+.t-light .app{background:linear-gradient(135deg,#FFFAEF 0%,#FFF4DC 50%,#FFE8CC 100%)}
+.t-light .hd{background:rgba(255,255,255,.75);border-bottom:1px solid rgba(255,217,61,.2)}
+.t-light .logo-box{background:linear-gradient(135deg,#FFD93D,#FFB84D)}
+.t-light .app-nm{color:#FFB84D}
+.t-light .chip{background:#FFF4DC;border:1px solid rgba(255,184,77,.3);color:#4A3F35}
+.t-light .tbtn{background:linear-gradient(135deg,#FFD93D,#FFB84D);box-shadow:0 3px 10px rgba(255,185,77,.4)}
+.t-light .pc-card{background:rgba(255,255,255,.7);border:1px solid rgba(255,217,61,.2)}
+.t-light .av{background:linear-gradient(135deg,#FFD93D,#FFB84D)}
+.t-light .pn{color:#4A3F35}
+.t-light .bdg{background:linear-gradient(135deg,#FFD93D,#FFB84D);color:#4A3F35}
+.t-light .chat{background:rgba(255,255,255,.75);border-top:1px solid rgba(255,217,61,.15)}
+.t-light .msg.own{background:linear-gradient(135deg,#FFD97D,#FFB84D);color:#3d2e00}
+.t-light .msg.oth{background:rgba(255,255,255,.9);color:#4A3F35;border:1px solid rgba(255,184,77,.15)}
+.t-light .msg.sys{background:rgba(255,217,61,.12);color:#8B7355;border:1px solid rgba(255,217,61,.2)}
+.t-light .btn.pri{background:linear-gradient(135deg,#FFD93D,#FFB84D);color:#3d2e00;box-shadow:0 3px 10px rgba(255,185,77,.35)}
+.t-light .btn.sec{background:rgba(255,255,255,.7);color:#8B7355;border:1px solid rgba(255,184,77,.25)}
+
+/* DARK — Catppuccin Mocha */
+.t-dark .app{background:linear-gradient(135deg,#1E1E2E 0%,#181825 50%,#11111B 100%)}
+.t-dark .hd{background:rgba(30,30,46,.8);border-bottom:1px solid rgba(203,166,247,.12)}
+.t-dark .logo-box{background:linear-gradient(135deg,#F9E2AF,#CBA6F7)}
+.t-dark .app-nm{color:#CBA6F7}
+.t-dark .chip{background:rgba(69,71,90,.7);border:1px solid rgba(203,166,247,.2);color:#CDD6F4}
+.t-dark .tbtn{background:linear-gradient(135deg,#F9E2AF,#CBA6F7);box-shadow:0 3px 10px rgba(203,166,247,.35)}
+.t-dark .pc-card{background:rgba(49,50,68,.65);border:1px solid rgba(203,166,247,.12)}
+.t-dark .av{background:linear-gradient(135deg,#F9E2AF,#CBA6F7)}
+.t-dark .pn{color:#CDD6F4}
+.t-dark .bdg{background:linear-gradient(135deg,#F9E2AF,#FAB387);color:#1E1E2E}
+.t-dark .chat{background:rgba(24,24,37,.8);border-top:1px solid rgba(203,166,247,.1)}
+.t-dark .msg.own{background:linear-gradient(135deg,#F9E2AF,#FAB387);color:#1E1E2E}
+.t-dark .msg.oth{background:rgba(49,50,68,.9);color:#CDD6F4;border:1px solid rgba(203,166,247,.1)}
+.t-dark .msg.sys{background:rgba(69,71,90,.6);color:#A6ADC8;border:1px solid rgba(203,166,247,.12)}
+.t-dark .btn.pri{background:linear-gradient(135deg,#F9E2AF,#CBA6F7);color:#1E1E2E;box-shadow:0 3px 10px rgba(203,166,247,.3)}
+.t-dark .btn.sec{background:rgba(49,50,68,.7);color:#A6ADC8;border:1px solid rgba(203,166,247,.15)}
+
+/* LOVE — Rosé Pine */
+.t-love .app{background:linear-gradient(135deg,#FFF0F5 0%,#FFD6E7 50%,#FFC8DE 100%)}
+.t-love .hd{background:rgba(255,240,245,.8);border-bottom:1px solid rgba(255,77,141,.15)}
+.t-love .logo-box{background:linear-gradient(135deg,#FF79A8,#FF4D8D)}
+.t-love .app-nm{color:#FF4D8D}
+.t-love .chip{background:rgba(255,210,230,.7);border:1px solid rgba(255,77,141,.25);color:#54273E}
+.t-love .tbtn{background:linear-gradient(135deg,#FF79A8,#FF4D8D);box-shadow:0 3px 10px rgba(255,77,141,.4)}
+.t-love .pc-card{background:rgba(255,255,255,.65);border:1px solid rgba(255,121,168,.2)}
+.t-love .av{background:linear-gradient(135deg,#FF79A8,#FF4D8D)}
+.t-love .pn{color:#54273E}
+.t-love .bdg{background:linear-gradient(135deg,#FF79A8,#FF4D8D);color:#fff}
+.t-love .chat{background:rgba(255,255,255,.72);border-top:1px solid rgba(255,77,141,.12)}
+.t-love .msg.own{background:linear-gradient(135deg,#FF79A8,#FF4D8D);color:#fff}
+.t-love .msg.oth{background:rgba(255,255,255,.9);color:#54273E;border:1px solid rgba(255,121,168,.18)}
+.t-love .msg.sys{background:rgba(255,210,230,.5);color:#9E5074;border:1px solid rgba(255,77,141,.15)}
+.t-love .btn.pri{background:linear-gradient(135deg,#FF79A8,#FF4D8D);color:#fff;box-shadow:0 3px 10px rgba(255,77,141,.4)}
+.t-love .btn.sec{background:rgba(255,255,255,.65);color:#9E5074;border:1px solid rgba(255,121,168,.2)}
+
+/* GALAXY — Deep Space Navy, NOT electric */
+.t-galaxy .app{background:linear-gradient(180deg,#020816 0%,#04122A 40%,#081030 100%)}
+.t-galaxy .hd{background:rgba(2,8,22,.8);border-bottom:1px solid rgba(100,160,255,.12)}
+.t-galaxy .logo-box{background:linear-gradient(135deg,#2563EB,#60A5FA)}
+.t-galaxy .app-nm{color:#93C5FD}
+.t-galaxy .chip{background:rgba(15,30,60,.7);border:1px solid rgba(100,160,255,.2);color:#E2E8F0}
+.t-galaxy .tbtn{background:linear-gradient(135deg,#1D4ED8,#60A5FA);box-shadow:0 3px 12px rgba(96,165,250,.4)}
+.t-galaxy .pc-card{background:rgba(10,20,50,.6);border:1px solid rgba(100,160,255,.12)}
+.t-galaxy .av{background:linear-gradient(135deg,#1D4ED8,#60A5FA)}
+.t-galaxy .pn{color:#E2E8F0}
+.t-galaxy .bdg{background:linear-gradient(135deg,#2563EB,#60A5FA);color:#fff}
+.t-galaxy .chat{background:rgba(2,8,20,.82);border-top:1px solid rgba(100,160,255,.08)}
+.t-galaxy .msg.own{background:linear-gradient(135deg,#1D4ED8,#3B82F6);color:#fff}
+.t-galaxy .msg.oth{background:rgba(15,30,60,.9);color:#E2E8F0;border:1px solid rgba(100,160,255,.1)}
+.t-galaxy .msg.sys{background:rgba(20,40,80,.7);color:#93C5FD;border:1px solid rgba(100,160,255,.12)}
+.t-galaxy .btn.pri{background:linear-gradient(135deg,#1D4ED8,#60A5FA);color:#fff;box-shadow:0 3px 14px rgba(96,165,250,.5)}
+.t-galaxy .btn.sec{background:rgba(10,20,50,.7);color:#93C5FD;border:1px solid rgba(100,160,255,.15)}
+
+/* PANDA */
+.t-panda .app{background:linear-gradient(135deg,#F0FFF4 0%,#DCFCE7 50%,#D4EDDA 100%)}
+.t-panda .hd{background:rgba(240,255,244,.8);border-bottom:1px solid rgba(82,183,136,.2)}
+.t-panda .logo-box{background:linear-gradient(135deg,#52B788,#2D9A5F)}
+.t-panda .app-nm{color:#2D9A5F}
+.t-panda .chip{background:rgba(220,252,232,.7);border:1px solid rgba(82,183,136,.25);color:#1A3A2A}
+.t-panda .tbtn{background:linear-gradient(135deg,#52B788,#2D9A5F);box-shadow:0 3px 10px rgba(45,154,95,.35)}
+.t-panda .pc-card{background:rgba(255,255,255,.65);border:1px solid rgba(82,183,136,.2)}
+.t-panda .av{background:linear-gradient(135deg,#52B788,#2D9A5F)}
+.t-panda .pn{color:#1A3A2A}
+.t-panda .bdg{background:linear-gradient(135deg,#52B788,#2D9A5F);color:#fff}
+.t-panda .chat{background:rgba(255,255,255,.72);border-top:1px solid rgba(82,183,136,.12)}
+.t-panda .msg.own{background:linear-gradient(135deg,#52B788,#2D9A5F);color:#fff}
+.t-panda .msg.oth{background:rgba(255,255,255,.9);color:#1A3A2A;border:1px solid rgba(82,183,136,.18)}
+.t-panda .msg.sys{background:rgba(220,252,232,.6);color:#4A7A60;border:1px solid rgba(82,183,136,.2)}
+.t-panda .btn.pri{background:linear-gradient(135deg,#52B788,#2D9A5F);color:#fff;box-shadow:0 3px 10px rgba(45,154,95,.35)}
+.t-panda .btn.sec{background:rgba(255,255,255,.65);color:#4A7A60;border:1px solid rgba(82,183,136,.2)}
+
+/* PENGUIN — Nord */
+.t-penguin .app{background:linear-gradient(135deg,#EAF4FD 0%,#D0E8F8 50%,#BDD9F2 100%)}
+.t-penguin .hd{background:rgba(234,244,253,.8);border-bottom:1px solid rgba(93,173,226,.2)}
+.t-penguin .logo-box{background:linear-gradient(135deg,#5DADE2,#2E86C1)}
+.t-penguin .app-nm{color:#2E86C1}
+.t-penguin .chip{background:rgba(208,232,248,.7);border:1px solid rgba(93,173,226,.25);color:#1B2D40}
+.t-penguin .tbtn{background:linear-gradient(135deg,#5DADE2,#2E86C1);box-shadow:0 3px 10px rgba(46,134,193,.35)}
+.t-penguin .pc-card{background:rgba(255,255,255,.65);border:1px solid rgba(93,173,226,.2)}
+.t-penguin .av{background:linear-gradient(135deg,#5DADE2,#2E86C1)}
+.t-penguin .pn{color:#1B2D40}
+.t-penguin .bdg{background:linear-gradient(135deg,#5DADE2,#2E86C1);color:#fff}
+.t-penguin .chat{background:rgba(255,255,255,.72);border-top:1px solid rgba(93,173,226,.12)}
+.t-penguin .msg.own{background:linear-gradient(135deg,#5DADE2,#2E86C1);color:#fff}
+.t-penguin .msg.oth{background:rgba(255,255,255,.9);color:#1B2D40;border:1px solid rgba(93,173,226,.18)}
+.t-penguin .msg.sys{background:rgba(208,232,248,.6);color:#4A7394;border:1px solid rgba(93,173,226,.2)}
+.t-penguin .btn.pri{background:linear-gradient(135deg,#5DADE2,#2E86C1);color:#fff;box-shadow:0 3px 10px rgba(46,134,193,.35)}
+.t-penguin .btn.sec{background:rgba(255,255,255,.65);color:#4A7394;border:1px solid rgba(93,173,226,.2)}
+
+/* SUNSET */
+.t-sunset .app{background:linear-gradient(135deg,#FFF1E6 0%,#FFD4B0 50%,#FFBF9B 100%)}
+.t-sunset .hd{background:rgba(255,241,230,.8);border-bottom:1px solid rgba(255,112,67,.2)}
+.t-sunset .logo-box{background:linear-gradient(135deg,#FF7043,#E64A19)}
+.t-sunset .app-nm{color:#E64A19}
+.t-sunset .chip{background:rgba(255,212,176,.7);border:1px solid rgba(255,112,67,.25);color:#3D1A08}
+.t-sunset .tbtn{background:linear-gradient(135deg,#FF7043,#E64A19);box-shadow:0 3px 10px rgba(230,74,25,.4)}
+.t-sunset .pc-card{background:rgba(255,255,255,.65);border:1px solid rgba(255,112,67,.2)}
+.t-sunset .av{background:linear-gradient(135deg,#FF7043,#E64A19)}
+.t-sunset .pn{color:#3D1A08}
+.t-sunset .bdg{background:linear-gradient(135deg,#FF7043,#E64A19);color:#fff}
+.t-sunset .chat{background:rgba(255,255,255,.72);border-top:1px solid rgba(255,112,67,.12)}
+.t-sunset .msg.own{background:linear-gradient(135deg,#FF7043,#E64A19);color:#fff}
+.t-sunset .msg.oth{background:rgba(255,255,255,.9);color:#3D1A08;border:1px solid rgba(255,112,67,.18)}
+.t-sunset .msg.sys{background:rgba(255,212,176,.6);color:#8B4A1E;border:1px solid rgba(255,112,67,.2)}
+.t-sunset .btn.pri{background:linear-gradient(135deg,#FF7043,#E64A19);color:#fff;box-shadow:0 3px 10px rgba(230,74,25,.4)}
+.t-sunset .btn.sec{background:rgba(255,255,255,.65);color:#8B4A1E;border:1px solid rgba(255,112,67,.2)}
+
+/* NEON — Tokyo Night */
+.t-neon .app{background:linear-gradient(135deg,#0A0E1A 0%,#0D1321 50%,#070B14 100%)}
+.t-neon .hd{background:rgba(10,14,26,.8);border-bottom:1px solid rgba(0,229,255,.12)}
+.t-neon .logo-box{background:linear-gradient(135deg,#00E5FF,#D500F9);box-shadow:0 0 14px rgba(0,229,255,.5)}
+.t-neon .app-nm{color:#00E5FF;text-shadow:0 0 8px rgba(0,229,255,.6)}
+.t-neon .chip{background:rgba(31,41,55,.7);border:1px solid rgba(0,229,255,.2);color:#E0F7FA}
+.t-neon .tbtn{background:linear-gradient(135deg,#00E5FF,#D500F9);box-shadow:0 0 14px rgba(0,229,255,.6),0 0 28px rgba(213,0,249,.3)}
+.t-neon .pc-card{background:rgba(17,24,39,.65);border:1px solid rgba(0,229,255,.12)}
+.t-neon .av{background:linear-gradient(135deg,#00E5FF,#D500F9);box-shadow:0 0 10px rgba(0,229,255,.4)}
+.t-neon .pn{color:#E0F7FA}
+.t-neon .bdg{background:linear-gradient(135deg,#00E5FF,#D500F9);color:#000}
+.t-neon .chat{background:rgba(7,11,20,.82);border-top:1px solid rgba(0,229,255,.1)}
+.t-neon .msg.own{background:linear-gradient(135deg,#00E5FF,#D500F9);color:#000}
+.t-neon .msg.oth{background:rgba(17,24,39,.9);color:#E0F7FA;border:1px solid rgba(0,229,255,.12)}
+.t-neon .msg.sys{background:rgba(31,41,55,.7);color:#80DEEA;border:1px solid rgba(0,229,255,.15)}
+.t-neon .btn.pri{background:linear-gradient(135deg,#00E5FF,#D500F9);color:#000;box-shadow:0 0 14px rgba(0,229,255,.5),0 0 28px rgba(213,0,249,.3)}
+.t-neon .btn.sec{background:rgba(17,24,39,.7);color:#80DEEA;border:1px solid rgba(0,229,255,.15)}
+
+/* Selected ring */
+.tc.sel{border-color:rgba(255,217,61,.8);box-shadow:0 0 0 3px rgba(255,217,61,.35),0 20px 60px rgba(0,0,0,.8)}
+.sel-badge{display:none;background:#FFD93D;color:#333;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;margin-top:2px;text-align:center}
+.tc.sel + .swatch-row + .tlabel + .tbase + .sel-badge,
+.sel-badge.show{display:block}
+</style>
+</head>
+<body>
+
+<h1>🎨 ShineTwoPlay — Theme Preview</h1>
+<p class="subtitle">Real-world palettes · Canvas animations · Glassmorphism · Click to select</p>
+
+<div class="grid" id="grid"></div>
+
+<script>
+/* ===============================================================
+   THEME DATA
+   =============================================================== */
+const THEMES = [
+  {
+    key:'light', label:'☀️ Light', base:'Sunshine Yellow / Warm Cream',
+    swatches:['#FFD93D','#FFB84D','#FFFAEF','#4A3F35'],
+    emoji:'☀️', p1:'😎', p2:'🎮', msg1:"let's go! 🔥", msg2:'ready when you are!', sys:'🎮 Tic Tac Toe selected',
+    bgFn: drawLight
+  },
+  {
+    key:'dark', label:'🌙 Dark', base:'Catppuccin Mocha',
+    swatches:['#1E1E2E','#F9E2AF','#CBA6F7','#CDD6F4'],
+    emoji:'🌙', p1:'😎', p2:'🎮', msg1:'dark mode FTW 🌙', msg2:"let's crush it!", sys:'♟️ Chess selected',
+    bgFn: drawDark
+  },
+  {
+    key:'love', label:'💕 Love', base:'Rosé Pine inspired',
+    swatches:['#FFF0F5','#FF79A8','#FF4D8D','#54273E'],
+    emoji:'💕', p1:'🥰', p2:'💖', msg1:'so cute!! 💝', msg2:'playing with my heart 💗', sys:'💕 Love Pong selected',
+    bgFn: drawLove
+  },
+  {
+    key:'galaxy', label:'🌌 Galaxy', base:'Deep space navy — stars, Milky Way, shooting stars',
+    swatches:['#020816','#1D4ED8','#60A5FA','#FDE68A'],
+    emoji:'🌌', p1:'🚀', p2:'⭐', msg1:'stars everywhere!! ✨', msg2:'to infinity! 🚀', sys:'🌌 Space Battle selected',
+    bgFn: drawGalaxy
+  },
+  {
+    key:'panda', label:'🐼 Panda', base:'Bamboo Green — clean & natural',
+    swatches:['#F0FFF4','#52B788','#2D9A5F','#1A3A2A'],
+    emoji:'🐼', p1:'🐼', p2:'🎋', msg1:'bamboo vibes 🎋', msg2:'so fresh & clean!', sys:'🐼 Pandas vs Bamboo',
+    bgFn: drawPanda
+  },
+  {
+    key:'penguin', label:'🐧 Penguin', base:'Nord — icy arctic blue',
+    swatches:['#EAF4FD','#5DADE2','#2E86C1','#1B2D40'],
+    emoji:'🐧', p1:'🐧', p2:'❄️', msg1:'freezing cold! ❄️', msg2:'arctic vibes 🧊', sys:'🐧 Ice Hockey selected',
+    bgFn: drawPenguin
+  },
+  {
+    key:'sunset', label:'🌅 Sunset', base:'Deep Orange / Crimson',
+    swatches:['#FFF1E6','#FF7043','#E64A19','#3D1A08'],
+    emoji:'🌅', p1:'🌄', p2:'🔥', msg1:'warm & fiery 🔥', msg2:'sunset mode on!', sys:'🌅 Sunset Duel selected',
+    bgFn: drawSunset
+  },
+  {
+    key:'neon', label:'⚡ Neon', base:'Tokyo Night — cyberpunk',
+    swatches:['#0A0E1A','#00E5FF','#D500F9','#76FF03'],
+    emoji:'⚡', p1:'⚡', p2:'🌀', msg1:'cyberpunk energy!! ⚡', msg2:'neon life 🌀', sys:'⚡ Cyber Duel selected',
+    bgFn: drawNeon
+  },
+];
+
+/* ===============================================================
+   BUILD CARDS
+   =============================================================== */
+const grid = document.getElementById('grid');
+
+THEMES.forEach((t,i) => {
+  const wrap = document.createElement('div');
+  wrap.className = 'tw';
+  wrap.innerHTML = `
+    <div class="tc t-${t.key}" id="tc-${t.key}" onclick="selectTheme('${t.key}')">
+      <div class="app" id="app-${t.key}">
+        <canvas class="bg" id="cv-${t.key}"></canvas>
+        <div class="app-inner">
+          <div class="hd">
+            <div class="hd-l">
+              <div class="logo-box">${t.emoji}</div>
+              <span class="app-nm">ShineTwoPlay</span>
+            </div>
+            <div class="hd-r">
+              <div class="chip">👥 2/2</div>
+              <div class="tbtn">🎨</div>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="pc-card">
+              <div class="av">${t.p1}</div>
+              <div class="pi"><span class="pn">Nikhil<span class="bdg">HOST</span></span></div>
+              <span class="rdy">● Ready</span>
+            </div>
+            <div class="pc-card">
+              <div class="av">${t.p2}</div>
+              <div class="pi"><span class="pn">Player 2</span></div>
+              <span class="rdy">● Ready</span>
+            </div>
+            <div class="chat">
+              <div class="msg sys">${t.sys}</div>
+              <div class="msg oth">${t.msg1}</div>
+              <div class="msg own">${t.msg2}</div>
+            </div>
+          </div>
+          <div class="act">
+            <button class="btn sec">Ready ✓</button>
+            <button class="btn pri">▶ Start Game</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="swatch-row">${t.swatches.map(c=>`<div class="sw" style="background:${c}"></div>`).join('')}</div>
+    <div class="tlabel">${t.label}</div>
+    <div class="tbase">${t.base}</div>
+    <div class="sel-badge" id="sb-${t.key}">✓ Selected</div>
+  `;
+  grid.appendChild(wrap);
+});
+
+/* ===============================================================
+   SELECT LOGIC
+   =============================================================== */
+function selectTheme(key){
+  document.querySelectorAll('.tc').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('.sel-badge').forEach(b=>b.style.display='none');
+  document.getElementById('tc-'+key).classList.add('sel');
+  document.getElementById('sb-'+key).style.display='block';
+}
+// Default
+selectTheme('light');
+
+/* ===============================================================
+   CANVAS ANIMATIONS
+   =============================================================== */
+
+function getCanvas(key){
+  const cv = document.getElementById('cv-'+key);
+  const app = document.getElementById('app-'+key);
+  cv.width = app.offsetWidth;
+  cv.height = app.offsetHeight;
+  return {cv, ctx: cv.getContext('2d'), w: cv.width, h: cv.height};
+}
+
+/* --- LIGHT: gentle sun glows (no canvas needed, pure CSS, but we add a subtle shimmer) --- */
+function drawLight(){}
+
+/* --- DARK: subtle floating dust motes --- */
+function drawDark(){
+  const {cv,ctx,w,h} = getCanvas('dark');
+  const motes = Array.from({length:30},()=>({
+    x: Math.random()*w, y: Math.random()*h,
+    r: Math.random()*1.5+0.3,
+    dx: (Math.random()-.5)*0.2,
+    dy: (Math.random()-.5)*0.15,
+    a: Math.random()
+  }));
+  function frame(){
+    ctx.clearRect(0,0,w,h);
+    motes.forEach(m=>{
+      m.x+=m.dx; m.y+=m.dy;
+      m.a+=0.005;
+      if(m.x<0)m.x=w; if(m.x>w)m.x=0;
+      if(m.y<0)m.y=h; if(m.y>h)m.y=0;
+      ctx.beginPath();
+      ctx.arc(m.x,m.y,m.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(203,166,247,${0.2+0.15*Math.sin(m.a)})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+/* --- LOVE: floating hearts particles --- */
+function drawLove(){
+  const {cv,ctx,w,h} = getCanvas('love');
+  const hearts = Array.from({length:14},()=>({
+    x: Math.random()*w,
+    y: Math.random()*h+h,
+    size: Math.random()*10+6,
+    speed: Math.random()*0.5+0.3,
+    drift: (Math.random()-.5)*0.5,
+    opacity: Math.random()*0.4+0.1,
+    rot: Math.random()*0.1-.05
+  }));
+  function drawHeart(ctx,x,y,size,opacity){
+    ctx.save();
+    ctx.globalAlpha=opacity;
+    ctx.fillStyle='#FF4D8D';
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    ctx.bezierCurveTo(x,y-size*.35,x-size*.5,y-size*.65,x-size*.5,y-size*.35);
+    ctx.bezierCurveTo(x-size*.5,y-size*.65,x,y-size*.85,x,y-size*.5);
+    ctx.bezierCurveTo(x,y-size*.85,x+size*.5,y-size*.65,x+size*.5,y-size*.35);
+    ctx.bezierCurveTo(x+size*.5,y-size*.65,x,y-size*.35,x,y);
+    ctx.fill();
+    ctx.restore();
+  }
+  function frame(){
+    ctx.clearRect(0,0,w,h);
+    hearts.forEach(heart=>{
+      heart.y -= heart.speed;
+      heart.x += heart.drift;
+      if(heart.y < -20){ heart.y=h+20; heart.x=Math.random()*w; }
+      drawHeart(ctx, heart.x, heart.y, heart.size, heart.opacity);
+    });
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+/* --- GALAXY: deep navy space — Milky Way band, parallax stars, shooting stars --- */
+function drawGalaxy(){
+  const {cv,ctx,w,h} = getCanvas('galaxy');
+  let t = 0;
+
+  // Star colors — mostly white/blue-white, some warm gold
+  const starColors = [
+    [255,255,255],[220,235,255],[200,220,255],[255,250,220],[255,240,180]
+  ];
+
+  // 3 parallax layers
+  const layers = [
+    Array.from({length:80},()=>({
+      x:Math.random()*w, y:Math.random()*h,
+      r:Math.random()*.5+.15, speed:.05,
+      col:starColors[Math.floor(Math.random()*starColors.length)],
+      twinkleOffset:Math.random()*Math.PI*2
+    })),
+    Array.from({length:35},()=>({
+      x:Math.random()*w, y:Math.random()*h,
+      r:Math.random()*.8+.35, speed:.14,
+      col:starColors[Math.floor(Math.random()*starColors.length)],
+      twinkleOffset:Math.random()*Math.PI*2
+    })),
+    Array.from({length:12},()=>({
+      x:Math.random()*w, y:Math.random()*h,
+      r:Math.random()*1.2+.6, speed:.28,
+      col:starColors[Math.floor(Math.random()*starColors.length)],
+      twinkleOffset:Math.random()*Math.PI*2
+    })),
+  ];
+
+  // Shooting star
+  let shoot={active:false,x:0,y:0,dx:0,dy:0,life:0,max:0,trail:[]};
+  function launchShoot(){
+    shoot.active=true;
+    shoot.x=w*(.1+Math.random()*.6); shoot.y=Math.random()*(h*.4);
+    const spd=5+Math.random()*3;
+    shoot.dx=Math.cos(Math.PI*.15+Math.random()*.2)*spd;
+    shoot.dy=Math.sin(Math.PI*.15+Math.random()*.2)*spd;
+    shoot.max=25+Math.random()*15; shoot.life=shoot.max;
+    shoot.trail=[];
+  }
+
+  function frame(){
+    ctx.clearRect(0,0,w,h);
+    t+=0.007;
+
+    // Milky Way diagonal band
+    const mw = ctx.createLinearGradient(0, h*.1, w, h*.9);
+    mw.addColorStop(0,'transparent');
+    mw.addColorStop(0.3,'rgba(60,90,180,0.07)');
+    mw.addColorStop(0.5,'rgba(80,120,220,0.12)');
+    mw.addColorStop(0.7,'rgba(60,90,180,0.07)');
+    mw.addColorStop(1,'transparent');
+    ctx.fillStyle=mw;
+    ctx.fillRect(0,0,w,h);
+
+    // Nebula — soft blue-purple glow, NOT electric
+    const neb = ctx.createRadialGradient(w*.65+Math.sin(t*.4)*15,h*.25,0,w*.65,h*.25,w*.55);
+    neb.addColorStop(0,'rgba(30,60,140,0.09)');
+    neb.addColorStop(0.6,'rgba(20,40,100,0.05)');
+    neb.addColorStop(1,'transparent');
+    ctx.fillStyle=neb; ctx.fillRect(0,0,w,h);
+
+    // Draw stars
+    layers.forEach(layer=>{
+      layer.forEach(s=>{
+        s.y+=s.speed;
+        if(s.y>h){s.y=0;s.x=Math.random()*w;}
+        const tw = 0.55+0.45*Math.sin(t*2.5+s.twinkleOffset);
+        const [r,g,b]=s.col;
+        ctx.beginPath();
+        ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+        ctx.fillStyle=`rgba(${r},${g},${b},${tw})`;
+        ctx.fill();
+        // Bright stars get a tiny 4-point spike
+        if(s.r>0.9 && tw>0.85){
+          ctx.strokeStyle=`rgba(${r},${g},${b},${tw*.4})`;
+          ctx.lineWidth=0.5;
+          ctx.beginPath();
+          ctx.moveTo(s.x-s.r*3,s.y); ctx.lineTo(s.x+s.r*3,s.y);
+          ctx.moveTo(s.x,s.y-s.r*3); ctx.lineTo(s.x,s.y+s.r*3);
+          ctx.stroke();
+        }
+      });
+    });
+
+    // Shooting star
+    if(!shoot.active && Math.random()<0.012) launchShoot();
+    if(shoot.active){
+      shoot.trail.push({x:shoot.x,y:shoot.y});
+      if(shoot.trail.length>18) shoot.trail.shift();
+      // Draw glowing trail
+      for(let i=1;i<shoot.trail.length;i++){
+        const prog=i/shoot.trail.length;
+        ctx.beginPath();
+        ctx.moveTo(shoot.trail[i-1].x,shoot.trail[i-1].y);
+        ctx.lineTo(shoot.trail[i].x,shoot.trail[i].y);
+        ctx.strokeStyle=`rgba(200,225,255,${prog*0.85})`;
+        ctx.lineWidth=prog*2.5;
+        ctx.stroke();
+      }
+      // Head glow
+      const headGlow=ctx.createRadialGradient(shoot.x,shoot.y,0,shoot.x,shoot.y,6);
+      headGlow.addColorStop(0,'rgba(255,255,255,0.9)');
+      headGlow.addColorStop(1,'transparent');
+      ctx.fillStyle=headGlow; ctx.fillRect(shoot.x-6,shoot.y-6,12,12);
+      shoot.x+=shoot.dx; shoot.y+=shoot.dy; shoot.life--;
+      if(shoot.life<=0||shoot.x>w||shoot.y>h) shoot.active=false;
+    }
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+/* --- PANDA: gentle bamboo leaves drifting --- */
+function drawPanda(){
+  const {cv,ctx,w,h} = getCanvas('panda');
+  const leaves = Array.from({length:10},()=>({
+    x: Math.random()*w,
+    y: Math.random()*h,
+    size: Math.random()*14+8,
+    speed: Math.random()*.3+.1,
+    drift: (Math.random()-.5)*.3,
+    rot: Math.random()*Math.PI*2,
+    rotSpeed: (Math.random()-.5)*.02,
+    opacity: Math.random()*0.2+0.06
+  }));
+  function drawLeaf(ctx,x,y,size,rot,opacity){
+    ctx.save();
+    ctx.translate(x,y); ctx.rotate(rot);
+    ctx.globalAlpha=opacity;
+    ctx.fillStyle='#2D9A5F';
+    ctx.beginPath();
+    ctx.ellipse(0,0,size*.3,size,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+  function frame(){
+    ctx.clearRect(0,0,w,h);
+    leaves.forEach(l=>{
+      l.y+=l.speed; l.x+=l.drift; l.rot+=l.rotSpeed;
+      if(l.y>h+20){l.y=-20;l.x=Math.random()*w;}
+      drawLeaf(ctx,l.x,l.y,l.size,l.rot,l.opacity);
+    });
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+/* --- PENGUIN: real 6-arm snowflake crystals falling --- */
+function drawPenguin(){
+  const {cv,ctx,w,h} = getCanvas('penguin');
+
+  // Big visible snowflakes with 6 arms
+  const flakes = Array.from({length:22},()=>({
+    x:Math.random()*w,
+    y:Math.random()*h,
+    size:Math.random()*9+5,          // 5–14px arm length — clearly visible
+    speed:Math.random()*.6+.3,
+    drift:Math.random()*.4-.2,
+    rot:Math.random()*Math.PI/3,     // only need 0–60° range for 6-fold symmetry
+    rotSpeed:(Math.random()-.5)*.015,
+    opacity:Math.random()*.55+.35    // 0.35–0.9 — always visible
+  }));
+
+  // Small background dots for depth
+  const dots = Array.from({length:40},()=>({
+    x:Math.random()*w, y:Math.random()*h,
+    r:Math.random()*.8+.2,
+    speed:Math.random()*.25+.08,
+    drift:(Math.random()-.5)*.15,
+    opacity:Math.random()*.3+.1
+  }));
+
+  let t=0;
+
+  function drawCrystal(x,y,size,rot,opacity){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(rot);
+    ctx.globalAlpha=opacity;
+    ctx.strokeStyle='#ffffff';
+    ctx.lineWidth=1.2;
+    // 6 arms
+    for(let i=0;i<6;i++){
+      ctx.save();
+      ctx.rotate(i*Math.PI/3);
+      ctx.beginPath();
+      ctx.moveTo(0,0); ctx.lineTo(0,-size);
+      ctx.stroke();
+      // Two side branches on each arm
+      const b=size*.45;
+      ctx.beginPath();
+      ctx.moveTo(0,-b*.7); ctx.lineTo(size*.28,-b*.7-size*.18);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0,-b*.7); ctx.lineTo(-size*.28,-b*.7-size*.18);
+      ctx.stroke();
+      ctx.restore();
+    }
+    // Centre dot
+    ctx.beginPath();
+    ctx.arc(0,0,1.2,0,Math.PI*2);
+    ctx.fillStyle='#fff';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function frame(){
+    ctx.clearRect(0,0,w,h);
+    t+=0.012;
+
+    // Frost shimmer — more visible, multiple glows
+    const g1=ctx.createRadialGradient(w*.15+Math.sin(t*.7)*25,h*.05,0,w*.15,h*.05,w*.6);
+    g1.addColorStop(0,'rgba(93,173,226,0.1)');
+    g1.addColorStop(1,'transparent');
+    ctx.fillStyle=g1; ctx.fillRect(0,0,w,h);
+
+    const g2=ctx.createRadialGradient(w*.8+Math.cos(t*.5)*20,h*.9,0,w*.8,h*.9,w*.5);
+    g2.addColorStop(0,'rgba(147,210,248,0.08)');
+    g2.addColorStop(1,'transparent');
+    ctx.fillStyle=g2; ctx.fillRect(0,0,w,h);
+
+    // Background dots
+    dots.forEach(d=>{
+      d.y+=d.speed; d.x+=d.drift;
+      if(d.y>h){d.y=0;d.x=Math.random()*w;}
+      ctx.beginPath();
+      ctx.arc(d.x,d.y,d.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${d.opacity})`;
+      ctx.fill();
+    });
+
+    // Crystals
+    flakes.forEach(f=>{
+      f.y+=f.speed; f.x+=f.drift; f.rot+=f.rotSpeed;
+      if(f.y>h+20){f.y=-20;f.x=Math.random()*w;}
+      drawCrystal(f.x,f.y,f.size,f.rot,f.opacity);
+    });
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+/* --- SUNSET: golden hour — warm rays + sparkles overlaid on light CSS bg --- */
+function drawSunset(){
+  const {cv,ctx,w,h} = getCanvas('sunset');
+  let t=0;
+
+  // Sun sits TOP-CENTER (feels like afternoon golden hour)
+  const SX = w*.5, SY = -h*.05;
+
+  // Floating warm golden dust motes rising like heat
+  const sparks = Array.from({length:35},()=>({
+    x:Math.random()*w, y:Math.random()*h,
+    r:Math.random()*2.5+0.8,
+    speed:Math.random()*.35+.12,
+    drift:(Math.random()-.5)*.35,
+    opacity:Math.random()*.5+.15,
+    phase:Math.random()*Math.PI*2
+  }));
+
+  function frame(){
+    ctx.clearRect(0,0,w,h);
+    t+=0.014;
+
+    // Warm radial vignette — tints the bg, doesn't overwrite it
+    const vign=ctx.createRadialGradient(w*.5,0,0,w*.5,h*.3,w*.9);
+    vign.addColorStop(0,'rgba(255,200,60,0.18)');
+    vign.addColorStop(0.5,'rgba(255,140,40,0.08)');
+    vign.addColorStop(1,'rgba(180,60,10,0.05)');
+    ctx.fillStyle=vign; ctx.fillRect(0,0,w,h);
+
+    // Crepuscular rays fanning DOWN from sun position above top
+    const N=14;
+    for(let i=0;i<N;i++){
+      const base=(i/(N-1)-0.5)*Math.PI*.9;
+      const angle=base+Math.sin(t*.6+i*.7)*.02;
+      const len=h*1.45;
+      ctx.save();
+      ctx.translate(SX,SY);
+      ctx.rotate(angle);
+      const roll=1-Math.abs((i/(N-1))-.5)*1.7;
+      const inten=(0.05+0.022*Math.sin(t*.8+i*.5))*Math.max(0,roll);
+      const ray=ctx.createLinearGradient(0,0,0,len);
+      ray.addColorStop(0,`rgba(255,210,90,${Math.min(0.45,inten*3)})`);
+      ray.addColorStop(0.18,`rgba(255,165,55,${Math.min(0.25,inten*2)})`);
+      ray.addColorStop(0.55,`rgba(255,110,30,${Math.min(0.12,inten)})`);
+      ray.addColorStop(1,'transparent');
+      ctx.fillStyle=ray;
+      const sp=5+Math.abs(Math.sin(angle))*9;
+      ctx.fillRect(-sp,0,sp*2,len);
+      ctx.restore();
+    }
+
+    // Sun corona glow
+    const corona=ctx.createRadialGradient(SX,SY,0,SX,SY,w*.5);
+    corona.addColorStop(0,`rgba(255,235,130,${0.24+0.06*Math.sin(t)})`);
+    corona.addColorStop(0.3,`rgba(255,185,65,${0.10+0.03*Math.sin(t+1)})`);
+    corona.addColorStop(0.7,'rgba(255,120,30,0.04)');
+    corona.addColorStop(1,'transparent');
+    ctx.fillStyle=corona; ctx.fillRect(0,0,w,h);
+
+    // Golden sparkle dust motes rising
+    sparks.forEach(s=>{
+      s.y-=s.speed; s.x+=s.drift; s.phase+=0.04;
+      if(s.y<-10){s.y=h+10;s.x=Math.random()*w;}
+      if(s.x<0)s.x=w; if(s.x>w)s.x=0;
+      const glow=s.opacity*(0.55+0.45*Math.sin(s.phase));
+      const sg=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r*3.5);
+      sg.addColorStop(0,`rgba(255,225,80,${glow})`);
+      sg.addColorStop(1,'transparent');
+      ctx.fillStyle=sg;
+      ctx.fillRect(s.x-s.r*3.5,s.y-s.r*3.5,s.r*7,s.r*7);
+      ctx.beginPath();
+      ctx.arc(s.x,s.y,s.r*.55,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,248,170,${Math.min(1,glow*1.3)})`;
+      ctx.fill();
+    });
+
+    // Warm bottom shimmer
+    const horiz=ctx.createLinearGradient(0,h*.7,0,h);
+    horiz.addColorStop(0,'rgba(255,130,30,0.10)');
+    horiz.addColorStop(1,'rgba(200,70,10,0.04)');
+    ctx.fillStyle=horiz; ctx.fillRect(0,h*.7,w,h*.3);
+
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+/* --- NEON: electric grid + pulsing orbs --- */
+function drawNeon(){
+  const {cv,ctx,w,h} = getCanvas('neon');
+  let t=0;
+  // Orbs
+  const orbs=[
+    {x:w*.3,y:h*.4,r:60,c:'0,229,255'},
+    {x:w*.7,y:h*.6,r:50,c:'213,0,249'},
+  ];
+  function frame(){
+    ctx.clearRect(0,0,w,h);
+    t+=0.02;
+
+    // Draw grid
+    ctx.strokeStyle='rgba(0,229,255,0.04)';
+    ctx.lineWidth=0.5;
+    const gs=28;
+    for(let x=0;x<w;x+=gs){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+    for(let y=0;y<h;y+=gs){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+
+    // Orbs
+    orbs.forEach((o,i)=>{
+      const pulse = 0.06+0.04*Math.sin(t*1.5+i*Math.PI);
+      const grd = ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,o.r);
+      grd.addColorStop(0,`rgba(${o.c},${pulse*2})`);
+      grd.addColorStop(0.5,`rgba(${o.c},${pulse})`);
+      grd.addColorStop(1,'transparent');
+      ctx.fillStyle=grd;
+      ctx.fillRect(0,0,w,h);
+    });
+
+    // Scan line
+    const lineY = ((t*20)%h);
+    const lineGrd = ctx.createLinearGradient(0,lineY-2,0,lineY+2);
+    lineGrd.addColorStop(0,'transparent');
+    lineGrd.addColorStop(0.5,'rgba(0,229,255,0.15)');
+    lineGrd.addColorStop(1,'transparent');
+    ctx.fillStyle=lineGrd;
+    ctx.fillRect(0,lineY-2,w,4);
+
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+/* ===============================================================
+   INIT ANIMATIONS after DOM ready
+   =============================================================== */
+window.addEventListener('load',()=>{
+  // Resize canvases to actual rendered size
+  THEMES.forEach(t=>{
+    const app = document.getElementById('app-'+t.key);
+    const cv = document.getElementById('cv-'+t.key);
+    cv.width = app.offsetWidth;
+    cv.height = app.offsetHeight;
+  });
+  THEMES.forEach(t=>{
+    if(t.bgFn) t.bgFn();
+  });
+});
+</script>
+</body>
+</html>

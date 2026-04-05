@@ -1,0 +1,255 @@
+/*
+ * ShineTwoPlay Theme Engine UI
+ * Styles for the floating theme button and the theme picker modal.
+ */
+
+/* The floating toggle button */
+.theme-picker-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.theme-picker-toggle:hover {
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.theme-picker-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Base styles for the picker overlay */
+.theme-engine-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    z-index: 9998;
+    visibility: hidden;
+    transition: background 0.3s ease, visibility 0.3s;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+}
+
+.theme-engine-overlay.show {
+    visibility: visible;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* The Picker Panel */
+.theme-engine-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -45%) scale(0.95);
+    width: 90%;
+    max-width: 600px;
+    max-height: 85vh;
+    background: var(--white, #ffffff);
+    border-radius: 24px;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Inherit the active theme's background for authentic glassmorphism preview */
+[data-theme] .theme-engine-panel {
+    background: var(--header-bg, rgba(255, 255, 255, 0.85));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.theme-engine-panel.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.theme-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.1));
+}
+
+.theme-panel-header h3 {
+    margin: 0;
+    font-family: 'Fredoka', sans-serif;
+    color: var(--text-dark, #333);
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.theme-close-btn {
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    color: var(--text-medium, #666);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    transition: color 0.2s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.theme-close-btn:hover {
+    color: var(--sunshine-orange, #ff6b6b);
+    background: rgba(255, 0, 0, 0.1);
+    transform: rotate(90deg);
+}
+
+.theme-grid {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+    overflow-y: auto;
+}
+
+/* Individual Theme Cards */
+.theme-card {
+    background: rgba(255, 255, 255, 0.6);
+    border: 2px solid transparent;
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+[data-theme] .theme-card {
+    background: var(--player-bg, rgba(255, 255, 255, 0.5));
+}
+
+.theme-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    background: var(--white, #ffffff);
+}
+
+.theme-card.selected {
+    border-color: var(--sunshine-orange, #FFD93D);
+    background: var(--white, #ffffff);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.theme-emoji-wrap {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.theme-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.theme-name {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-dark, #333);
+}
+
+.theme-swatch-row {
+    display: flex;
+    gap: 6px;
+}
+
+.theme-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.2);
+}
+
+/* Tick mark for selected theme */
+.theme-sel-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    background: var(--sunshine-orange, #4CAF50);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popIn {
+    0% { transform: scale(0); }
+    100% { transform: scale(1); }
+}
+
+/* Dark mode panel text overrides */
+[data-theme="dark"] .theme-name,
+[data-theme="galaxy"] .theme-name,
+[data-theme="neon"] .theme-name,
+[data-theme="dark"] .theme-panel-header h3,
+[data-theme="galaxy"] .theme-panel-header h3,
+[data-theme="neon"] .theme-panel-header h3 {
+    color: var(--text-dark);
+}
+
+@media (max-width: 600px) {
+    .theme-engine-panel {
+        width: 100%;
+        height: auto;
+        min-height: 50vh;
+        max-height: 90vh;
+        top: auto;
+        bottom: 0;
+        transform: translate(-50%, 100%);
+        border-radius: 24px 24px 0 0;
+    }
+    .theme-engine-panel.show {
+        transform: translate(-50%, 0);
+    }
+    .theme-grid {
+        grid-template-columns: 1fr;
+    }
+}

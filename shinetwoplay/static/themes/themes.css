@@ -1,0 +1,305 @@
+/*
+ * ShineTwoPlay — Global Theme Definitions
+ * The app uses CSS variables defined on :root for the default state.
+ * Here we override them per theme on the [data-theme="..."] attribute.
+ */
+
+/* =========================================================================
+   THEME 1: LIGHT (Default)
+   ========================================================================= */
+/* The default variables in base.css or inherited from body serve as Light Theme. */
+[data-theme="light"] {
+    --sunshine-yellow: #FFD93D;
+    --sunshine-orange: #FFB84D;
+    --sunshine-cream: #FFFAEF;
+    
+    --text-dark: #4A3F35;
+    --text-medium: #8B7355;
+    --text-light: #D4BBA5;
+    
+    --bg-main: #FFFAEF;
+    --bg-darker: #f5eedf;
+    --bg-game: #FFF4DC;
+    
+    --white: #FFFFFF;
+    --shadow-color: rgba(255, 185, 77, 0.25);
+    --border-color: rgba(255, 185, 77, 0.2);
+    
+    --player-bg: rgba(255, 255, 255, 0.7);
+    --header-bg: rgba(255, 255, 255, 0.85);
+    --nav-bg: rgba(255, 255, 255, 0.9);
+
+    --chat-bg: rgba(255,255,255,0.75);
+    --chat-border: rgba(255,217,61,0.15);
+    --msg-own-bg: linear-gradient(135deg,#FFD97D,#FFB84D);
+    --msg-own-text: #3d2e00;
+    --msg-oth-bg: rgba(255,255,255,0.9);
+    --msg-oth-text: #4A3F35;
+    --msg-border: rgba(255,184,77,0.15);
+    --msg-sys-bg: rgba(255,217,61,0.12);
+    --msg-sys-text: #8B7355;
+}
+
+/* =========================================================================
+   THEME 2: DARK (Catppuccin Mocha)
+   ========================================================================= */
+[data-theme="dark"] {
+    --sunshine-yellow: #F9E2AF;
+    --sunshine-orange: #CBA6F7;
+    --sunshine-cream: #1E1E2E;
+    
+    --text-dark: #CDD6F4;
+    --text-medium: #A6ADC8;
+    --text-light: #6C7086;
+    
+    --bg-main: #181825;
+    --bg-darker: #11111B;
+    --bg-game: #1E1E2E;
+    
+    --white: #313244;
+    --shadow-color: rgba(0, 0, 0, 0.4);
+    --border-color: rgba(203, 166, 247, 0.15);
+    
+    --player-bg: rgba(49, 50, 68, 0.6);
+    --header-bg: rgba(30, 30, 46, 0.85);
+    --nav-bg: rgba(24, 24, 37, 0.9);
+
+    --chat-bg: rgba(24,24,37,0.8);
+    --chat-border: rgba(203,166,247,0.1);
+    --msg-own-bg: linear-gradient(135deg,#F9E2AF,#FAB387);
+    --msg-own-text: #1E1E2E;
+    --msg-oth-bg: rgba(49,50,68,0.9);
+    --msg-oth-text: #CDD6F4;
+    --msg-border: rgba(203,166,247,0.1);
+    --msg-sys-bg: rgba(69,71,90,0.6);
+    --msg-sys-text: #A6ADC8;
+}
+[data-theme="dark"] body { background: linear-gradient(135deg,#1E1E2E 0%,#181825 50%,#11111B 100%); color: var(--text-dark); }
+
+/* =========================================================================
+   THEME 3: LOVE (Rosé Pine)
+   ========================================================================= */
+[data-theme="love"] {
+    --sunshine-yellow: #FF79A8;
+    --sunshine-orange: #FF4D8D;
+    --sunshine-cream: #FFF0F5;
+    
+    --text-dark: #54273E;
+    --text-medium: #9E5074;
+    --text-light: #D4A8BD;
+    
+    --bg-main: #FFF0F5;
+    --bg-darker: #FFE0ED;
+    --bg-game: #FFD6E7;
+    
+    --white: #FFFFFF;
+    --shadow-color: rgba(255, 77, 141, 0.25);
+    --border-color: rgba(255, 121, 168, 0.2);
+    
+    --player-bg: rgba(255, 255, 255, 0.65);
+    --header-bg: rgba(255, 240, 245, 0.85);
+    --nav-bg: rgba(255, 255, 255, 0.9);
+
+    --chat-bg: rgba(255,255,255,0.72);
+    --chat-border: rgba(255,77,141,0.12);
+    --msg-own-bg: linear-gradient(135deg,#FF79A8,#FF4D8D);
+    --msg-own-text: #fff;
+    --msg-oth-bg: rgba(255,255,255,0.9);
+    --msg-oth-text: #54273E;
+    --msg-border: rgba(255,121,168,0.18);
+    --msg-sys-bg: rgba(255,210,230,0.5);
+    --msg-sys-text: #9E5074;
+}
+[data-theme="love"] body { background: linear-gradient(135deg,#FFF0F5 0%,#FFD6E7 50%,#FFC8DE 100%); color: var(--text-dark); }
+
+
+/* =========================================================================
+   THEME 4: GALAXY (Deep space blue)
+   ========================================================================= */
+[data-theme="galaxy"] {
+    --sunshine-yellow: #3B82F6;
+    --sunshine-orange: #60A5FA;
+    --sunshine-cream: #020816;
+    
+    --text-dark: #E2E8F0;
+    --text-medium: #93C5FD;
+    --text-light: #64748B;
+    
+    --bg-main: #04122A;
+    --bg-darker: #020617;
+    --bg-game: #081030;
+    
+    --white: #1E293B;
+    --shadow-color: rgba(0, 0, 0, 0.5);
+    --border-color: rgba(96, 165, 250, 0.15);
+    
+    --player-bg: rgba(30, 41, 59, 0.6);
+    --header-bg: rgba(15, 23, 42, 0.85);
+    --nav-bg: rgba(2, 8, 22, 0.9);
+
+    --chat-bg: rgba(2,8,20,0.82);
+    --chat-border: rgba(100,160,255,0.08);
+    --msg-own-bg: linear-gradient(135deg,#1D4ED8,#3B82F6);
+    --msg-own-text: #fff;
+    --msg-oth-bg: rgba(15,30,60,0.9);
+    --msg-oth-text: #E2E8F0;
+    --msg-border: rgba(100,160,255,0.1);
+    --msg-sys-bg: rgba(20,40,80,0.7);
+    --msg-sys-text: #93C5FD;
+}
+[data-theme="galaxy"] body { background: linear-gradient(180deg,#020816 0%,#04122A 40%,#081030 100%); color: var(--text-dark); }
+
+
+
+/* =========================================================================
+   THEME 5: PANDA (Bamboo Green)
+   ========================================================================= */
+[data-theme="panda"] {
+    --sunshine-yellow: #52B788;
+    --sunshine-orange: #2D9A5F;
+    --sunshine-cream: #F0FFF4;
+    
+    --text-dark: #1A3A2A;
+    --text-medium: #4A7A60;
+    --text-light: #9CBBAA;
+    
+    --bg-main: #F0FFF4;
+    --bg-darker: #D4EDDA;
+    --bg-game: #DCFCE7;
+    
+    --white: #FFFFFF;
+    --shadow-color: rgba(45, 154, 95, 0.25);
+    --border-color: rgba(82, 183, 136, 0.2);
+    
+    --player-bg: rgba(255, 255, 255, 0.65);
+    --header-bg: rgba(240, 255, 244, 0.85);
+    --nav-bg: rgba(255, 255, 255, 0.9);
+
+    --chat-bg: rgba(255,255,255,0.72);
+    --chat-border: rgba(82,183,136,0.12);
+    --msg-own-bg: linear-gradient(135deg,#52B788,#2D9A5F);
+    --msg-own-text: #fff;
+    --msg-oth-bg: rgba(255,255,255,0.9);
+    --msg-oth-text: #1A3A2A;
+    --msg-border: rgba(82,183,136,0.18);
+    --msg-sys-bg: rgba(220,252,232,0.6);
+    --msg-sys-text: #4A7A60;
+}
+[data-theme="panda"] body { background: linear-gradient(135deg,#F0FFF4 0%,#DCFCE7 50%,#D4EDDA 100%); color: var(--text-dark); }
+
+/* =========================================================================
+   THEME 6: PENGUIN (Nord Icy Arctic)
+   ========================================================================= */
+[data-theme="penguin"] {
+    --sunshine-yellow: #5DADE2;
+    --sunshine-orange: #2E86C1;
+    --sunshine-cream: #EAF4FD;
+    
+    --text-dark: #1B2D40;
+    --text-medium: #4A7394;
+    --text-light: #A4C2D8;
+    
+    --bg-main: #EAF4FD;
+    --bg-darker: #BDD9F2;
+    --bg-game: #D0E8F8;
+    
+    --white: #FFFFFF;
+    --shadow-color: rgba(46, 134, 193, 0.25);
+    --border-color: rgba(93, 173, 226, 0.2);
+    
+    --player-bg: rgba(255, 255, 255, 0.65);
+    --header-bg: rgba(234, 244, 253, 0.85);
+    --nav-bg: rgba(255, 255, 255, 0.9);
+
+    --chat-bg: rgba(255,255,255,0.72);
+    --chat-border: rgba(93,173,226,0.12);
+    --msg-own-bg: linear-gradient(135deg,#5DADE2,#2E86C1);
+    --msg-own-text: #fff;
+    --msg-oth-bg: rgba(255,255,255,0.9);
+    --msg-oth-text: #1B2D40;
+    --msg-border: rgba(93,173,226,0.18);
+    --msg-sys-bg: rgba(208,232,248,0.6);
+    --msg-sys-text: #4A7394;
+}
+[data-theme="penguin"] body { background: linear-gradient(135deg,#EAF4FD 0%,#D0E8F8 50%,#BDD9F2 100%); color: var(--text-dark); }
+
+
+/* =========================================================================
+   THEME 7: SUNSET (Orange / Crimson)
+   ========================================================================= */
+[data-theme="sunset"] {
+    --sunshine-yellow: #FF7043;
+    --sunshine-orange: #E64A19;
+    --sunshine-cream: #FFF1E6;
+    
+    --text-dark: #3D1A08;
+    --text-medium: #8B4A1E;
+    --text-light: #D5B19A;
+    
+    --bg-main: #FFF1E6;
+    --bg-darker: #FFBF9B;
+    --bg-game: #FFD4B0;
+    
+    --white: #FFFFFF;
+    --shadow-color: rgba(230, 74, 25, 0.25);
+    --border-color: rgba(255, 112, 67, 0.2);
+    
+    --player-bg: rgba(255, 255, 255, 0.65);
+    --header-bg: rgba(255, 241, 230, 0.85);
+    --nav-bg: rgba(255, 255, 255, 0.9);
+
+    --chat-bg: rgba(255,255,255,0.72);
+    --chat-border: rgba(255,112,67,0.12);
+    --msg-own-bg: linear-gradient(135deg,#FF7043,#E64A19);
+    --msg-own-text: #fff;
+    --msg-oth-bg: rgba(255,255,255,0.9);
+    --msg-oth-text: #3D1A08;
+    --msg-border: rgba(255,112,67,0.18);
+    --msg-sys-bg: rgba(255,212,176,0.6);
+    --msg-sys-text: #8B4A1E;
+}
+[data-theme="sunset"] body { background: linear-gradient(135deg,#FFF1E6 0%,#FFD4B0 50%,#FFBF9B 100%); color: var(--text-dark); }
+
+/* =========================================================================
+   THEME 8: NEON (Tokyo Night Cyberpunk)
+   ========================================================================= */
+[data-theme="neon"] {
+    --sunshine-yellow: #00E5FF;
+    --sunshine-orange: #D500F9;
+    --sunshine-cream: #0A0E1A;
+    
+    --text-dark: #E0F7FA;
+    --text-medium: #80DEEA;
+    --text-light: #00838F;
+    
+    --bg-main: #070B14;
+    --bg-darker: #04060A;
+    --bg-game: #0A0E1A;
+    
+    --white: #111827;
+    --shadow-color: rgba(0, 229, 255, 0.4);
+    --border-color: rgba(0, 229, 255, 0.2);
+    
+    --player-bg: rgba(17, 24, 39, 0.6);
+    --header-bg: rgba(10, 14, 26, 0.85);
+    --nav-bg: rgba(7, 11, 20, 0.9);
+
+    --chat-bg: rgba(7,11,20,0.82);
+    --chat-border: rgba(0,229,255,0.1);
+    --msg-own-bg: linear-gradient(135deg,#00E5FF,#D500F9);
+    --msg-own-text: #000;
+    --msg-oth-bg: rgba(17,24,39,0.9);
+    --msg-oth-text: #E0F7FA;
+    --msg-border: rgba(0,229,255,0.12);
+    --msg-sys-bg: rgba(31,41,55,0.7);
+    --msg-sys-text: #80DEEA;
+}
+[data-theme="neon"] body { background: linear-gradient(135deg,#0A0E1A 0%,#0D1321 50%,#070B14 100%); color: var(--text-dark); }
+[data-theme="neon"] .header-title, [data-theme="neon"] h1 { text-shadow: 0 0 8px rgba(0, 229, 255, 0.6); }
+
+/* Globals for dark themes (override shadows to be dark) */
+[data-theme="dark"] .glass-panel, [data-theme="dark"] .quick-nav, 
+[data-theme="galaxy"] .glass-panel, [data-theme="galaxy"] .quick-nav,
+[data-theme="neon"] .glass-panel, [data-theme="neon"] .quick-nav {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
