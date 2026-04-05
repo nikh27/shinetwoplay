@@ -29,14 +29,14 @@
     --header-bg: rgba(255, 255, 255, 0.85);
     --nav-bg: rgba(255, 255, 255, 0.9);
 
-    --chat-bg: rgba(255,255,255,0.75);
+    --chat-bg: rgba(255,255,255,0.15);
     --chat-border: rgba(255,217,61,0.15);
     --msg-own-bg: linear-gradient(135deg,#FFD97D,#FFB84D);
     --msg-own-text: #3d2e00;
-    --msg-oth-bg: rgba(255,255,255,0.9);
+    --msg-oth-bg: rgba(255,255,255,0.35);
     --msg-oth-text: #4A3F35;
     --msg-border: rgba(255,184,77,0.15);
-    --msg-sys-bg: rgba(255,217,61,0.12);
+    --msg-sys-bg: rgba(255,217,61,0.18);
     --msg-sys-text: #8B7355;
 }
 
@@ -64,14 +64,14 @@
     --header-bg: rgba(30, 30, 46, 0.85);
     --nav-bg: rgba(24, 24, 37, 0.9);
 
-    --chat-bg: rgba(24,24,37,0.8);
+    --chat-bg: rgba(24,24,37,0.2);
     --chat-border: rgba(203,166,247,0.1);
     --msg-own-bg: linear-gradient(135deg,#F9E2AF,#FAB387);
     --msg-own-text: #1E1E2E;
-    --msg-oth-bg: rgba(49,50,68,0.9);
+    --msg-oth-bg: rgba(49,50,68,0.4);
     --msg-oth-text: #CDD6F4;
     --msg-border: rgba(203,166,247,0.1);
-    --msg-sys-bg: rgba(69,71,90,0.6);
+    --msg-sys-bg: rgba(69,71,90,0.35);
     --msg-sys-text: #A6ADC8;
 }
 [data-theme="dark"] body { background: linear-gradient(135deg,#1E1E2E 0%,#181825 50%,#11111B 100%); color: var(--text-dark); }
@@ -100,14 +100,14 @@
     --header-bg: rgba(255, 240, 245, 0.85);
     --nav-bg: rgba(255, 255, 255, 0.9);
 
-    --chat-bg: rgba(255,255,255,0.72);
+    --chat-bg: rgba(255,255,255,0.15);
     --chat-border: rgba(255,77,141,0.12);
     --msg-own-bg: linear-gradient(135deg,#FF79A8,#FF4D8D);
     --msg-own-text: #fff;
-    --msg-oth-bg: rgba(255,255,255,0.9);
+    --msg-oth-bg: rgba(255,255,255,0.35);
     --msg-oth-text: #54273E;
     --msg-border: rgba(255,121,168,0.18);
-    --msg-sys-bg: rgba(255,210,230,0.5);
+    --msg-sys-bg: rgba(255,210,230,0.3);
     --msg-sys-text: #9E5074;
 }
 [data-theme="love"] body { background: linear-gradient(135deg,#FFF0F5 0%,#FFD6E7 50%,#FFC8DE 100%); color: var(--text-dark); }
@@ -137,14 +137,14 @@
     --header-bg: rgba(15, 23, 42, 0.85);
     --nav-bg: rgba(2, 8, 22, 0.9);
 
-    --chat-bg: rgba(2,8,20,0.82);
+    --chat-bg: rgba(2,8,20,0.2);
     --chat-border: rgba(100,160,255,0.08);
     --msg-own-bg: linear-gradient(135deg,#1D4ED8,#3B82F6);
     --msg-own-text: #fff;
-    --msg-oth-bg: rgba(15,30,60,0.9);
+    --msg-oth-bg: rgba(15,30,60,0.4);
     --msg-oth-text: #E2E8F0;
     --msg-border: rgba(100,160,255,0.1);
-    --msg-sys-bg: rgba(20,40,80,0.7);
+    --msg-sys-bg: rgba(20,40,80,0.35);
     --msg-sys-text: #93C5FD;
 }
 [data-theme="galaxy"] body { background: linear-gradient(180deg,#020816 0%,#04122A 40%,#081030 100%); color: var(--text-dark); }
@@ -175,14 +175,14 @@
     --header-bg: rgba(240, 255, 244, 0.85);
     --nav-bg: rgba(255, 255, 255, 0.9);
 
-    --chat-bg: rgba(255,255,255,0.72);
+    --chat-bg: rgba(255,255,255,0.15);
     --chat-border: rgba(82,183,136,0.12);
     --msg-own-bg: linear-gradient(135deg,#52B788,#2D9A5F);
     --msg-own-text: #fff;
-    --msg-oth-bg: rgba(255,255,255,0.9);
+    --msg-oth-bg: rgba(255,255,255,0.35);
     --msg-oth-text: #1A3A2A;
     --msg-border: rgba(82,183,136,0.18);
-    --msg-sys-bg: rgba(220,252,232,0.6);
+    --msg-sys-bg: rgba(220,252,232,0.3);
     --msg-sys-text: #4A7A60;
 }
 [data-theme="panda"] body { background: linear-gradient(135deg,#F0FFF4 0%,#DCFCE7 50%,#D4EDDA 100%); color: var(--text-dark); }
@@ -211,14 +211,14 @@
     --header-bg: rgba(234, 244, 253, 0.85);
     --nav-bg: rgba(255, 255, 255, 0.9);
 
-    --chat-bg: rgba(255,255,255,0.72);
+    --chat-bg: rgba(255,255,255,0.15);
     --chat-border: rgba(93,173,226,0.12);
     --msg-own-bg: linear-gradient(135deg,#5DADE2,#2E86C1);
     --msg-own-text: #fff;
-    --msg-oth-bg: rgba(255,255,255,0.9);
+    --msg-oth-bg: rgba(255,255,255,0.35);
     --msg-oth-text: #1B2D40;
     --msg-border: rgba(93,173,226,0.18);
-    --msg-sys-bg: rgba(208,232,248,0.6);
+    --msg-sys-bg: rgba(208,232,248,0.3);
     --msg-sys-text: #4A7394;
 }
 [data-theme="penguin"] body { background: linear-gradient(135deg,#EAF4FD 0%,#D0E8F8 50%,#BDD9F2 100%); color: var(--text-dark); }
@@ -248,14 +248,14 @@
     --header-bg: rgba(255, 241, 230, 0.85);
     --nav-bg: rgba(255, 255, 255, 0.9);
 
-    --chat-bg: rgba(255,255,255,0.72);
+    --chat-bg: rgba(255,255,255,0.15);
     --chat-border: rgba(255,112,67,0.12);
     --msg-own-bg: linear-gradient(135deg,#FF7043,#E64A19);
     --msg-own-text: #fff;
-    --msg-oth-bg: rgba(255,255,255,0.9);
+    --msg-oth-bg: rgba(255,255,255,0.35);
     --msg-oth-text: #3D1A08;
     --msg-border: rgba(255,112,67,0.18);
-    --msg-sys-bg: rgba(255,212,176,0.6);
+    --msg-sys-bg: rgba(255,212,176,0.3);
     --msg-sys-text: #8B4A1E;
 }
 [data-theme="sunset"] body { background: linear-gradient(135deg,#FFF1E6 0%,#FFD4B0 50%,#FFBF9B 100%); color: var(--text-dark); }
@@ -284,14 +284,14 @@
     --header-bg: rgba(10, 14, 26, 0.85);
     --nav-bg: rgba(7, 11, 20, 0.9);
 
-    --chat-bg: rgba(7,11,20,0.82);
+    --chat-bg: rgba(7,11,20,0.2);
     --chat-border: rgba(0,229,255,0.1);
     --msg-own-bg: linear-gradient(135deg,#00E5FF,#D500F9);
     --msg-own-text: #000;
-    --msg-oth-bg: rgba(17,24,39,0.9);
+    --msg-oth-bg: rgba(17,24,39,0.4);
     --msg-oth-text: #E0F7FA;
     --msg-border: rgba(0,229,255,0.12);
-    --msg-sys-bg: rgba(31,41,55,0.7);
+    --msg-sys-bg: rgba(31,41,55,0.35);
     --msg-sys-text: #80DEEA;
 }
 [data-theme="neon"] body { background: linear-gradient(135deg,#0A0E1A 0%,#0D1321 50%,#070B14 100%); color: var(--text-dark); }
