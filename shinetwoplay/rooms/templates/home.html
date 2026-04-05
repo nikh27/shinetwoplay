@@ -228,10 +228,13 @@
         }
 
         .room-box {
-            background: var(--white);
+            background: var(--player-bg, var(--white));
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border-radius: 24px;
             padding: 28px 24px;
-            box-shadow: 0 4px 24px rgba(255,185,77,.15);
+            box-shadow: 0 4px 24px var(--shadow-color, rgba(255,185,77,.15));
+            border: 1px solid var(--border-color, transparent);
         }
 
         .room-box-title {
@@ -244,8 +247,9 @@
             width: 100%;
             padding: 14px;
             border-radius: 14px;
-            border: 2px solid var(--sunshine-light);
-            background: var(--sunshine-cream);
+            border: 2px solid var(--border-color, var(--sunshine-light));
+            background: var(--header-bg, var(--sunshine-cream));
+            color: var(--text-dark);
             text-align: center;
             letter-spacing: 2px;
             font-size: 18px;
@@ -330,8 +334,9 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(255,244,220,.7);
+            background: rgba(0,0,0,0.4);
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -340,14 +345,16 @@
         .modal-overlay.active { display: flex; }
 
         .modal {
-            background: rgba(255, 255, 255, 0.85);
+            background: var(--nav-bg, rgba(255, 255, 255, 0.95));
             backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             padding: 36px 28px;
             border-radius: 28px;
             max-width: 360px;
             width: 90%;
-            box-shadow: 0 8px 32px rgba(255,185,77,.3);
+            box-shadow: 0 8px 32px var(--shadow-color, rgba(255,185,77,.3));
             position: relative;
+            border: 1px solid var(--border-color, transparent);
         }
 
         .modal-close {
@@ -384,8 +391,11 @@
             width: 100%;
             padding: 14px;
             border-radius: 14px;
-            border: 2px solid var(--sunshine-light);
-            background: var(--sunshine-cream);
+            border: 2px solid var(--border-color, var(--sunshine-light));
+            background: var(--header-bg, var(--sunshine-cream));
+            color: var(--text-dark);
+            font-family: 'Quicksand', sans-serif;
+            font-size: 14px;
         }
 
         .gender-options {
@@ -398,10 +408,12 @@
             flex: 1;
             padding: 14px;
             border-radius: 14px;
-            border: 2px solid var(--sunshine-light);
+            border: 2px solid var(--border-color, var(--sunshine-light));
+            background: var(--player-bg, transparent);
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
+            color: var(--text-dark);
         }
 
         .gender-option:hover {
@@ -412,6 +424,7 @@
         .gender-option.selected {
             background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
             border-color: var(--sunshine-orange);
+            color: #1a1a1a;
         }
 
         .modal-button {
@@ -431,7 +444,7 @@
 
         .modal-button.enabled {
             background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
-            color: var(--text-dark);
+            color: #1a1a1a;
             cursor: pointer;
             box-shadow: 0 4px 16px var(--shadow-soft);
         }
@@ -461,7 +474,7 @@
             <div class="username-display empty" id="usernameDisplay" onclick="openModal()">
                 <span id="usernameText">username</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </div>
-            <button class="theme-picker-toggle" onclick="window.ThemeEngine && window.ThemeEngine.openPicker()" title="Theme">🎨</button>
+            <button class="theme-picker-toggle" onclick="window.ThemeEngine && window.ThemeEngine.openPicker()" title="Theme"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="0.5" fill="currentColor"/><circle cx="17.5" cy="10.5" r="0.5" fill="currentColor"/><circle cx="8.5" cy="7.5" r="0.5" fill="currentColor"/><circle cx="6.5" cy="12" r="0.5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.5-.7 1.5-1.5 0-.4-.1-.7-.4-1-.3-.3-.4-.7-.4-1.1 0-.8.7-1.5 1.5-1.5H16c3.3 0 6-2.7 6-6 0-5.5-4.5-9-10-9z"/></svg></button>
         </div>
     </div>
 
