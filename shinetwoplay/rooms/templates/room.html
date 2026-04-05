@@ -674,7 +674,7 @@
 
         .start-btn {
             background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
-            color: var(--text-dark);
+            color: #1a1a1a;
         }
 
         .ready-btn {
@@ -1144,7 +1144,9 @@
         }
 
         .game-modal {
-            background: var(--white);
+            background: var(--nav-bg, #fff);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-radius: 24px 0 0 24px;
             width: 70%;
             max-width: 320px;
@@ -1153,6 +1155,7 @@
             flex-direction: column;
             box-shadow: -4px 0 30px rgba(0, 0, 0, 0.2);
             animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 1px solid var(--border-color, transparent);
         }
 
         @keyframes slideInRight {
@@ -1162,7 +1165,7 @@
 
         .modal-header {
             padding: 20px;
-            border-bottom: 1px solid var(--sunshine-light);
+            border-bottom: 1px solid var(--border-color, var(--sunshine-light));
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -1182,8 +1185,9 @@
             width: 32px;
             height: 32px;
             border-radius: 8px;
-            background: var(--sunshine-light);
-            border: none;
+            background: var(--player-bg, var(--sunshine-light));
+            border: 1px solid var(--border-color, transparent);
+            color: var(--text-dark);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1199,17 +1203,18 @@
 
         .search-container {
             padding: 12px 20px;
-            border-bottom: 1px solid var(--sunshine-light);
+            border-bottom: 1px solid var(--border-color, var(--sunshine-light));
         }
 
         .search-input {
             width: 100%;
             padding: 12px 16px 12px 40px;
-            border: 2px solid var(--sunshine-light);
+            border: 2px solid var(--border-color, var(--sunshine-light));
             border-radius: 12px;
             font-family: 'Quicksand', sans-serif;
             font-size: 16px;
-            background: var(--sunshine-cream);
+            color: var(--text-dark);
+            background: var(--header-bg, var(--sunshine-cream));
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%238B7355' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: 12px center;
@@ -1219,7 +1224,7 @@
         .search-input:focus {
             outline: none;
             border-color: var(--sunshine-orange);
-            background-color: var(--white);
+            background-color: var(--player-bg, var(--white));
         }
 
         .games-grid {
@@ -1236,7 +1241,7 @@
             width: 120px;
             height: 120px;
             border-radius: 16px;
-            border: 2.5px solid var(--sunshine-light);
+            border: 2.5px solid var(--border-color, var(--sunshine-light));
             display: flex;
             align-items: flex-end;
             justify-content: center;
@@ -1245,13 +1250,13 @@
             position: relative;
             overflow: hidden;
             justify-self: center;
-            background: var(--sunshine-cream);
+            background: var(--header-bg, var(--sunshine-cream));
         }
 
         .game-card:hover {
             transform: translateY(-4px);
             border-color: var(--sunshine-orange);
-            box-shadow: 0 8px 20px rgba(255, 185, 77, 0.25);
+            box-shadow: 0 8px 20px var(--shadow-color, rgba(255, 185, 77, 0.25));
         }
 
         .game-card.selected {
@@ -1286,12 +1291,13 @@
             font-size: 12px;
             text-align: center;
             color: var(--text-dark);
-            background: rgba(255, 255, 255, 0.85);
+            background: var(--player-bg, rgba(255, 255, 255, 0.85));
             padding: 4px 10px;
             border-radius: 10px;
             margin-bottom: 8px;
             text-transform: capitalize;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
             max-width: 90%;
             white-space: nowrap;
             overflow: hidden;
