@@ -67,7 +67,7 @@ GAMES = [
         'description': 'Draw lines between dots to complete boxes. Score a box and keep your turn! Most boxes wins.',
         'min_players': 2,
         'max_players': 2,
-    }
+    },
     {
         'game_id': 'stealthering',
         'name': 'Diamond Heist',
