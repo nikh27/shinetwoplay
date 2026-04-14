@@ -11,26 +11,18 @@ ShineTwoPlay is a real-time multiplayer gaming platform designed for **2 players
 
 ---
 
-## 🎮 16 Multiplayer Games
+## 🎮 16+ Multiplayer Games
 
-| # | Game | Type | Description |
-|---|------|------|-------------|
-| 1 | **Ludo** | Turn-based | Classic Ludo! Roll the dice and race your pieces home |
-| 2 | **Tic Tac Toe** | Turn-based | Classic 3×3 grid — get 3 in a row to win |
-| 3 | **Paddle Arena** | Real-time | Pong with obstacles — don't miss the ball! |
-| 4 | **Connect 4** | Turn-based | Drop discs to connect 4 in a row |
-| 5 | **Beach Ball** | Real-time | Push the ball into your opponent's goal with stones |
-| 6 | **Carrom** | Turn-based | Pocket all your coins before your opponent |
-| 7 | **Diamond Heist** | Real-time | Grab the diamond when the case opens! |
-| 8 | **Timber Chop** | Real-time | Race to chop 100 logs — dodge the branches! |
-| 9 | **Snakes** | Real-time | 2-player snake battle — outlast your opponent |
-| 10 | **Pull The Rope** | Real-time | Tap as fast as you can to pull the rope! |
-| 11 | **Bamboo Breaker** | Real-time | Panda tile-breaking battle on cracking bamboo |
-| 12 | **Simon Duel** | Turn-based | Memory battle — extend and repeat color sequences |
-| 13 | **Pattern Clash** | Turn-based | See a pattern for 3 seconds, then recreate it |
-| 14 | **Memory** | Turn-based | Flip cards and find matching pairs |
-| 15 | **Bingo** | Turn-based | Classic Bingo showdown — complete a line first |
-| 16 | **Dots & Boxes** | Turn-based | Draw lines to complete boxes — most boxes wins |
+ShineTwoPlay features a constantly growing library of real-time and turn-based multiplayer games! 
+Instead of a static list, you can view the full, up-to-date catalog of games directly on our platform.
+
+<br>
+<div align="center">
+  <a href="https://shinetwoplay.online/">
+    <img src="https://img.shields.io/badge/View%20Full%20Game%20Catalog-%23FF9800.svg?style=for-the-badge&logo=gamepad&logoColor=white" height="40" alt="View All Games" />
+  </a>
+</div>
+<br>
 
 ---
 
