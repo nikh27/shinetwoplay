@@ -752,6 +752,15 @@ class SnakesLadderGame extends BaseGame {
         if (cube) { cube.classList.remove('landed','rolling'); void cube.offsetHeight; cube.classList.add('rolling'); }
 
         this.sendMove('roll', {});
+        
+        // Fallback: if server doesn't respond in 3.5s (e.g., due to packet drop), unfreeze UI
+        var self = this;
+        setTimeout(function() {
+            if (self._rolling) {
+                self._rolling = false;
+                self._updateUI();
+            }
+        }, 3500);
     }
 
     _showToast(text, bg, glow) {
