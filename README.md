@@ -179,6 +179,12 @@ Contributions are welcome! You can:
 
 👉 **Read the full [Contributing Guide](CONTRIBUTING.md)** for details on how to get started.
 
+### 🌍 New to Open Source?
+
+Never contributed to open source before? No worries! We've written a **complete beginner-to-advanced guide** covering everything — from Git basics, forking, branching, and pull requests to handling merge conflicts and using multiple GitHub accounts.
+
+👉 **[Read the Open Source Contribution Guide](OPEN_SOURCE_GUIDE.md)** — Share it with anyone who wants to start their open source journey!
+
 ---
 
 ## 📜 License
