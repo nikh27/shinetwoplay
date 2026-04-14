@@ -13,6 +13,14 @@ GAMES = [
         'max_players': 2,
     },
     {
+        'game_id': 'snakes_ladder',
+        'name': 'Snakes & Ladders',
+        'image_url': '/static/games/snakes_ladder.png',
+        'description': 'Classic Snakes & Ladders! Roll the dice, climb ladders, dodge snakes. First to 100 wins!',
+        'min_players': 2,
+        'max_players': 2,
+    },
+    {
         'game_id': 'tictactoe',
         'name': 'Tic Tac Toe',
         'image_url': '/static/games/tictactoe.png',
@@ -52,6 +60,14 @@ GAMES = [
         'min_players': 2,
         'max_players': 2,
     },
+    {
+        'game_id': 'dotnbox',
+        'name': 'Dots & Boxes',
+        'image_url': '/static/games/dotnbox.png',
+        'description': 'Draw lines between dots to complete boxes. Score a box and keep your turn! Most boxes wins.',
+        'min_players': 2,
+        'max_players': 2,
+    }
     {
         'game_id': 'stealthering',
         'name': 'Diamond Heist',
@@ -121,14 +137,6 @@ GAMES = [
         'name': 'Bingo',
         'image_url': '/static/games/bingo.png',
         'description': 'Classic Bingo showdown! Mark called numbers on your card. Complete a line and shout BINGO to win!',
-        'min_players': 2,
-        'max_players': 2,
-    },
-    {
-        'game_id': 'dotnbox',
-        'name': 'Dots & Boxes',
-        'image_url': '/static/games/dotnbox.png',
-        'description': 'Draw lines between dots to complete boxes. Score a box and keep your turn! Most boxes wins.',
         'min_players': 2,
         'max_players': 2,
     }

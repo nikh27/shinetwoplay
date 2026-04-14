@@ -1,0 +1,896 @@
+<!-- Snakes & Ladders Game UI - Multiplayer WebSocket Edition -->
+
+<div class="sl-container">
+
+    <!-- Top Bar: Back + Mic + Speaker + Round -->
+    <div class="sl-top-bar">
+        <div style="display:flex; gap:6px; align-items:center;">
+            <button class="sl-icon-btn" onclick="exitGame()" title="Exit">✕</button>
+            <button class="sl-icon-btn sl-voice-btn" id="sl-mic-btn" onclick="window.voiceChat && window.voiceChat.toggleMic()" title="Mic">🎤</button>
+            <button class="sl-icon-btn sl-voice-btn" id="sl-spk-btn" onclick="window.voiceChat && window.voiceChat.toggleSpeaker()" title="Speaker">🔊</button>
+        </div>
+        <div class="sl-round-badge" id="sl-round-info">Round 1/1</div>
+    </div>
+
+    <!-- Instruction Row -->
+    <div class="sl-instruction" id="sl-instruction">Roll the dice to start!</div>
+
+    <!-- Board Area -->
+    <div class="sl-board-wrapper">
+        <div class="sl-board-inner">
+            <canvas id="sl-canvas"></canvas>
+        </div>
+        <div id="sl-event-toast" class="sl-event-toast"></div>
+    </div>
+
+    <!-- Bottom Control Bar: Red Panel | Dice | Blue Panel -->
+    <div class="sl-bottom-bar">
+
+        <!-- Red Player Panel -->
+        <div id="sl-panel-red" class="sl-player-panel sl-panel-red">
+            <div class="sl-panel-avatar" id="sl-avatar-red">
+                <img id="sl-avatar-img-red" src="/static/games/icons/avatar_male.png" alt="red player">
+            </div>
+            <div class="sl-panel-name" id="sl-name-red">RED</div>
+            <div class="sl-panel-pos" id="sl-pos-red">Start</div>
+        </div>
+
+        <!-- Center: 3D Dice + Roll Button -->
+        <div id="sl-center-dice" class="sl-center-dice">
+            <div class="dice-scene sl-dice-scene" id="sl-dice-scene-wrapper">
+                <div class="sl-dice-glow-ring" id="sl-dice-glow-ring"></div>
+                <div class="dice-cube dice-show-1" id="sl-dice-cube">
+                    <div class="dice-face dice-face--light dice-face-1"><div style="grid-area:2/2"><div class="dice-pip" data-pip></div></div></div>
+                    <div class="dice-face dice-face--light dice-face-2"><div style="grid-area:1/3"><div class="dice-pip" data-pip></div></div><div style="grid-area:3/1"><div class="dice-pip" data-pip></div></div></div>
+                    <div class="dice-face dice-face--light dice-face-3"><div style="grid-area:1/3"><div class="dice-pip" data-pip></div></div><div style="grid-area:2/2"><div class="dice-pip" data-pip></div></div><div style="grid-area:3/1"><div class="dice-pip" data-pip></div></div></div>
+                    <div class="dice-face dice-face--light dice-face-4"><div style="grid-area:1/1"><div class="dice-pip" data-pip></div></div><div style="grid-area:1/3"><div class="dice-pip" data-pip></div></div><div style="grid-area:3/1"><div class="dice-pip" data-pip></div></div><div style="grid-area:3/3"><div class="dice-pip" data-pip></div></div></div>
+                    <div class="dice-face dice-face--light dice-face-5"><div style="grid-area:1/1"><div class="dice-pip" data-pip></div></div><div style="grid-area:1/3"><div class="dice-pip" data-pip></div></div><div style="grid-area:2/2"><div class="dice-pip" data-pip></div></div><div style="grid-area:3/1"><div class="dice-pip" data-pip></div></div><div style="grid-area:3/3"><div class="dice-pip" data-pip></div></div></div>
+                    <div class="dice-face dice-face--light dice-face-6"><div style="grid-area:1/1"><div class="dice-pip" data-pip></div></div><div style="grid-area:2/1"><div class="dice-pip" data-pip></div></div><div style="grid-area:3/1"><div class="dice-pip" data-pip></div></div><div style="grid-area:1/3"><div class="dice-pip" data-pip></div></div><div style="grid-area:2/3"><div class="dice-pip" data-pip></div></div><div style="grid-area:3/3"><div class="dice-pip" data-pip></div></div></div>
+                </div>
+            </div>
+            <div class="dice-shadow sl-dice-shadow" id="sl-dice-shadow"></div>
+            <button id="sl-roll-btn" class="sl-roll-btn" disabled>ROLL</button>
+        </div>
+
+        <!-- Blue Player Panel -->
+        <div id="sl-panel-blue" class="sl-player-panel sl-panel-blue">
+            <div class="sl-panel-avatar" id="sl-avatar-blue">
+                <img id="sl-avatar-img-blue" src="/static/games/icons/avatar_male.png" alt="blue player">
+            </div>
+            <div class="sl-panel-name" id="sl-name-blue">BLUE</div>
+            <div class="sl-panel-pos" id="sl-pos-blue">Start</div>
+        </div>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div class="sl-overlay" id="sl-pause-overlay" style="display:none;">
+        <div class="sl-overlay-content">
+            <div style="font-size:40px;">⏸️</div>
+            <h2>Game Paused</h2>
+            <p><span id="sl-disconnected-player">Opponent</span> disconnected</p>
+            <p>Waiting... <span id="sl-countdown">30</span>s</p>
+        </div>
+    </div>
+
+    <!-- Result Overlay -->
+    <div class="sl-overlay" id="sl-result-overlay" style="display:none;">
+        <div class="sl-overlay-content">
+            <div id="sl-result-icon" style="font-size:48px;">🏆</div>
+            <h2 id="sl-result-text">You Win!</h2>
+            <p id="sl-result-subtext">Next round starting...</p>
+        </div>
+    </div>
+
+</div>
+
+<style>
+.sl-container{display:flex;flex-direction:column;align-items:center;width:100%;height:100%;padding:6px 8px 4px;position:relative;overflow:hidden;background:#111827;font-family:'Inter',sans-serif;box-sizing:border-box}
+.sl-top-bar{display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:4px;flex-shrink:0}
+.sl-icon-btn{width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.12);color:white;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);transition:background .2s}
+.sl-icon-btn:hover{background:rgba(255,255,255,.25)}
+.sl-round-badge{background:rgba(255,255,255,.15);color:white;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;backdrop-filter:blur(10px)}
+.sl-instruction{width:100%;text-align:center;font-size:12px;font-weight:600;color:#fef08a;margin-bottom:4px;min-height:18px;flex-shrink:0}
+.sl-board-wrapper{position:relative;width:min(calc(100vw - 16px),calc(100vh - 180px));max-width:580px;aspect-ratio:1;flex-shrink:0;background:#1f2937;border-radius:14px;padding:5px;border:2px solid #374151;box-shadow:0 0 30px rgba(0,0,0,.6);margin:0 auto}
+.sl-board-inner{position:relative;width:100%;height:100%;border-radius:10px;overflow:hidden}
+.sl-board-inner canvas{display:block;width:100%;height:100%}
+.sl-bottom-bar{display:flex;flex-direction:row;align-items:flex-end;justify-content:space-between;width:min(calc(100vw - 16px),calc(100vh - 180px));max-width:580px;margin:16px auto 0;padding:0 4px;flex-shrink:0}
+.sl-player-panel{display:flex;flex-direction:column;align-items:center;gap:3px;background:#1f2937;border:2px solid rgba(107,114,128,.4);border-radius:14px;padding:6px 8px;min-width:68px;transition:all .3s cubic-bezier(.34,1.56,.64,1);opacity:.6}
+.sl-player-panel.active-turn{transform:translateY(-8px) scale(1.06);opacity:1;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:sl-bp 1.5s infinite}
+@keyframes sl-bp{0%,100%{border-color:rgba(255,255,255,.2)}50%{border-color:rgba(255,255,255,.75)}}
+.sl-panel-red.active-turn{border-color:#f87171;box-shadow:0 8px 24px rgba(248,113,113,.5)}
+.sl-panel-blue.active-turn{border-color:#60a5fa;box-shadow:0 8px 24px rgba(96,165,250,.5)}
+.sl-panel-avatar{width:36px;height:36px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.4)}
+.sl-panel-red .sl-panel-avatar{border-color:#f87171}
+.sl-panel-blue .sl-panel-avatar{border-color:#60a5fa}
+.sl-panel-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.sl-panel-name{font-size:10px;font-weight:800;color:#e5e7eb;text-transform:uppercase;letter-spacing:.05em;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.sl-panel-red .sl-panel-name{color:#fca5a5}
+.sl-panel-blue .sl-panel-name{color:#93c5fd}
+.sl-panel-pos{font-size:9px;color:#6b7280;font-weight:600}
+.sl-center-dice{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.sl-dice-scene{width:52px;height:52px;perspective:300px;position:relative}
+.sl-dice-glow-ring{position:absolute;inset:-8px;border-radius:24%;opacity:0;transition:opacity .4s,box-shadow .4s;pointer-events:none;z-index:-1}
+.sl-dice-glow-ring.active{opacity:1}
+.sl-dice-shadow{width:50%;height:8px;background:radial-gradient(ellipse,rgba(0,0,0,.4) 0%,transparent 70%);border-radius:50%;margin:2px auto 0;transition:all .3s}
+.sl-dice-shadow.rolling{width:32%;opacity:.3;transform:translateY(-3px)}
+.sl-roll-btn{padding:6px 20px;border-radius:50px;font-size:13px;font-weight:900;letter-spacing:.1em;border:2px solid #374151;color:white;background:#374151;cursor:pointer;transition:all .2s;transform:scale(1);box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.sl-roll-btn:not(:disabled):hover{transform:scale(1.06)}
+.sl-roll-btn:not(:disabled):active{transform:scale(.94)}
+.sl-roll-btn:disabled{opacity:.45;cursor:not-allowed}
+.sl-roll-btn.sl-roll-red{background:#f87171;border-color:#991b1b;box-shadow:0 4px 20px rgba(248,113,113,.5)}
+.sl-roll-btn.sl-roll-blue{background:#60a5fa;border-color:#1d4ed8;box-shadow:0 4px 20px rgba(96,165,250,.5)}
+
+/* 3D Dice CSS (Copied from Ludo) */
+.dice-cube { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.1s ease-out; }
+.dice-cube.rolling { animation: sl-dice-tumble 0.65s cubic-bezier(0.2,0.8,0.3,1); }
+@keyframes sl-dice-tumble {
+    0%   { transform: rotateX(20deg) rotateY(0deg) scale(0.9); }
+    25%  { transform: rotateX(350deg) rotateY(200deg) rotateZ(-40deg) scale(1.1); }
+    55%  { transform: rotateX(680deg) rotateY(280deg) rotateZ(-20deg) scale(1.04); }
+    100% { transform: rotateX(1000deg) rotateY(0deg) rotateZ(0deg) scale(1.0); }
+}
+.dice-face {
+    position: absolute; width: 100%; height: 100%; border-radius: 18%; display: grid; padding: 17%;
+    box-sizing: border-box; backface-visibility: visible; grid-template: 1fr 1fr 1fr / 1fr 1fr 1fr; gap: 6%;
+}
+.dice-face--light {
+    background: linear-gradient(145deg,#fff 0%,#f5f5f5 40%,#e8e8e8 100%);
+    box-shadow: inset 0 2px 8px rgba(255,255,255,0.9),inset 0 -3px 8px rgba(0,0,0,0.12);
+    border: 1.5px solid rgba(0,0,0,0.06);
+}
+.dice-pip {
+    width: 100%; height: 100%; border-radius: 50%;
+    background: radial-gradient(circle at 38% 38%,#666,#1a1a1a 70%);
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.25),0 1px 3px rgba(0,0,0,0.4);
+}
+.dice-pip.pip-red  { background: radial-gradient(circle at 38% 38%,#f87171,#b91c1c 70%); box-shadow: inset 0 1px 2px rgba(255,255,255,0.3),0 1px 3px rgba(185,28,28,0.5); }
+.dice-pip.pip-blue { background: radial-gradient(circle at 38% 38%,#60a5fa,#1d4ed8 70%); box-shadow: inset 0 1px 2px rgba(255,255,255,0.3),0 1px 3px rgba(29,78,216,0.5); }
+
+/* show transforms */
+.dice-show-1 { transform: rotateY(0deg)    rotateX(0deg); }
+.dice-show-2 { transform: rotateY(-90deg)  rotateX(0deg); }
+.dice-show-3 { transform: rotateX(-90deg)  rotateY(0deg); }
+.dice-show-4 { transform: rotateX(90deg)   rotateY(0deg); }
+.dice-show-5 { transform: rotateY(90deg)   rotateX(0deg); }
+.dice-show-6 { transform: rotateY(180deg)  rotateX(0deg); }
+
+/* land bounce */
+.dice-cube.landed { animation: sl-dice-land 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes sl-dice-land {
+    0%   { transform: var(--land-transform) scale(1.12); }
+    50%  { transform: var(--land-transform) scale(0.94); }
+    100% { transform: var(--land-transform) scale(1); }
+}
+
+/* 3D Dice - scoped transforms for 52px scene */
+.sl-dice-scene .dice-face-1{transform:rotateY(0deg) translateZ(26px)!important}
+.sl-dice-scene .dice-face-2{transform:rotateY(90deg) translateZ(26px)!important}
+.sl-dice-scene .dice-face-3{transform:rotateX(90deg) translateZ(26px)!important}
+.sl-dice-scene .dice-face-4{transform:rotateX(-90deg) translateZ(26px)!important}
+.sl-dice-scene .dice-face-5{transform:rotateY(-90deg) translateZ(26px)!important}
+.sl-dice-scene .dice-face-6{transform:rotateY(180deg) translateZ(26px)!important}
+.sl-event-toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.5);font-size:28px;font-weight:900;color:white;padding:8px 20px;border-radius:16px;z-index:50;opacity:0;pointer-events:none;transition:all .25s;text-shadow:0 3px 8px rgba(0,0,0,.8)}
+.sl-overlay{position:absolute;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;border-radius:12px;z-index:60;backdrop-filter:blur(6px)}
+.sl-overlay-content{text-align:center;color:white;animation:sl-pop .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes sl-pop{from{transform:scale(0) rotate(-10deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+.sl-overlay-content h2{font-size:26px;margin:10px 0}
+.sl-overlay-content p{color:#9ca3af;font-size:13px}
+</style>
+
+<script>
+// ===== Snakes & Ladders Multiplayer Game Class =====
+
+var SL_SNAKES = {99:78,97:79,93:73,90:70,84:63,76:56,74:53,71:51,66:45,59:38,52:31,47:26,39:22,34:13,18:6};
+var SL_LADDERS = {2:23,8:29,17:37,21:42,25:46,36:55,44:65,54:73,62:82,64:85,68:89,81:98};
+var SL_ROWS = 10, SL_COLS = 10;
+
+var SL_SNAKE_COLORS = {
+    99:{b:'#e11d48',bl:'#fb7185'}, // Rose Red
+    97:{b:'#059669',bl:'#34d399'}, // Emerald Green
+    93:{b:'#0284c7',bl:'#38bdf8'}, // Cyan/Blue
+    90:{b:'#e11d48',bl:'#fb7185'}, // Rose Red
+    84:{b:'#475569',bl:'#94a3b8'}, // Dark Grey
+    76:{b:'#059669',bl:'#34d399'}, // Emerald Green
+    74:{b:'#7c3aed',bl:'#a78bfa'}, // Violet
+    71:{b:'#ea580c',bl:'#fb923c'}, // Orange
+    66:{b:'#475569',bl:'#94a3b8'}, // Dark Grey
+    59:{b:'#0284c7',bl:'#38bdf8'}, // Cyan/Blue
+    52:{b:'#e11d48',bl:'#fb7185'}, // Rose Red
+    47:{b:'#7c3aed',bl:'#a78bfa'}, // Violet
+    39:{b:'#059669',bl:'#34d399'}, // Emerald Green
+    34:{b:'#ea580c',bl:'#fb923c'}, // Orange
+    18:{b:'#0284c7',bl:'#38bdf8'}  // Cyan/Blue
+};
+
+var SL_TILE_COLORS = {};
+(function(){
+    // Soft pastel aesthetic for beautiful contrast
+    var pals = [
+        ['#fee2e2','#fef3c7','#dcfce7','#e0f2fe','#f3e8ff','#fee2e2','#fef3c7','#dcfce7','#e0f2fe','#f3e8ff'],
+        ['#fef3c7','#dcfce7','#e0f2fe','#f3e8ff','#fee2e2','#fef3c7','#dcfce7','#e0f2fe','#f3e8ff','#fee2e2'],
+        ['#dcfce7','#e0f2fe','#f3e8ff','#fee2e2','#fef3c7','#dcfce7','#e0f2fe','#f3e8ff','#fee2e2','#fef3c7'],
+        ['#e0f2fe','#f3e8ff','#fee2e2','#fef3c7','#dcfce7','#e0f2fe','#f3e8ff','#fee2e2','#fef3c7','#dcfce7'],
+        ['#f3e8ff','#fee2e2','#fef3c7','#dcfce7','#e0f2fe','#f3e8ff','#fee2e2','#fef3c7','#dcfce7','#e0f2fe'],
+        ['#fee2e2','#fef3c7','#dcfce7','#e0f2fe','#f3e8ff','#fee2e2','#fef3c7','#dcfce7','#e0f2fe','#f3e8ff'],
+        ['#fef3c7','#dcfce7','#e0f2fe','#f3e8ff','#fee2e2','#fef3c7','#dcfce7','#e0f2fe','#f3e8ff','#fee2e2'],
+        ['#dcfce7','#e0f2fe','#f3e8ff','#fee2e2','#fef3c7','#dcfce7','#e0f2fe','#f3e8ff','#fee2e2','#fef3c7'],
+        ['#e0f2fe','#f3e8ff','#fee2e2','#fef3c7','#dcfce7','#e0f2fe','#f3e8ff','#fee2e2','#fef3c7','#dcfce7'],
+        ['#f3e8ff','#fee2e2','#fef3c7','#dcfce7','#e0f2fe','#f3e8ff','#fee2e2','#fef3c7','#dcfce7','#e0f2fe']
+    ];
+    for(var t=1;t<=100;t++){var row=Math.floor((t-1)/10),col=(t-1)%10,ac=row%2===0?col:9-col;SL_TILE_COLORS[t]=pals[row][ac];}
+})();
+
+var SL_PLAYER_CFG = {
+    red: {hex:'#f87171',border:'#991b1b',glow:'rgba(248,113,113,0.6)',pipClass:'pip-red',dark:'#dc2626'},
+    blue:{hex:'#60a5fa',border:'#1d4ed8',glow:'rgba(96,165,250,0.6)',pipClass:'pip-blue',dark:'#2563eb'}
+};
+
+var SL_DICE_SHOW = {1:'dice-show-1',2:'dice-show-2',3:'dice-show-3',4:'dice-show-4',5:'dice-show-5',6:'dice-show-6'};
+var SL_DICE_TRANSFORMS = {
+    1:'rotateY(0deg) rotateX(0deg)',2:'rotateY(-90deg) rotateX(0deg)',
+    3:'rotateX(-90deg) rotateY(0deg)',4:'rotateX(90deg) rotateY(0deg)',
+    5:'rotateY(90deg) rotateX(0deg)',6:'rotateY(180deg) rotateX(0deg)'
+};
+
+// ── Audio via Web Audio API ──
+var slAudioCtx = null;
+function slSound(type) {
+    try {
+        if (!slAudioCtx) slAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (slAudioCtx.state === 'suspended') slAudioCtx.resume();
+        var o = slAudioCtx.createOscillator(), g = slAudioCtx.createGain();
+        o.connect(g); g.connect(slAudioCtx.destination); g.gain.value = 0.12;
+        var now = slAudioCtx.currentTime;
+        if (type === 'move') { o.type='sine'; o.frequency.value=440; g.gain.exponentialRampToValueAtTime(0.01,now+0.06); o.start(); o.stop(now+0.06); }
+        else if (type === 'ladder') { o.type='sine'; o.frequency.value=523; g.gain.value=0.18; o.frequency.exponentialRampToValueAtTime(1047,now+0.3); g.gain.exponentialRampToValueAtTime(0.01,now+0.35); o.start(); o.stop(now+0.35); }
+        else if (type === 'snake') { o.type='sawtooth'; o.frequency.value=600; o.frequency.exponentialRampToValueAtTime(100,now+0.35); g.gain.exponentialRampToValueAtTime(0.01,now+0.4); o.start(); o.stop(now+0.4); }
+        else if (type === 'win') { o.type='sine'; o.frequency.value=523; g.gain.value=0.2; g.gain.exponentialRampToValueAtTime(0.01,now+0.25); o.start(); o.stop(now+0.25);
+            setTimeout(function(){ var o2=slAudioCtx.createOscillator(),g2=slAudioCtx.createGain(); o2.connect(g2);g2.connect(slAudioCtx.destination); o2.type='sine';o2.frequency.value=784;g2.gain.value=0.25; g2.gain.exponentialRampToValueAtTime(0.01,slAudioCtx.currentTime+0.4); o2.start();o2.stop(slAudioCtx.currentTime+0.4); },250);
+        }
+    } catch(e) {}
+}
+
+// ── Canvas helpers ──
+function slTileToRC(tile) { var t=tile-1, row=Math.floor(t/SL_COLS), col=t%SL_COLS; return {r:SL_ROWS-1-row, c:row%2===0?col:SL_COLS-1-col}; }
+
+class SnakesLadderGame extends BaseGame {
+    constructor() {
+        super();
+        this.gameMode = "turn_based";
+        this._rolling = false;
+        this._stateQueue = [];
+        this._processing = false;
+        this._canvas = null;
+        this._ctx = null;
+        this._cs = 0;
+        this._boardPx = 0;
+        this._animPositions = {red: 0, blue: 0};
+    }
+
+    init(state) {
+        this.state = state;
+        this._animPositions = {red: state.positions.red, blue: state.positions.blue};
+        this._setupCanvas();
+        this._updateAvatars();
+        this._updateRound();
+        this._updateUI();
+    }
+
+    _setupCanvas() {
+        this._canvas = document.getElementById('sl-canvas');
+        if (!this._canvas) return;
+        this._ctx = this._canvas.getContext('2d');
+        this._resize();
+        window.addEventListener('resize', () => this._resize());
+    }
+
+    _resize() {
+        var wrapper = this._canvas.parentElement;
+        var cont = wrapper.parentElement;
+        this._boardPx = Math.min(cont.clientWidth, cont.clientHeight);
+        wrapper.style.width = this._boardPx + 'px';
+        wrapper.style.height = this._boardPx + 'px';
+        this._cs = this._boardPx / SL_COLS;
+        var dpr = window.devicePixelRatio || 1;
+        this._canvas.width = this._boardPx * dpr;
+        this._canvas.height = this._boardPx * dpr;
+        this._canvas.style.width = this._boardPx + 'px';
+        this._canvas.style.height = this._boardPx + 'px';
+        this._ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this._drawBoard();
+    }
+
+    _tilePt(tile) { var rc = slTileToRC(tile); return {x: rc.c*this._cs+this._cs/2, y: rc.r*this._cs+this._cs/2}; }
+
+    // ── Drawing ──
+    _drawBoard() {
+        var ctx = this._ctx, cs = this._cs, bp = this._boardPx;
+        if (!ctx) return;
+        ctx.clearRect(0, 0, bp, bp);
+
+        // Tiles
+        for (var tile = 1; tile <= 100; tile++) {
+            var rc = slTileToRC(tile), x = rc.c*cs, y = rc.r*cs;
+            ctx.fillStyle = SL_TILE_COLORS[tile] || '#FFEB3B';
+            ctx.fillRect(x, y, cs, cs);
+            ctx.strokeStyle = 'rgba(0,0,0,.1)'; ctx.lineWidth = 0.5; ctx.strokeRect(x, y, cs, cs);
+            ctx.fillStyle = 'rgba(0,0,0,.5)';
+            ctx.font = '800 ' + Math.max(cs*.2, 7) + 'px Inter,sans-serif';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+            ctx.fillText(tile, x + cs*.06, y + cs*.04);
+        }
+
+        // Ladders
+        for (var b in SL_LADDERS) this._drawLadder(+b, SL_LADDERS[b]);
+        // Snakes
+        for (var h in SL_SNAKES) this._drawSnake(+h, SL_SNAKES[h]);
+        // Tokens
+        this._drawTokens();
+    }
+
+    _drawSnake(head, tail) {
+        var a = this._tilePt(head), b = this._tilePt(tail), ctx = this._ctx, cs = this._cs;
+        var col = SL_SNAKE_COLORS[head] || {b:'#e84393',bl:'#fd79a8'};
+        var dx = b.x-a.x, dy = b.y-a.y, len = Math.sqrt(dx*dx+dy*dy);
+        var N = 48, pts = [];
+        for (var i = 0; i <= N; i++) {
+            var t = i/N, amp = cs*.4*Math.sin(t*Math.PI), freq = 3+Math.floor(len/(cs*2));
+            pts.push({x: a.x+dx*t+Math.sin(t*Math.PI*freq)*amp, y: a.y+dy*t+Math.cos(t*Math.PI*freq)*amp*.3});
+        }
+        ctx.save();
+        ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.lineWidth = cs*.22+2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.beginPath(); pts.forEach(function(p,i){i?ctx.lineTo(p.x+1,p.y+2):ctx.moveTo(p.x+1,p.y+2);}); ctx.stroke();
+        var g = ctx.createLinearGradient(a.x,a.y,b.x,b.y);
+        g.addColorStop(0,col.b); g.addColorStop(.5,col.bl); g.addColorStop(1,col.b);
+        ctx.strokeStyle = g; ctx.lineWidth = cs*.2;
+        ctx.beginPath(); pts.forEach(function(p,i){i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = cs*.06;
+        ctx.beginPath(); pts.forEach(function(p,i){i?ctx.lineTo(p.x,p.y-1):ctx.moveTo(p.x,p.y-1);}); ctx.stroke();
+        // Head
+        ctx.fillStyle = col.b; ctx.beginPath(); ctx.arc(a.x,a.y,cs*.22,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.lineWidth = 1; ctx.stroke();
+        var eo = cs*.08;
+        [[-1],[1]].forEach(function(s){
+            ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(a.x+s[0]*eo,a.y-eo*.6,cs*.06,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(a.x+s[0]*eo,a.y-eo*.6,cs*.028,0,Math.PI*2); ctx.fill();
+        });
+        var td = dy>0?1:-1;
+        ctx.strokeStyle = '#d32f2f'; ctx.lineWidth = Math.max(1,cs*.025); ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(a.x,a.y+cs*.15*td); ctx.lineTo(a.x-cs*.06,a.y+cs*.26*td); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(a.x,a.y+cs*.15*td); ctx.lineTo(a.x+cs*.06,a.y+cs*.26*td); ctx.stroke();
+        var tp = pts[pts.length-1]; ctx.fillStyle = col.b; ctx.beginPath(); ctx.arc(tp.x,tp.y,cs*.06,0,Math.PI*2); ctx.fill();
+        ctx.restore();
+    }
+
+    _drawLadder(bottom, top) {
+        var a = this._tilePt(bottom), b = this._tilePt(top), ctx = this._ctx, cs = this._cs;
+        var dx = b.x-a.x, dy = b.y-a.y, len = Math.sqrt(dx*dx+dy*dy);
+        var nx = -dy/len*(cs*.2), ny = dx/len*(cs*.2);
+        ctx.save(); ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(0,0,0,.08)'; ctx.lineWidth = cs*.09+1;
+        ctx.beginPath(); ctx.moveTo(a.x+nx+1,a.y+ny+2); ctx.lineTo(b.x+nx+1,b.y+ny+2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(a.x-nx+1,a.y-ny+2); ctx.lineTo(b.x-nx+1,b.y-ny+2); ctx.stroke();
+        ctx.strokeStyle = '#5D4037'; ctx.lineWidth = cs*.08;
+        ctx.beginPath(); ctx.moveTo(a.x+nx,a.y+ny); ctx.lineTo(b.x+nx,b.y+ny); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(a.x-nx,a.y-ny); ctx.lineTo(b.x-nx,b.y-ny); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,.15)'; ctx.lineWidth = cs*.025;
+        ctx.beginPath(); ctx.moveTo(a.x+nx*.6,a.y+ny*.6); ctx.lineTo(b.x+nx*.6,b.y+ny*.6); ctx.stroke();
+        var rungs = Math.max(Math.round(len/(cs*.5)),2);
+        for (var i = 1; i < rungs; i++) {
+            var t = i/rungs, cx = a.x+dx*t, cy = a.y+dy*t;
+            ctx.strokeStyle = '#5D4037'; ctx.lineWidth = cs*.05;
+            ctx.beginPath(); ctx.moveTo(cx+nx,cy+ny); ctx.lineTo(cx-nx,cy-ny); ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    // ── Pawn-shaped tokens ──
+    _drawPawn(x, y, color, darkColor, scale, opacity) {
+        var ctx = this._ctx, cs = this._cs;
+        var s = scale || 1;
+        var op = opacity !== undefined ? opacity : 1;
+        var r = cs * 0.13 * s;   // head radius
+        var bw = cs * 0.20 * s;  // base half-width
+        var bh = cs * 0.35 * s;  // body height
+        var baseY = y + cs * 0.15 * s;
+
+        ctx.save();
+        ctx.globalAlpha = op;
+
+        // Drop Shadow
+        if (op > 0.3) {
+            ctx.fillStyle = 'rgba(0,0,0,.3)';
+            ctx.beginPath(); ctx.ellipse(x+cs*0.04, baseY+cs*0.04, bw*1.1, cs*.06*s, 0, 0, Math.PI*2); ctx.fill();
+        }
+
+        // Base Ring (Metallic)
+        var bGrad = ctx.createLinearGradient(x-bw, baseY-cs*0.05, x+bw, baseY+cs*0.05);
+        bGrad.addColorStop(0, darkColor); bGrad.addColorStop(0.5, '#fff'); bGrad.addColorStop(1, darkColor);
+        ctx.fillStyle = bGrad;
+        ctx.beginPath(); ctx.ellipse(x, baseY, bw*1.15, cs*.08*s, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = darkColor;
+        ctx.beginPath(); ctx.ellipse(x, baseY-cs*0.03, bw*1.05, cs*.07*s, 0, 0, Math.PI*2); ctx.fill();
+
+        // Main Body (Tapered)
+        var bodyGrad = ctx.createLinearGradient(x-bw, 0, x+bw, 0);
+        bodyGrad.addColorStop(0, darkColor); bodyGrad.addColorStop(0.3, color); bodyGrad.addColorStop(0.7, color); bodyGrad.addColorStop(1, darkColor);
+        ctx.fillStyle = bodyGrad;
+        
+        ctx.beginPath();
+        ctx.moveTo(x - bw*0.9, baseY-cs*0.03);
+        ctx.quadraticCurveTo(x - bw*0.6, baseY - bh*0.5, x - r*0.7, baseY - bh);
+        ctx.lineTo(x + r*0.7, baseY - bh);
+        ctx.quadraticCurveTo(x + bw*0.6, baseY - bh*0.5, x + bw*0.9, baseY-cs*0.03);
+        ctx.closePath();
+        ctx.fill();
+
+        // Glowing Core/Gem
+        ctx.fillStyle = color;
+        ctx.shadowColor = color; ctx.shadowBlur = cs * 0.4 * s;
+        ctx.beginPath(); ctx.ellipse(x, baseY-bh*0.4, bw*0.35, bh*0.3, 0, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Head (Sphere)
+        var headGrad = ctx.createRadialGradient(x-r*0.3, baseY-bh-r*0.3, r*0.1, x, baseY-bh, r);
+        headGrad.addColorStop(0, '#fff'); headGrad.addColorStop(0.3, color); headGrad.addColorStop(1, darkColor);
+        ctx.fillStyle = headGrad;
+        ctx.beginPath(); ctx.arc(x, baseY - bh, r, 0, Math.PI*2); ctx.fill();
+
+        // High-gloss edge highlight
+        ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = Math.max(1, cs*.02*s);
+        ctx.beginPath();
+        ctx.moveTo(x - bw*0.8, baseY-cs*0.03);
+        ctx.quadraticCurveTo(x - bw*0.55, baseY - bh*0.5, x - r*0.6, baseY - bh);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    _drawTokens() {
+        var self = this;
+        var positions = {red: this._animPositions.red, blue: this._animPositions.blue};
+        var cs = this._cs;
+
+        ['red','blue'].forEach(function(color) {
+            var pos = positions[color] < 1 ? 1 : positions[color]; // Treat 0 as Tile 1
+            var cfg = SL_PLAYER_CFG[color];
+            var otherColor = color === 'red' ? 'blue' : 'red';
+            var otherPos = positions[otherColor] < 1 ? 1 : positions[otherColor];
+            
+            var pt = self._tilePt(pos);
+            var overlap = otherPos === pos;
+
+            if (overlap) {
+                var offX = color === 'red' ? -cs*0.15 : cs*0.15;
+                self._drawPawn(pt.x + offX, pt.y, cfg.hex, cfg.dark, 0.82, 1);
+            } else {
+                self._drawPawn(pt.x, pt.y, cfg.hex, cfg.dark, 1, 1);
+            }
+        });
+    }
+
+    // ── State queue (matches Ludo pattern) ──
+    update(state) {
+        this._stateQueue.push(state);
+        this._processNextState();
+    }
+
+    async _processNextState() {
+        if (this._processing || this._stateQueue.length === 0) return;
+        this._processing = true;
+
+        try {
+            var nextState = this._stateQueue.shift();
+            
+            if (nextState._type === 'round_end') {
+                this._showRoundEnd(nextState.result);
+                this._processing = false;
+                setTimeout(() => this._processNextState(), 50);
+                return;
+            }
+            if (nextState._type === 'game_end') {
+                this._showGameEnd(nextState.result);
+                this._processing = false;
+                setTimeout(() => this._processNextState(), 50);
+                return;
+            }
+
+            var prevState = this.state;
+
+            // Detect roll
+            var rollHappened = false;
+            var diceVal = nextState.dice_value;
+            if (diceVal !== null && prevState) {
+                rollHappened = (diceVal !== prevState.dice_value || nextState.turn !== prevState.turn || nextState.last_roll_by !== prevState.last_roll_by);
+            }
+
+            if (rollHappened && diceVal !== null) {
+                var rollingColor = nextState.last_roll_by || (prevState && prevState.turn !== nextState.turn ? prevState.turn : nextState.turn);
+                await new Promise(resolve => this._animateDice(diceVal, rollingColor, resolve));
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            this.state = nextState;
+            this._rolling = false;
+
+            // Animate movement if move_data exists
+            var md = nextState.move_data;
+            if (md && md.from_pos !== undefined && md.to_pos !== undefined) {
+                var color = md.player;
+                var fromP = md.from_pos < 1 ? 1 : md.from_pos; // Treat 0 as 1
+                var toP = md.to_pos;
+
+                if (fromP !== toP && toP >= 1) {
+                    await new Promise(resolve => this._animateSteps(color, fromP, toP, resolve));
+                }
+
+                // Slide for snake/ladder
+                if (md.slide_to !== null && md.slide_to !== undefined) {
+                    await new Promise(resolve => setTimeout(resolve, 250));
+                    if (md.slide_type === 'snake') {
+                        this._showToast('🐍 Snake!', '#ef4444', 'rgba(239,68,68,.6)');
+                        slSound('snake');
+                    } else {
+                        this._showToast('🪜 Ladder!', '#22c55e', 'rgba(34,197,94,.6)');
+                        slSound('ladder');
+                    }
+                    await new Promise(resolve => this._animateSlide(color, toP, md.slide_to, resolve));
+                }
+            }
+
+            // Update anim positions to final
+            this._animPositions.red = nextState.positions.red;
+            this._animPositions.blue = nextState.positions.blue;
+            this._drawBoard();
+            this._updateUI();
+            this._updateRound();
+
+        } catch(err) {
+            console.error("SL state error:", err);
+            this._rolling = false;
+        } finally {
+            this._processing = false;
+            setTimeout(() => this._processNextState(), 50);
+        }
+    }
+
+    // ── Step-by-step animation ──
+    _animateSteps(color, from, to, callback) {
+        var self = this;
+        var cur = from;
+        var dir = to > from ? 1 : -1;
+        var TICK = 300; // Slower individual steps so players can count along
+        function step() {
+            cur += dir;
+            self._animPositions[color] = cur;
+            self._drawBoard();
+            slSound('move');
+            if (cur === to) setTimeout(callback, 80);
+            else setTimeout(step, TICK);
+        }
+        step();
+    }
+
+    // ── Smooth slide animation (snake/ladder) ──
+    _animateSlide(color, from, to, callback) {
+        var self = this;
+        var dur = 450, t0 = performance.now();
+        var a = this._tilePt(from), b = this._tilePt(to);
+        var cfg = SL_PLAYER_CFG[color];
+
+        (function frame(now) {
+            var t = Math.min((now - t0) / dur, 1);
+            var e = t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+            var px = a.x + (b.x-a.x)*e, py = a.y + (b.y-a.y)*e;
+
+            self._animPositions[color] = from; // keep at 'from' during slide
+            self._drawBoard();
+
+            // Draw sliding pawn on top
+            self._drawPawn(px, py, cfg.hex, cfg.dark, 1.1);
+
+            if (t < 1) requestAnimationFrame(frame);
+            else { self._animPositions[color] = to; self._drawBoard(); callback(); }
+        })(performance.now());
+    }
+
+    // ── 3D Dice ──
+    _animateDice(val, playerColor, callback) {
+        var cube = document.getElementById('sl-dice-cube');
+        var shadow = document.getElementById('sl-dice-shadow');
+        if (!cube) { callback && callback(); return; }
+
+        var cfg = SL_PLAYER_CFG[playerColor] || SL_PLAYER_CFG.red;
+        var glow = document.getElementById('sl-dice-glow-ring');
+        if (glow) { glow.style.boxShadow = '0 0 20px 6px ' + cfg.glow; glow.classList.add('active'); }
+
+        cube.classList.remove('landed','rolling');
+        void cube.offsetWidth;
+        for (var i = 1; i <= 6; i++) cube.classList.remove(SL_DICE_SHOW[i]);
+        cube.querySelectorAll('[data-pip]').forEach(function(p){p.classList.remove('pip-red','pip-blue');});
+
+        cube.classList.add('rolling');
+        if (shadow) shadow.classList.add('rolling');
+
+        setTimeout(function() {
+            cube.classList.remove('rolling');
+            if (shadow) shadow.classList.remove('rolling');
+
+            cube.style.setProperty('--land-transform', SL_DICE_TRANSFORMS[val]);
+            cube.classList.add(SL_DICE_SHOW[val]);
+            cube.classList.add('landed');
+
+            var face = cube.querySelector('.dice-face-' + val);
+            if (face) face.querySelectorAll('[data-pip]').forEach(function(p){p.classList.add(cfg.pipClass);});
+
+            setTimeout(function(){ cube.classList.remove('landed'); }, 300);
+            if (glow) setTimeout(function(){ glow.classList.remove('active'); }, 600);
+            callback && callback();
+        }, 650);
+    }
+
+    _showDiceFace(val, playerColor) {
+        var cube = document.getElementById('sl-dice-cube');
+        if (!cube) return;
+        for (var i = 1; i <= 6; i++) cube.classList.remove(SL_DICE_SHOW[i]);
+        cube.classList.add(SL_DICE_SHOW[val]);
+        var cfg = SL_PLAYER_CFG[playerColor] || SL_PLAYER_CFG.red;
+        cube.querySelectorAll('[data-pip]').forEach(function(p){p.classList.remove('pip-red','pip-blue');});
+        var face = cube.querySelector('.dice-face-' + val);
+        if (face) face.querySelectorAll('[data-pip]').forEach(function(p){p.classList.add(cfg.pipClass);});
+    }
+
+    // ── UI Updates ──
+    _updateUI() {
+        if (!this.state) return;
+        var state = this.state;
+        var myColor = this._myColor();
+        var isMyTurn = state.turn === myColor;
+        var cfg = SL_PLAYER_CFG[state.turn];
+
+        // Roll button
+        var rollBtn = document.getElementById('sl-roll-btn');
+        if (rollBtn) {
+            rollBtn.disabled = !(isMyTurn && state.phase === 'ROLL') || this._rolling;
+            rollBtn.className = 'sl-roll-btn';
+            if (isMyTurn && state.phase === 'ROLL') {
+                rollBtn.classList.add(state.turn === 'red' ? 'sl-roll-red' : 'sl-roll-blue');
+            }
+        }
+
+        // Glow ring
+        var gr = document.getElementById('sl-dice-glow-ring');
+        if (gr) {
+            gr.style.boxShadow = '0 0 18px ' + cfg.glow + ', 0 0 36px ' + cfg.glow;
+            if (state.phase === 'ROLL') gr.classList.add('active');
+            else gr.classList.remove('active');
+        }
+
+        // Instruction
+        var inst = document.getElementById('sl-instruction');
+        if (inst) {
+            if (state.phase === 'ROLL') {
+                inst.textContent = isMyTurn ? 'Your turn to roll! 🎲' : state.players[state.turn] + "'s turn to roll...";
+                inst.style.color = '#fef08a';
+            }
+        }
+
+        // Active panels
+        ['red','blue'].forEach(function(c) {
+            var panel = document.getElementById('sl-panel-' + c);
+            if (panel) panel.classList.toggle('active-turn', state.turn === c);
+        });
+
+        // Position labels
+        var r = state.positions.red, b = state.positions.blue;
+        var pe1 = document.getElementById('sl-pos-red');
+        var pe2 = document.getElementById('sl-pos-blue');
+        if (pe1) pe1.textContent = r > 0 ? 'Tile ' + r : 'Start';
+        if (pe2) pe2.textContent = b > 0 ? 'Tile ' + b : 'Start';
+
+        // Show dice face
+        if (state.dice_value !== null) this._showDiceFace(state.dice_value, state.last_roll_by || state.turn);
+
+        // Pause overlay
+        if (state.paused) this.showPauseOverlay();
+        else this.hidePauseOverlay();
+    }
+
+    _updateAvatars() {
+        if (!this.state) return;
+        var state = this.state;
+        var myColor = this._myColor();
+
+        ['red','blue'].forEach(function(color) {
+            var username = state.players[color];
+            var nameEl = document.getElementById('sl-name-' + color);
+            var imgEl = document.getElementById('sl-avatar-img-' + color);
+            if (nameEl) nameEl.textContent = username || color.toUpperCase();
+            if (imgEl && typeof players !== 'undefined' && players[username]) {
+                var gender = players[username].gender || 'male';
+                imgEl.src = gender === 'female' ? '/static/games/icons/avatar_female.png' : '/static/games/icons/avatar_male.png';
+            }
+        });
+
+        // Panel order: MY color on left
+        var redP = document.getElementById('sl-panel-red');
+        var blueP = document.getElementById('sl-panel-blue');
+        var diceC = document.getElementById('sl-center-dice');
+        if (redP && blueP && diceC) {
+            if (myColor === 'blue') {
+                blueP.style.order = '1'; diceC.style.order = '2'; redP.style.order = '3';
+            } else {
+                redP.style.order = '1'; diceC.style.order = '2'; blueP.style.order = '3';
+            }
+        }
+    }
+
+    _updateRound() {
+        if (!this.state) return;
+        var el = document.getElementById('sl-round-info');
+        if (el) el.textContent = 'Round ' + this.state.current_round + '/' + this.state.total_rounds;
+    }
+
+    _myColor() {
+        if (!this.state) return null;
+        for (var c in this.state.players) {
+            if (this.state.players[c] === USER) return c;
+        }
+        return null;
+    }
+
+    _handleRollClick() {
+        if (!this.state || this._rolling) return;
+        var myColor = this._myColor();
+        if (this.state.turn !== myColor || this.state.phase !== 'ROLL') return;
+
+        this._rolling = true;
+        var rollBtn = document.getElementById('sl-roll-btn');
+        if (rollBtn) rollBtn.disabled = true;
+
+        var cube = document.getElementById('sl-dice-cube');
+        if (cube) { cube.classList.remove('landed','rolling'); void cube.offsetHeight; cube.classList.add('rolling'); }
+
+        this.sendMove('roll', {});
+    }
+
+    _showToast(text, bg, glow) {
+        var toast = document.getElementById('sl-event-toast');
+        if (!toast) return;
+        toast.textContent = text;
+        toast.style.backgroundColor = bg;
+        toast.style.boxShadow = '0 8px 30px ' + (glow || bg);
+        toast.style.transform = 'translate(-50%,-50%) scale(1.1)';
+        toast.style.opacity = '1';
+        setTimeout(function() {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translate(-50%,-50%) scale(0.5)';
+        }, 1400);
+    }
+
+    // ── BaseGame hooks (Queue them so they wait for animations) ──
+    onRoundEnd(result) {
+        this._stateQueue.push({_type: 'round_end', result: result});
+        this._processNextState();
+    }
+
+    onGameEnd(result) {
+        this._stateQueue.push({_type: 'game_end', result: result});
+        this._processNextState();
+    }
+
+    _showRoundEnd(result) {
+        var isWinner = result.round_winner === USER;
+        var isDraw = result.round_winner === 'draw';
+        var myColor = this._myColor();
+        if (myColor && isWinner) {
+            var cfg = SL_PLAYER_CFG[myColor];
+            this._showToast('YOU WIN! 🏆', cfg.hex, cfg.glow);
+            slSound('win');
+        }
+
+        var overlay = document.getElementById('sl-result-overlay');
+        var icon = document.getElementById('sl-result-icon');
+        var text = document.getElementById('sl-result-text');
+        var sub = document.getElementById('sl-result-subtext');
+
+        if (isDraw) { icon.textContent='🤝'; text.textContent="It's a Draw!"; }
+        else if (isWinner) { icon.textContent='🏆'; text.textContent='You Win!'; }
+        else { icon.textContent='😔'; text.textContent='You Lose!'; }
+
+        if (result.game_ended) sub.textContent = 'Returning to lobby...';
+        else sub.innerHTML = 'Next round in <span id="sl-next-timer">3</span>...';
+
+        var delay = 0;
+        if (result.reveal_at) delay = Math.max(0, result.reveal_at - Date.now());
+
+        setTimeout(function() {
+            if (overlay) overlay.style.display = 'flex';
+            if (!result.game_ended) {
+                var t = 3;
+                var intv = setInterval(function() {
+                    t--;
+                    var el = document.getElementById('sl-next-timer');
+                    if (el) el.textContent = t;
+                    if (t <= 0) clearInterval(intv);
+                }, 1000);
+            }
+            var displayMs = result.display_ms || 3000;
+            setTimeout(function(){ if (overlay) overlay.style.display = 'none'; }, displayMs);
+        }, delay);
+    }
+
+    _showGameEnd(result) {
+        var isWinner = result.game_winner === USER;
+        var isDraw = result.game_winner === 'draw';
+
+        var overlay = document.getElementById('sl-result-overlay');
+        var icon = document.getElementById('sl-result-icon');
+        var text = document.getElementById('sl-result-text');
+        var sub = document.getElementById('sl-result-subtext');
+
+        if (isDraw) { icon.textContent='🤝'; text.textContent='Game Draw!'; }
+        else if (isWinner) { icon.textContent='🎉'; text.textContent='You Won the Game!'; }
+        else { icon.textContent='😞'; text.textContent='Game Over'; }
+
+        var scores = result.final_scores;
+        if (scores) sub.textContent = 'Final: ' + Object.entries(scores).map(function(e){return e[0]+': '+e[1];}).join(' - ');
+        if (overlay) overlay.style.display = 'flex';
+
+        if (isWinner && window.confetti) {
+            var end = Date.now() + 3000;
+            (function fire() {
+                confetti({particleCount:5,angle:60,spread:55,origin:{x:0},zIndex:200});
+                confetti({particleCount:5,angle:120,spread:55,origin:{x:1},zIndex:200});
+                if (Date.now() < end) requestAnimationFrame(fire);
+            }());
+        }
+    }
+
+    showPauseOverlay() {
+        var overlay = document.getElementById('sl-pause-overlay');
+        if (overlay) overlay.style.display = 'flex';
+        if (this.state) {
+            var disc = this.state.disconnected_players || [];
+            var el = document.getElementById('sl-disconnected-player');
+            if (el && disc.length > 0) el.textContent = disc[0];
+        }
+    }
+
+    hidePauseOverlay() {
+        var overlay = document.getElementById('sl-pause-overlay');
+        if (overlay) overlay.style.display = 'none';
+    }
+
+    updateCountdown(seconds) {
+        var el = document.getElementById('sl-countdown');
+        if (el) el.textContent = seconds;
+    }
+}
+
+// Register
+window.GameClasses = window.GameClasses || {};
+window.GameClasses.snakes_ladder = SnakesLadderGame;
+
+// Wire up roll button
+function _slRollBtnClick() {
+    if (typeof currentGame !== 'undefined' && currentGame && currentGame._handleRollClick) {
+        currentGame._handleRollClick();
+    }
+}
+(function wireSLBtn() {
+    var btn = document.getElementById('sl-roll-btn');
+    if (btn) btn.onclick = _slRollBtnClick;
+    var dice = document.getElementById('sl-dice-scene-wrapper');
+    if (dice) { dice.style.cursor = 'pointer'; dice.onclick = _slRollBtnClick; }
+})();
+
+// Exit game
+window.exitGame = window.exitGame || function() {
+    if (confirm('Leave the game? Both players will return to lobby.')) {
+        if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ event: 'game_exit' }));
+        }
+    }
+};
+</script>
