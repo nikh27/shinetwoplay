@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Chess UI</title>
+    <style>
+        :root {
+            --bg-color: #f3f5f8;
+            --board-light: #fdfdfd;
+            --board-dark: #f0f2f5;
+            --highlight-selected: rgba(255, 235, 153, 0.6);
+            --highlight-move: #86db86; /* Green dot */
+            --highlight-capture: rgba(255, 99, 71, 0.4); /* Red tint */
+            
+            /* Piece Colors */
+            --white-piece: url(#whiteGlow);
+            --white-stroke: #b3c6d6;
+            --black-piece: url(#blackGlow);
+            --black-stroke: #2d2d2d;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        body {
+            background: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: #333;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            margin: 5px 0 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* The Board */
+        .board-wrapper {
+            background: white;
+            padding: 12px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08); /* Premium shadow */
+            position: relative;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 80vmin;
+            max-width: 600px;
+            height: 80vmin;
+            max-height: 600px;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            background: var(--board-dark);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        /* Squares */
+        .square {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .square.light {
+            background-color: var(--board-light);
+        }
+
+        .square.dark {
+            background-color: var(--board-dark);
+        }
+
+        /* Highlighting */
+        .square.selected {
+            background-color: var(--highlight-selected) !important;
+        }
+
+        .square.valid-move::after {
+            content: '';
+            position: absolute;
+            width: 25%;
+            height: 25%;
+            background: var(--highlight-move);
+            border-radius: 50%;
+            opacity: 0.8;
+            pointer-events: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .square.valid-capture {
+            background-color: var(--highlight-capture) !important;
+            box-shadow: inset 0 0 0 3px rgba(255, 99, 71, 0.8);
+        }
+
+        .square.valid-capture::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 5px solid rgba(255, 99, 71, 0.6);
+            pointer-events: none;
+            opacity: 0; /* Only outer tint is usually visible for captures in premium UI */
+        }
+
+        /* Pieces Layer */
+        .pieces-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Let clicks pass to squares */
+        }
+
+        .piece {
+            position: absolute;
+            width: 12.5%; /* 1/8th */
+            height: 12.5%;
+            pointer-events: auto; /* Pieces can be clicked */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); /* Smooth glide */
+            z-index: 10;
+        }
+
+        .piece:active {
+            cursor: grabbing;
+        }
+
+        .piece.dragging {
+            transition: none;
+            z-index: 100;
+            transform: scale(1.2);
+            filter: drop-shadow(0 15px 20px rgba(0,0,0,0.25));
+        }
+
+        .piece svg {
+            width: 80%;
+            height: 80%;
+            filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.15));
+            transition: transform 0.2s ease;
+        }
+        
+        .piece:hover svg {
+            transform: translateY(-2px);
+        }
+
+        /* SVG Definitions for Glass/3D look */
+        .piece-white { fill: url(#whiteGradient); stroke: var(--white-stroke); stroke-width: 1.5; }
+        .piece-black { fill: url(#blackGradient); stroke: var(--black-stroke); stroke-width: 1.5; }
+
+    </style>
+</head>
+<body>
+
+    <!-- SVG Gradients -->
+    <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+        <defs>
+            <linearGradient id="whiteGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="50%" stop-color="#fdfdfd"/>
+                <stop offset="100%" stop-color="#e2e8f0"/>
+            </linearGradient>
+            <linearGradient id="blackGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#6b7280"/>
+                <stop offset="40%" stop-color="#4b5563"/>
+                <stop offset="100%" stop-color="#2d3748"/>
+            </linearGradient>
+        </defs>
+        <!-- PIECE SHAPES (Realistic Classic Outlines) -->
+        <!-- Pawn -->
+        <g id="icon-pawn">
+            <!-- Head -->
+            <path d="M 50,22 C 40,22 40,36 50,36 C 60,36 60,22 50,22 Z" />
+            <!-- Collar -->
+            <path d="M 45,36 L 55,36 L 55,40 L 45,40 Z" />
+            <!-- Body -->
+            <path d="M 46,40 C 46,55 35,70 35,75 L 65,75 C 65,70 54,55 54,40 Z" />
+            <!-- Base -->
+            <path d="M 30,75 L 70,75 L 75,85 L 25,85 Z" />
+        </g>
+        <!-- Rook -->
+        <g id="icon-rook">
+            <!-- Top -->
+            <path d="M 28,15 L 35,15 L 35,25 L 45,25 L 45,15 L 55,15 L 55,25 L 65,25 L 65,15 L 72,15 L 72,35 L 28,35 Z" />
+            <!-- Column -->
+            <path d="M 30,35 L 70,35 L 65,75 L 35,75 Z" />
+            <!-- Base -->
+            <path d="M 25,75 L 75,75 L 80,85 L 20,85 Z" />
+        </g>
+        <!-- Knight -->
+        <g id="icon-knight">
+            <path d="M 25,85 L 75,85 L 70,60 C 75,35 55,20 40,20 C 30,20 25,30 25,30 L 35,35 C 30,40 20,45 20,55 C 20,60 25,65 30,65 C 35,65 35,60 30,55 C 30,50 40,45 45,45 C 45,45 45,65 35,75 Z" />
+        </g>
+        <!-- Bishop -->
+        <g id="icon-bishop">
+            <!-- Cross -->
+            <path d="M 45,10 L 55,10 L 55,15 L 60,15 L 60,20 L 55,20 L 55,25 L 45,25 L 45,20 L 40,20 L 40,15 L 45,15 Z" />
+            <!-- Mitre -->
+            <path d="M 50,25 C 30,35 35,65 35,70 L 65,70 C 65,65 70,35 50,25 Z" />
+            <!-- Base -->
+            <path d="M 30,70 L 70,70 L 75,85 L 25,85 Z" />
+        </g>
+        <!-- Queen -->
+        <g id="icon-queen">
+            <!-- Points & Crown body -->
+            <path d="M 15,30 L 25,50 L 32,25 L 40,55 L 50,15 L 60,55 L 68,25 L 75,50 L 85,30 L 75,70 L 25,70 Z" />
+            <!-- Jewels -->
+            <circle cx="15" cy="27" r="4" />
+            <circle cx="32" cy="22" r="4" />
+            <circle cx="50" cy="12" r="4" />
+            <circle cx="68" cy="22" r="4" />
+            <circle cx="85" cy="27" r="4" />
+            <!-- Base -->
+            <path d="M 25,70 L 75,70 L 80,85 L 20,85 Z" />
+        </g>
+        <!-- King -->
+        <g id="icon-king">
+            <!-- Cross -->
+            <path d="M 45,5 L 55,5 L 55,15 L 65,15 L 65,25 L 55,25 L 55,35 L 45,35 L 45,25 L 35,25 L 35,15 L 45,15 Z" />
+            <!-- Crown Body -->
+            <path d="M 25,40 C 25,40 50,20 75,40 L 70,70 L 30,70 Z" />
+            <!-- Jewels -->
+            <circle cx="20" cy="38" r="4" />
+            <circle cx="80" cy="38" r="4" />
+            <!-- Base -->
+            <path d="M 30,70 L 70,70 L 75,85 L 25,85 Z" />
+        </g>
+    </svg>
+
+    <div class="game-container">
+        <div class="header">
+            <h1>Chess Premium</h1>
+            <p id="turn-indicator">White's Turn</p>
+        </div>
+
+        <div class="board-wrapper">
+            <div class="board" id="board">
+                <!-- Squares injected by JS -->
+            </div>
+            <div class="pieces-layer" id="pieces-layer">
+                <!-- Pieces injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Web Audio API for Premium Sounds ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            const now = audioCtx.currentTime;
+            if (type === 'lift') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.1, now + 0.05);
+                gain.gain.linearRampToValueAtTime(0, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'place') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.15, now + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'capture') {
+                // Heavier thud
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                
+                // Add a bit of noise
+                const bufferSize = audioCtx.sampleRate * 0.2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const output = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const noiseGain = audioCtx.createGain();
+                noiseGain.gain.setValueAtTime(0.1, now);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                noise.connect(noiseGain);
+                noiseGain.connect(audioCtx.destination);
+                noise.start(now);
+                
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+
+        // --- Chess Engine & State ---
+        const BOARD_SIZE = 8;
+        let turn = 'w'; // 'w' or 'b'
+        let boardState = []; // 8x8 array. e.g. { type: 'p', color: 'w', id: 'bp_1' }
+        let piecesUI = {}; // map of id -> DOM Element
+
+        const INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+
+        function setupBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            
+            // Generate squares
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                boardState[r] = [];
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    boardState[r][c] = null;
+                    const sq = document.createElement('div');
+                    sq.className = `square ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
+                    sq.dataset.row = r;
+                    sq.dataset.col = c;
+                    sq.addEventListener('click', () => handleSquareClick(r, c));
+                    boardEl.appendChild(sq);
+                }
+            }
+
+            parseFEN(INITIAL_FEN);
+            renderAllPieces();
+        }
+
+        function parseFEN(fen) {
+            let row = 0; let col = 0;
+            let idCounter = 0;
+            for (let i = 0; i < fen.length; i++) {
+                let char = fen[i];
+                if (char === '/') {
+                    row++;
+                    col = 0;
+                } else if (/\d/.test(char)) {
+                    col += parseInt(char);
+                } else {
+                    let color = char === char.toUpperCase() ? 'w' : 'b';
+                    boardState[row][col] = {
+                        type: char.toLowerCase(),
+                        color: color,
+                        id: `piece_${color}_${char.toLowerCase()}_${idCounter++}`
+                    };
+                    col++;
+                }
+            }
+        }
+
+        function getIconHref(type) {
+            const map = {
+                'p': '#icon-pawn',
+                'r': '#icon-rook',
+                'n': '#icon-knight',
+                'b': '#icon-bishop',
+                'q': '#icon-queen',
+                'k': '#icon-king'
+            };
+            return map[type];
+        }
+
+        function renderAllPieces() {
+            const layer = document.getElementById('pieces-layer');
+            layer.innerHTML = '';
+            piecesUI = {};
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const piece = boardState[r][c];
+                    if (piece) {
+                        const el = document.createElement('div');
+                        el.className = 'piece';
+                        el.id = piece.id;
+                        
+                        const svgClass = piece.color === 'w' ? 'piece-white' : 'piece-black';
+                        el.innerHTML = `
+                            <svg viewBox="0 0 100 100">
+                                <use href="${getIconHref(piece.type)}" class="${svgClass}" />
+                            </svg>
+                        `;
+                        
+                        // Set physical position using transform
+                        el.style.transform = `translate(${c * 100}%, ${r * 100}%)`;
+                        
+                        el.addEventListener('mousedown', (e) => handlePieceDragStart(e, r, c, piece));
+                        el.addEventListener('touchstart', (e) => handlePieceDragStart(e, r, c, piece), {passive: false});
+
+                        layer.appendChild(el);
+                        piecesUI[piece.id] = el;
+                    }
+                }
+            }
+        }
+
+        // --- Interaction Logic ---
+        let selectedLocation = null; // {r, c}
+        let draggedPiece = null; // DOM ELement
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+        let validMovesCache = []; // list of {r, c, type:'move'|'capture'}
+
+        function clearHighlights() {
+            document.querySelectorAll('.square').forEach(sq => {
+                sq.classList.remove('selected', 'valid-move', 'valid-capture');
+            });
+        }
+
+        function getSquareEl(r, c) {
+            return document.querySelector(`.square[data-row="${r}"][data-col="${c}"]`);
+        }
+
+        function highlightValidMoves(r, c) {
+            clearHighlights();
+            getSquareEl(r,c).classList.add('selected');
+            
+            validMovesCache = calculateValidMoves(r, c);
+            
+            validMovesCache.forEach(m => {
+                const sq = getSquareEl(m.r, m.c);
+                if (m.type === 'capture') {
+                    sq.classList.add('valid-capture');
+                } else {
+                    sq.classList.add('valid-move');
+                }
+            });
+        }
+
+        function handleSquareClick(r, c) {
+            if (selectedLocation) {
+                // Did we click a valid move?
+                const move = validMovesCache.find(m => m.r === r && m.c === c);
+                if (move) {
+                    executeMove(selectedLocation.r, selectedLocation.c, r, c);
+                    return;
+                }
+            }
+            
+            // Select piece
+            const piece = boardState[r][c];
+            if (piece && piece.color === turn) {
+                playSound('lift');
+                selectedLocation = { r, c };
+                highlightValidMoves(r, c);
+            } else {
+                selectedLocation = null;
+                clearHighlights();
+            }
+        }
+
+        function handlePieceDragStart(e, r, c, pieceData) {
+            if (pieceData.color !== turn) return;
+            
+            e.preventDefault();
+            selectedLocation = { r, c };
+            highlightValidMoves(r, c);
+            
+            isDragging = true;
+            draggedPiece = piecesUI[pieceData.id];
+            draggedPiece.classList.add('dragging');
+            playSound('lift');
+
+            // Find drag offsets
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const rect = draggedPiece.getBoundingClientRect();
+            const parentRect = document.getElementById('pieces-layer').getBoundingClientRect();
+            
+            // Calculate cursor offset relative to the piece's top-left corner
+            dragOffset.x = clientX - rect.left;
+            dragOffset.y = clientY - rect.top;
+
+            // Instantly snap to cursor position without transition mapping
+            updateDragPosition(clientX, clientY, parentRect);
+
+            function onMove(ev) {
+                if (!isDragging) return;
+                const cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+                const cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
+                updateDragPosition(cx, cy, parentRect);
+            }
+
+            function onEnd(ev) {
+                if (!isDragging) return;
+                isDragging = false;
+                draggedPiece.classList.remove('dragging');
+                
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onEnd);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onEnd);
+
+                // Determine drop square
+                const cx = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
+                const cy = ev.changedTouches ? ev.changedTouches[0].clientY : ev.clientY;
+                
+                const dropCol = Math.floor((cx - parentRect.left) / (parentRect.width / 8));
+                const dropRow = Math.floor((cy - parentRect.top) / (parentRect.height / 8));
+
+                const valid = validMovesCache.find(m => m.r === dropRow && m.c === dropCol);
+                
+                if (valid) {
+                    executeMove(selectedLocation.r, selectedLocation.c, dropRow, dropCol);
+                } else {
+                    // Snap back
+                    playSound('place');
+                    draggedPiece.style.transform = `translate(${c * 100}%, ${r * 100}%)`;
+                }
+            }
+
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchmove', onMove, {passive: false});
+            document.addEventListener('touchend', onEnd);
+        }
+
+        function updateDragPosition(clientX, clientY, parentRect) {
+            // Absolute position within the parent
+            const x = clientX - parentRect.left - dragOffset.x;
+            const y = clientY - parentRect.top - dragOffset.y;
+            
+            // Convert to percentages based on the size of the piece (which is 12.5% of parent)
+            // 100% transform = 1 piece width
+            const pctX = (x / (parentRect.width / 8)) * 100;
+            const pctY = (y / (parentRect.height / 8)) * 100;
+            
+            draggedPiece.style.transform = `translate(${pctX}%, ${pctY}%)`;
+        }
+
+        function executeMove(fromR, fromC, toR, toC) {
+            const piece = boardState[fromR][fromC];
+            const target = boardState[toR][toC];
+            
+            // Audio
+            if (target) {
+                playSound('capture');
+                // Remove captured piece from DOM
+                const tgtEl = piecesUI[target.id];
+                tgtEl.style.opacity = '0';
+                tgtEl.style.transform = `translate(${toC * 100}%, ${toR * 100}%) scale(0)`;
+                setTimeout(() => tgtEl.remove(), 250);
+            } else {
+                playSound('place');
+            }
+
+            // Update State
+            boardState[toR][toC] = piece;
+            boardState[fromR][fromC] = null;
+
+            // Animate moving piece
+            const el = piecesUI[piece.id];
+            el.style.transform = `translate(${toC * 100}%, ${toR * 100}%)`;
+
+            // Check pawn promotion (auto queen for simplicity)
+            if (piece.type === 'p' && (toR === 0 || toR === 7)) {
+                piece.type = 'q';
+                const svgClass = piece.color === 'w' ? 'piece-white' : 'piece-black';
+                el.innerHTML = `
+                    <svg viewBox="0 0 100 100">
+                        <use href="#icon-queen" class="${svgClass}" />
+                    </svg>
+                `;
+            }
+
+            // End Turn
+            selectedLocation = null;
+            validMovesCache = [];
+            clearHighlights();
+            
+            turn = turn === 'w' ? 'b' : 'w';
+            document.getElementById('turn-indicator').textContent = turn === 'w' ? "White's Turn" : "Black's Turn";
+            document.getElementById('turn-indicator').style.color = turn === 'w' ? "#666" : "#000";
+            document.getElementById('turn-indicator').style.fontWeight = turn === 'b' ? "bold" : "normal";
+        }
+
+
+        // --- Basic Chess Rules ---
+        function calculateValidMoves(r, c) {
+            const piece = boardState[r][c];
+            let moves = [];
+            const color = piece.color;
+            const type = piece.type;
+
+            function addIfValid(nr, nc, attackOnly) {
+                if (nr < 0 || nr > 7 || nc < 0 || nc > 7) return false;
+                const tgt = boardState[nr][nc];
+                if (!tgt) {
+                    if (!attackOnly) moves.push({r: nr, c: nc, type: 'move'});
+                    return true;
+                } else if (tgt.color !== color) {
+                    moves.push({r: nr, c: nc, type: 'capture'});
+                    return false; // Stop sliding
+                }
+                return false; // Our own piece
+            }
+
+            function slide(dr, dc) {
+                let nr = r + dr, nc = c + dc;
+                while (addIfValid(nr, nc, false)) {
+                    nr += dr; nc += dc;
+                }
+            }
+
+            if (type === 'p') {
+                const dir = color === 'w' ? -1 : 1;
+                const startRank = color === 'w' ? 6 : 1;
+
+                // Move forward 1
+                if (r + dir >= 0 && r + dir <= 7 && !boardState[r + dir][c]) {
+                    moves.push({r: r + dir, c: c, type: 'move'});
+                    // Move forward 2
+                    if (r === startRank && !boardState[r + 2*dir][c]) {
+                        moves.push({r: r + 2*dir, c: c, type: 'move'});
+                    }
+                }
+                // Capture diagonals
+                if (c - 1 >= 0 && boardState[r + dir]?.[c - 1]?.color && boardState[r + dir][c - 1].color !== color) {
+                    moves.push({r: r + dir, c: c - 1, type: 'capture'});
+                }
+                if (c + 1 <= 7 && boardState[r + dir]?.[c + 1]?.color && boardState[r + dir][c + 1].color !== color) {
+                    moves.push({r: r + dir, c: c + 1, type: 'capture'});
+                }
+            } 
+            else if (type === 'n') {
+                const hops = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+                hops.forEach(h => addIfValid(r + h[0], c + h[1], false));
+            }
+            else if (type === 'b') {
+                [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(d => slide(d[0], d[1]));
+            }
+            else if (type === 'r') {
+                [[-1,0],[1,0],[0,-1],[0,1]].forEach(d => slide(d[0], d[1]));
+            }
+            else if (type === 'q') {
+                [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]].forEach(d => slide(d[0], d[1]));
+            }
+            else if (type === 'k') {
+                [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]].forEach(d => {
+                    addIfValid(r + d[0], c + d[1], false);
+                });
+            }
+
+            return moves;
+        }
+
+        // Initialize
+        setupBoard();
+        
+    </script>
+</body>
+</html>
