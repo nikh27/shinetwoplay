@@ -86,12 +86,9 @@ cp .env.example .env
 # Edit .env and set your DJANGO_SECRET_KEY
 # Generate one: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 
-# 5. Apply database migrations
-python manage.py migrate
+# 5. Start Redis server (must be running on port 6379)
 
-# 6. Start Redis server (must be running on port 6379)
-
-# 7. Run the development server
+# 6. Run the development server
 daphne -p 8000 shinetwoplay.asgi:application
 ```
 
