@@ -644,7 +644,7 @@
 
         .round-option.selected {
             background: linear-gradient(135deg, var(--sunshine-yellow), var(--sunshine-orange));
-            color: var(--text-dark);
+            color: var(--white, #fff);
         }
 
         .action-row {
@@ -1584,7 +1584,7 @@
         .reaction-picker {
             display: none;
             position: fixed;
-            background: white;
+            background: var(--white, white);
             padding: 6px 8px;
             border-radius: 16px;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -1697,7 +1697,7 @@
             top: 100%;
             left: 0;
             right: 0;
-            background: white;
+            background: var(--white, white);
             border-radius: 16px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             max-height: 200px;
@@ -2092,7 +2092,7 @@
         .round-dropdown {
             position: absolute;
             top: 110%; left: 0; width: 100%;
-            background: #fff;
+            background: var(--white, #fff);
             border-radius: 12px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.12);
             padding: 6px;
@@ -2113,7 +2113,7 @@
             font-size: 14px;
         }
         .round-option:hover { background: var(--sunshine-light); color: var(--sunshine-orange); }
-        .round-option.selected { background: var(--sunshine-orange); color: #fff; }
+        .round-option.selected { background: var(--sunshine-orange); color: var(--white, #fff); }
 
         .game-selector {
             width: 100%; /* Ensure game selector stays full width above */
