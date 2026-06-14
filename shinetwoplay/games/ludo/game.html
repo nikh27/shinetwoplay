@@ -313,13 +313,13 @@
     }
 }
 
-/* Per-step jump animation — light and snappy */
+/* Per-step jump animation — light and smooth */
 .ludo-piece.step-jump {
-    animation: ludo-step-jump 0.12s cubic-bezier(0.22, 1, 0.36, 1);
+    animation: ludo-step-jump 0.14s cubic-bezier(0.22, 1, 0.36, 1);
 }
 @keyframes ludo-step-jump {
     0%   { transform: scale(1)    translateY(0); }
-    40%  { transform: scale(1.08) translateY(-18%); }
+    40%  { transform: scale(1.05) translateY(-12%); }
     100% { transform: scale(1)    translateY(0); }
 }
 
@@ -898,6 +898,30 @@ const LudoSound = (() => {
                     o.start(t0); o.stop(t0 + 0.35);
                 });
 
+            } else if (type === 'home') {
+                // Piece entering the home/victory triangle — triumphant whoosh + 3-note chime
+                // Rising whoosh sweep
+                const ws = c.createOscillator();
+                const wg = c.createGain();
+                ws.type = 'sine';
+                ws.frequency.setValueAtTime(300, c.currentTime);
+                ws.frequency.exponentialRampToValueAtTime(1400, c.currentTime + 0.22);
+                wg.gain.setValueAtTime(0.14, c.currentTime);
+                wg.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.25);
+                ws.connect(wg); wg.connect(c.destination);
+                ws.start(); ws.stop(c.currentTime + 0.27);
+                // Ascending 3-note chime after the whoosh
+                [{f:880,t:0.18},{f:1108,t:0.30},{f:1318,t:0.42}].forEach(({f,t}) => {
+                    const o = c.createOscillator();
+                    const g = c.createGain();
+                    o.type = 'triangle'; o.frequency.value = f;
+                    const t0 = c.currentTime + t;
+                    g.gain.setValueAtTime(0.20, t0);
+                    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.38);
+                    o.connect(g); g.connect(c.destination);
+                    o.start(t0); o.stop(t0 + 0.42);
+                });
+
             } else if (type === 'enter') {
                 // Piece entering board — bright rising pop
                 const o = c.createOscillator();
@@ -1225,9 +1249,16 @@ class LudoGame extends BaseGame {
             const bT = (coord.r - 1) * pct;
 
             let tx = 0, ty = 0;
-            if (group.length > 1 && p.pos !== -1 && p.pos !== 56) {
+            // Spread pieces that overlap — both on board AND in the home center (pos=56)
+            if (group.length > 1 && p.pos !== -1) {
                 const offs = [{x:-18,y:-18},{x:18,y:-18},{x:-18,y:18},{x:18,y:18}];
-                if (idx < 4) { tx = offs[idx].x; ty = offs[idx].y; }
+                if (p.pos === 56) {
+                    // Tighter spread inside the home triangle
+                    const homeOffs = [{x:-10,y:-10},{x:10,y:-10},{x:-10,y:10},{x:10,y:10}];
+                    if (idx < 4) { tx = homeOffs[idx].x; ty = homeOffs[idx].y; }
+                } else {
+                    if (idx < 4) { tx = offs[idx].x; ty = offs[idx].y; }
+                }
             }
 
             el.style.left = `calc(${bL}% + 2px)`;
@@ -1450,7 +1481,7 @@ class LudoGame extends BaseGame {
 
         if (isEntering) LudoSound.play('enter');
 
-        const STEP_MS = 110;  // fast enough to feel snappy, slow enough to read
+        const STEP_MS = 130;  // slightly slower = smoother feel
         let i = 0;
 
         const tick = () => {
@@ -1458,13 +1489,18 @@ class LudoGame extends BaseGame {
                 // Final landing: clean up animation class so _renderPieces
                 // can apply stacking offsets (translate) cleanly.
                 el.classList.remove('step-jump');
-                LudoSound.play('move');
-                // Safe-spot chime
-                const landPos = steps[steps.length - 1].pos;
-                const cfg2 = LUDO_PLAYERS_CFG[playerColor];
-                const absPath = (cfg2.startIdx + landPos) % 52;
-                if (LUDO_SAFE.has(absPath) && landPos >= 0 && landPos <= 50) {
-                    setTimeout(() => LudoSound.play('safe'), 100);
+                // Play home-entry sound if piece just reached home (pos 56)
+                if (toPos === 56) {
+                    LudoSound.play('home');
+                } else {
+                    LudoSound.play('move');
+                    // Safe-spot chime
+                    const landPos = steps[steps.length - 1].pos;
+                    const cfg2 = LUDO_PLAYERS_CFG[playerColor];
+                    const absPath = (cfg2.startIdx + landPos) % 52;
+                    if (LUDO_SAFE.has(absPath) && landPos >= 0 && landPos <= 50) {
+                        setTimeout(() => LudoSound.play('safe'), 100);
+                    }
                 }
                 callback && callback();
                 return;
