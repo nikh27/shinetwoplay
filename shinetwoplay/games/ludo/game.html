@@ -117,8 +117,7 @@
 
 <style>
 /* ===== Ludo Game - All scoped to .ludo- ===== */
-/* Re-use the 3D dice CSS already defined globally in the room (from ludo.html injected styles) */
-/* We define our own board + layout CSS here */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
 
 .ludo-container {
     display: flex;
@@ -129,7 +128,7 @@
     padding: 6px 8px 4px;
     position: relative;
     overflow: hidden;
-    background: #111827;
+    background: radial-gradient(ellipse at 20% 10%, #1a1f35 0%, #111827 60%, #0d1117 100%);
     font-family: 'Inter', sans-serif;
     box-sizing: border-box;
 }
@@ -142,33 +141,40 @@
     width: 100%;
     margin-bottom: 4px;
     flex-shrink: 0;
+    position: relative;
+    z-index: 5;
 }
 
 .ludo-icon-btn {
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    border: none;
-    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.08);
     color: white;
     font-size: 16px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(10px);
-    transition: background 0.2s;
+    backdrop-filter: blur(12px);
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-.ludo-icon-btn:hover { background: rgba(255,255,255,0.25); }
+.ludo-icon-btn:hover { background: rgba(255,255,255,0.22); transform: scale(1.1); box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
+.ludo-icon-btn:active { transform: scale(0.92); }
 
 .ludo-round-badge {
-    background: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.1);
     color: white;
     padding: 4px 14px;
     border-radius: 20px;
     font-size: 12px;
-    font-weight: 600;
-    backdrop-filter: blur(10px);
+    font-weight: 700;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    letter-spacing: 0.03em;
 }
 
 /* ── Instruction ── */
@@ -176,27 +182,45 @@
     width: 100%;
     text-align: center;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     color: #fef08a;
     margin-bottom: 4px;
     min-height: 18px;
     flex-shrink: 0;
+    letter-spacing: 0.02em;
+    text-shadow: 0 0 12px rgba(254,240,138,0.5);
+    transition: color 0.3s, text-shadow 0.3s;
+}
+.ludo-instruction.my-turn {
+    animation: ludo-instruction-pulse 2s ease-in-out infinite;
+}
+@keyframes ludo-instruction-pulse {
+    0%,100% { text-shadow: 0 0 8px rgba(254,240,138,0.4); }
+    50% { text-shadow: 0 0 22px rgba(254,240,138,0.9), 0 0 40px rgba(251,191,36,0.4); }
 }
 
 /* ── Board ── */
 .ludo-board-wrapper {
     position: relative;
-    /* Scale board: fill width on small, cap at available height on large */
     width: min(calc(100vw - 16px), calc(100vh - 180px));
     max-width: 580px;
     aspect-ratio: 1;
     flex-shrink: 0;
-    background: #1f2937;
-    border-radius: 14px;
+    background: #1a2130;
+    border-radius: 16px;
     padding: 5px;
-    border: 2px solid #374151;
-    box-shadow: 0 0 30px rgba(0,0,0,0.6);
+    border: 2px solid #2d3748;
+    box-shadow: 0 0 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
     margin: 0 auto;
+    transition: box-shadow 0.5s ease, border-color 0.5s ease;
+}
+.ludo-board-wrapper.glow-red {
+    border-color: rgba(248,113,113,0.5);
+    box-shadow: 0 0 40px rgba(0,0,0,0.7), 0 0 30px rgba(248,113,113,0.3), 0 0 60px rgba(248,113,113,0.12);
+}
+.ludo-board-wrapper.glow-blue {
+    border-color: rgba(96,165,250,0.5);
+    box-shadow: 0 0 40px rgba(0,0,0,0.7), 0 0 30px rgba(96,165,250,0.3), 0 0 60px rgba(96,165,250,0.12);
 }
 
 .ludo-board-inner {
@@ -262,21 +286,114 @@
     justify-content: center;
     pointer-events: auto;
     border: 3px solid;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
-    transition: left 0.22s linear, top 0.22s linear, transform 0.2s ease-out;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.55), inset 0 1px 3px rgba(255,255,255,0.25);
+    /* NO left/top transition — position jumps instantly per step */
+    transition: transform 0.15s ease-out, filter 0.2s;
     z-index: 20;
     cursor: default;
 }
+.ludo-piece:not(.highlight):hover {
+    filter: brightness(1.18);
+}
 .ludo-piece.highlight {
-    animation: ludo-pulse 1.4s infinite;
+    animation: ludo-pulse 1.2s infinite;
     cursor: pointer;
     z-index: 30;
 }
-.ludo-piece.highlight:hover { transform: scale(1.22) !important; }
+.ludo-piece.highlight:hover { filter: brightness(1.35) drop-shadow(0 0 10px #fbbf24); }
 
 @keyframes ludo-pulse {
-    0%, 100% { filter: drop-shadow(0 0 6px #fbbf24) brightness(1); }
-    50%       { filter: drop-shadow(0 0 16px #f59e0b) brightness(1.3); }
+    0%, 100% {
+        filter: drop-shadow(0 0 6px rgba(251,191,36,0.6)) brightness(1.05);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.55), 0 0 0 2px rgba(251,191,36,0.5), inset 0 1px 3px rgba(255,255,255,0.25);
+    }
+    50% {
+        filter: drop-shadow(0 0 16px rgba(251,191,36,1)) brightness(1.4);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.55), 0 0 0 5px rgba(251,191,36,0.85), inset 0 1px 3px rgba(255,255,255,0.25);
+    }
+}
+
+/* Per-step jump animation — light and snappy */
+.ludo-piece.step-jump {
+    animation: ludo-step-jump 0.12s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes ludo-step-jump {
+    0%   { transform: scale(1)    translateY(0); }
+    40%  { transform: scale(1.08) translateY(-18%); }
+    100% { transform: scale(1)    translateY(0); }
+}
+
+/* Kill flash */
+.ludo-piece.kill-flash {
+    animation: ludo-kill-flash 0.42s ease-out forwards;
+    pointer-events: none;
+}
+@keyframes ludo-kill-flash {
+    0%   { filter: brightness(1);   transform: scale(1); }
+    25%  { filter: brightness(2.8) drop-shadow(0 0 16px #ff3300); transform: scale(1.35) rotate(-10deg); }
+    55%  { filter: brightness(2.0) drop-shadow(0 0 8px #ff2200);  transform: scale(0.75) rotate(8deg); }
+    100% { filter: brightness(1);   transform: scale(1); }
+}
+
+/* Victory canvas overlay */
+#ludo-victory-canvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 55;
+    border-radius: 14px;
+}
+
+/* Trophy celebration overlay */
+#ludo-victory-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.92) 100%);
+    backdrop-filter: blur(12px);
+    border-radius: 14px;
+    z-index: 56;
+}
+.ludo-victory-trophy {
+    font-size: clamp(52px, 14vw, 96px);
+    animation: ludo-trophy-bounce 0.6s cubic-bezier(0.34,1.8,0.64,1) forwards;
+    filter: drop-shadow(0 0 30px rgba(251,191,36,0.9));
+}
+@keyframes ludo-trophy-bounce {
+    0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+    60%  { transform: scale(1.25) rotate(5deg); opacity: 1; }
+    80%  { transform: scale(0.92) rotate(-2deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.ludo-victory-text {
+    font-size: clamp(22px, 6vw, 36px);
+    font-weight: 900;
+    color: white;
+    margin-top: 10px;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 30px rgba(251,191,36,0.8), 0 2px 4px rgba(0,0,0,0.8);
+    animation: ludo-text-slide 0.5s 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.ludo-victory-sub {
+    font-size: 13px;
+    color: #9ca3af;
+    margin-top: 6px;
+    animation: ludo-text-slide 0.5s 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.ludo-lose-text {
+    font-size: clamp(18px, 5vw, 28px);
+    font-weight: 900;
+    color: #f87171;
+    margin-top: 10px;
+    text-shadow: 0 0 20px rgba(248,113,113,0.6);
+    animation: ludo-text-slide 0.5s 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes ludo-text-slide {
+    from { opacity: 0; transform: translateY(18px) scale(0.9); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ── Event Toast ── */
@@ -288,13 +405,36 @@
     font-size: 28px;
     font-weight: 900;
     color: white;
-    padding: 8px 20px;
-    border-radius: 16px;
+    padding: 10px 24px;
+    border-radius: 20px;
     z-index: 50;
     opacity: 0;
     pointer-events: none;
-    transition: all 0.25s;
-    text-shadow: 0 3px 8px rgba(0,0,0,0.8);
+    transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1);
+    text-shadow: 0 3px 12px rgba(0,0,0,0.9);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.25);
+    letter-spacing: 0.02em;
+}
+
+/* Particle burst container */
+.ludo-particles {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 45;
+}
+.ludo-particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: ludo-particle-burst 0.7s ease-out forwards;
+}
+@keyframes ludo-particle-burst {
+    0%   { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--px), var(--py)) scale(0.2); }
 }
 
 /* ── Bottom Bar ── */
@@ -316,26 +456,27 @@
     flex-direction: column;
     align-items: center;
     gap: 3px;
-    background: #1f2937;
-    border: 2px solid rgba(107,114,128,0.4);
-    border-radius: 14px;
-    padding: 6px 8px;
-    min-width: 68px;
-    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-    opacity: 0.6;
+    background: rgba(17,24,39,0.85);
+    border: 2px solid rgba(107,114,128,0.3);
+    border-radius: 16px;
+    padding: 7px 9px;
+    min-width: 70px;
+    transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    opacity: 0.55;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
 }
 .ludo-player-panel.active-turn {
-    transform: translateY(-8px) scale(1.06);
+    transform: translateY(-10px) scale(1.08);
     opacity: 1;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     animation: ludo-border-pulse 1.5s infinite;
 }
 @keyframes ludo-border-pulse {
-    0%, 100% { border-color: rgba(255,255,255,0.2); }
-    50%       { border-color: rgba(255,255,255,0.75); }
+    0%, 100% { border-color: rgba(255,255,255,0.15); }
+    50%       { border-color: rgba(255,255,255,0.8); }
 }
-.ludo-panel-red.active-turn { border-color: #f87171; box-shadow: 0 8px 24px rgba(248,113,113,0.5); }
-.ludo-panel-blue.active-turn { border-color: #60a5fa; box-shadow: 0 8px 24px rgba(96,165,250,0.5); }
+.ludo-panel-red.active-turn  { border-color: #f87171; box-shadow: 0 8px 28px rgba(248,113,113,0.55), 0 0 0 1px rgba(248,113,113,0.2); }
+.ludo-panel-blue.active-turn { border-color: #60a5fa; box-shadow: 0 8px 28px rgba(96,165,250,0.55), 0 0 0 1px rgba(96,165,250,0.2); }
 
 .ludo-panel-avatar {
     width: 36px;
@@ -403,24 +544,36 @@
 .ludo-dice-shadow.rolling { width: 32%; opacity: 0.3; transform: translateY(-3px); }
 
 .ludo-roll-btn {
-    padding: 6px 20px;
+    padding: 7px 22px;
     border-radius: 50px;
     font-size: 13px;
     font-weight: 900;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     border: 2px solid #374151;
     color: white;
-    background: #374151;
+    background: linear-gradient(135deg, #374151, #2d3748);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
     transform: scale(1);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+    position: relative;
+    overflow: hidden;
 }
-.ludo-roll-btn:not(:disabled):hover { transform: scale(1.06); }
-.ludo-roll-btn:not(:disabled):active { transform: scale(0.94); }
-.ludo-roll-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.ludo-roll-btn.ludo-roll-red  { background: #f87171; border-color: #991b1b; box-shadow: 0 4px 20px rgba(248,113,113,0.5); }
-.ludo-roll-btn.ludo-roll-blue { background: #60a5fa; border-color: #1d4ed8; box-shadow: 0 4px 20px rgba(96,165,250,0.5); }
+.ludo-roll-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+    border-radius: inherit;
+    pointer-events: none;
+}
+.ludo-roll-btn:not(:disabled):hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
+.ludo-roll-btn:not(:disabled):active { transform: scale(0.93); }
+.ludo-roll-btn:disabled { opacity: 0.42; cursor: not-allowed; }
+.ludo-roll-btn.ludo-roll-red  { background: linear-gradient(135deg, #f87171, #dc2626); border-color: #991b1b; box-shadow: 0 4px 22px rgba(248,113,113,0.55), inset 0 1px 0 rgba(255,255,255,0.2); }
+.ludo-roll-btn.ludo-roll-blue { background: linear-gradient(135deg, #60a5fa, #2563eb); border-color: #1d4ed8; box-shadow: 0 4px 22px rgba(96,165,250,0.55), inset 0 1px 0 rgba(255,255,255,0.2); }
+.ludo-roll-btn.ludo-roll-red:not(:disabled):hover  { box-shadow: 0 6px 28px rgba(248,113,113,0.7); }
+.ludo-roll-btn.ludo-roll-blue:not(:disabled):hover { box-shadow: 0 6px 28px rgba(96,165,250,0.7); }
 
 /* ── 3D Dice (self-contained, not in room.html) ── */
 .dice-cube {
@@ -479,25 +632,57 @@
 .ludo-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.82);
+    background: rgba(0,0,0,0.85);
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 12px;
+    border-radius: 14px;
     z-index: 60;
-    backdrop-filter: blur(6px);
+    backdrop-filter: blur(10px);
 }
 .ludo-overlay-content {
     text-align: center;
     color: white;
-    animation: ludo-pop-in 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    animation: ludo-pop-in 0.45s cubic-bezier(0.34,1.56,0.64,1);
+    padding: 20px;
 }
 @keyframes ludo-pop-in {
-    from { transform: scale(0) rotate(-10deg); opacity: 0; }
+    from { transform: scale(0.3) rotate(-15deg); opacity: 0; }
     to   { transform: scale(1) rotate(0); opacity: 1; }
 }
-.ludo-overlay-content h2 { font-size: 26px; margin: 10px 0; }
+.ludo-overlay-content h2 { font-size: 28px; margin: 10px 0; font-weight: 900; }
 .ludo-overlay-content p  { color: #9ca3af; font-size: 13px; }
+
+/* ── Safe spot pulse on board ── */
+@keyframes ludo-safe-pulse {
+    0%,100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+}
+.ludo-safe-star {
+    display: inline-block;
+    animation: ludo-safe-pulse 2s ease-in-out infinite;
+    color: white;
+    font-size: clamp(8px,1.5vw,14px);
+    line-height: 1;
+}
+
+/* ── Connection status badge ── */
+.ludo-ws-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.05em;
+    pointer-events: none;
+    z-index: 99;
+    transition: all 0.3s;
+}
+.ludo-ws-badge.connected    { background: rgba(34,197,94,0.2); color: #86efac; border: 1px solid rgba(34,197,94,0.4); }
+.ludo-ws-badge.reconnecting { background: rgba(251,191,36,0.2); color: #fde68a; border: 1px solid rgba(251,191,36,0.4); animation: ludo-blink 1s infinite; }
+@keyframes ludo-blink { 50% { opacity: 0.4; } }
 </style>
 
 <script>
@@ -550,16 +735,196 @@ var LUDO_DICE_TRANSFORMS = {
     6:'rotateY(180deg) rotateX(0deg)'
 };
 
+// ===== Web Audio Sound Engine =====
+const LudoSound = (() => {
+    let ctx = null;
+    function getCtx() {
+        if (!ctx || ctx.state === 'closed') ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+        return ctx;
+    }
+    function play(type) {
+        try {
+            const c = getCtx();
+            if (type === 'dice') {
+                // === REALISTIC DICE ROLL ===
+                // Sharp crisp impacts (highpass, NOT bandpass — bandpass was muffling it)
+                // Timing: slow start → rapid middle cluster → final heavy thud
+                const impacts = [0, 0.05, 0.10, 0.145, 0.183, 0.215, 0.240, 0.258, 0.272, 0.282, 0.30];
+                impacts.forEach((t, idx) => {
+                    const isLast = idx === impacts.length - 1;
+                    const dur  = isLast ? 0.10 : 0.020;
+                    const vol  = isLast ? 0.55 : 0.22 + idx * 0.025;
+                    const buf  = c.createBuffer(1, Math.ceil(c.sampleRate * (dur + 0.01)), c.sampleRate);
+                    const data = buf.getChannelData(0);
+                    for (let j = 0; j < data.length; j++)
+                        data[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / data.length, 2.2);
+                    const src = c.createBufferSource(); src.buffer = buf;
+                    // Highpass keeps the attack crisp (unlike bandpass which muffles)
+                    const hp  = c.createBiquadFilter();
+                    hp.type = 'highpass';
+                    hp.frequency.value = isLast ? 180 : 600;
+                    const gn  = c.createGain();
+                    gn.gain.setValueAtTime(vol, c.currentTime + t);
+                    gn.gain.exponentialRampToValueAtTime(0.001, c.currentTime + t + dur + 0.008);
+                    src.connect(hp); hp.connect(gn); gn.connect(c.destination);
+                    src.start(c.currentTime + t);
+                    src.stop(c.currentTime + t + dur + 0.015);
+                    // Final impact: add punchy low-frequency body thud
+                    if (isLast) {
+                        const thud = c.createOscillator();
+                        const tg   = c.createGain();
+                        thud.type = 'sine';
+                        thud.frequency.setValueAtTime(160, c.currentTime + t);
+                        thud.frequency.exponentialRampToValueAtTime(50, c.currentTime + t + 0.14);
+                        tg.gain.setValueAtTime(0.40, c.currentTime + t);
+                        tg.gain.exponentialRampToValueAtTime(0.001, c.currentTime + t + 0.18);
+                        thud.connect(tg); tg.connect(c.destination);
+                        thud.start(c.currentTime + t); thud.stop(c.currentTime + t + 0.20);
+                    }
+                });
+
+            } else if (type === 'hop') {
+                // Crisp piece-hop tock — each jump step
+                // Noise click (wood-on-board feel)
+                const dur  = 0.025;
+                const buf  = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
+                const data = buf.getChannelData(0);
+                for (let j = 0; j < data.length; j++)
+                    data[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / data.length, 2);
+                const src = c.createBufferSource();
+                src.buffer = buf;
+                const bp  = c.createBiquadFilter();
+                bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 2;
+                const gn  = c.createGain();
+                gn.gain.setValueAtTime(0.18, c.currentTime);
+                gn.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur + 0.01);
+                src.connect(bp); bp.connect(gn); gn.connect(c.destination);
+                src.start(); src.stop(c.currentTime + dur + 0.02);
+                // Small tonal click underneath for body
+                const o = c.createOscillator();
+                const g = c.createGain();
+                o.type = 'triangle';
+                o.frequency.setValueAtTime(480, c.currentTime);
+                o.frequency.exponentialRampToValueAtTime(220, c.currentTime + 0.03);
+                g.gain.setValueAtTime(0.08, c.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.035);
+                o.connect(g); g.connect(c.destination);
+                o.start(); o.stop(c.currentTime + 0.04);
+
+            } else if (type === 'move') {
+                // Final land — slightly heavier version of hop
+                const dur  = 0.03;
+                const buf  = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
+                const data = buf.getChannelData(0);
+                for (let j = 0; j < data.length; j++)
+                    data[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / data.length, 1.8);
+                const src = c.createBufferSource(); src.buffer = buf;
+                const bp  = c.createBiquadFilter();
+                bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 1.5;
+                const gn  = c.createGain();
+                gn.gain.setValueAtTime(0.24, c.currentTime);
+                gn.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur + 0.02);
+                src.connect(bp); bp.connect(gn); gn.connect(c.destination);
+                src.start(); src.stop(c.currentTime + dur + 0.03);
+
+            } else if (type === 'kill') {
+                // Dramatic thud descending
+                const o = c.createOscillator();
+                const g = c.createGain();
+                o.type = 'sawtooth';
+                o.frequency.setValueAtTime(300, c.currentTime);
+                o.frequency.exponentialRampToValueAtTime(60, c.currentTime + 0.25);
+                g.gain.setValueAtTime(0.30, c.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.28);
+                o.connect(g); g.connect(c.destination);
+                o.start(); o.stop(c.currentTime + 0.3);
+                // Short noise punch
+                const buf = c.createBuffer(1, c.sampleRate * 0.05, c.sampleRate);
+                const d = buf.getChannelData(0);
+                for (let j = 0; j < d.length; j++) d[j] = (Math.random() * 2 - 1) * (1 - j / d.length);
+                const ns = c.createBufferSource(); ns.buffer = buf;
+                const ng = c.createGain(); ng.gain.value = 0.18;
+                ns.connect(ng); ng.connect(c.destination); ns.start();
+
+            } else if (type === 'win') {
+                // Full triumphant fanfare: two chords + ascending arpeggio
+                const fanfare = [
+                    {f:523,t:0,dur:0.45},   // C5
+                    {f:659,t:0,dur:0.45},   // E5 (chord)
+                    {f:784,t:0,dur:0.45},   // G5 (chord)
+                    {f:784,t:0.18,dur:0.4}, // G5 re-hit
+                    {f:1047,t:0.28,dur:0.6},// C6 high
+                    {f:1047,t:0.5,dur:0.7}, // C6 sustain
+                ];
+                fanfare.forEach(({f,t,dur}) => {
+                    const o = c.createOscillator();
+                    const g = c.createGain();
+                    o.type = 'triangle';
+                    o.frequency.value = f;
+                    const t0 = c.currentTime + t;
+                    g.gain.setValueAtTime(0, t0);
+                    g.gain.linearRampToValueAtTime(0.22, t0 + 0.04);
+                    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+                    o.connect(g); g.connect(c.destination);
+                    o.start(t0); o.stop(t0 + dur + 0.05);
+                });
+
+            } else if (type === 'lose') {
+                // Sad descending tones
+                const notes = [494, 440, 370, 294];
+                notes.forEach((freq, i) => {
+                    const o = c.createOscillator();
+                    const g = c.createGain();
+                    o.type = 'sine';
+                    o.frequency.value = freq;
+                    const t0 = c.currentTime + i * 0.20;
+                    g.gain.setValueAtTime(0.18, t0);
+                    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.38);
+                    o.connect(g); g.connect(c.destination);
+                    o.start(t0); o.stop(t0 + 0.42);
+                });
+
+            } else if (type === 'safe') {
+                // Two-note chime
+                [880, 1320].forEach((freq, i) => {
+                    const o = c.createOscillator();
+                    const g = c.createGain();
+                    o.type = 'sine'; o.frequency.value = freq;
+                    const t0 = c.currentTime + i * 0.08;
+                    g.gain.setValueAtTime(0.12, t0);
+                    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.32);
+                    o.connect(g); g.connect(c.destination);
+                    o.start(t0); o.stop(t0 + 0.35);
+                });
+
+            } else if (type === 'enter') {
+                // Piece entering board — bright rising pop
+                const o = c.createOscillator();
+                const g = c.createGain();
+                o.type = 'triangle';
+                o.frequency.setValueAtTime(380, c.currentTime);
+                o.frequency.exponentialRampToValueAtTime(760, c.currentTime + 0.12);
+                g.gain.setValueAtTime(0.18, c.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.20);
+                o.connect(g); g.connect(c.destination);
+                o.start(); o.stop(c.currentTime + 0.22);
+            }
+        } catch(e) { /* Audio not available */ }
+    }
+    return { play };
+})();
+
 class LudoGame extends BaseGame {
     constructor() {
         super();
         this.gameMode = "turn_based";
         this._rolling = false;
-        this._prevDiceValue = null;  // track last dice to detect new roll
-        this._animQueue = [];        // step-by-step movement queue
+        this._prevDiceValue = null;
+        this._animQueue = [];
         this._animating = false;
-        this._stateQueue = [];       // NEW: queue for server updates
-        this._processing = false;    // NEW: flag to process queue
+        this._stateQueue = [];
+        this._processing = false;
     }
 
     init(state) {
@@ -677,7 +1042,10 @@ class LudoGame extends BaseGame {
         let finishedCount = 0;
         const totalPieces = killedList.length;
         const pct = 100 / 15;
-        const FAST_TICK = 40; // 40ms per step for fast return
+        const FAST_TICK = 38;
+
+        // Play kill sound + burst particles
+        LudoSound.play('kill');
 
         killedList.forEach(k => {
             const el = document.getElementById(`ludo-piece-${k.player}-${k.id}`);
@@ -687,33 +1055,38 @@ class LudoGame extends BaseGame {
                 return;
             }
 
-            // Path back to 0 then to -1
-            const steps = [];
-            for (let p = k.fromPos; p >= 0; p--) {
-                steps.push(p);
-            }
-            steps.push(-1);
+            // Flash the killed piece first
+            el.classList.add('kill-flash');
+            const killCoord = this._getCoord({ player: k.player, id: k.id, pos: k.fromPos });
+            const killCfg = LUDO_PLAYERS_CFG[k.player];
+            this._burstParticles(killCoord, killCfg.hex);
 
-            let i = 0;
-            const tick = () => {
-                if (i >= steps.length) {
-                    finishedCount++;
-                    if (finishedCount === totalPieces) callback && callback();
-                    return;
-                }
+            setTimeout(() => {
+                el.classList.remove('kill-flash');
 
-                const coord = this._getCoord({ player: k.player, id: k.id, pos: steps[i] });
-                const bL = (coord.c - 1) * pct;
-                const bT = (coord.r - 1) * pct;
-                
-                el.style.left = `calc(${bL}% + 2px)`;
-                el.style.top  = `calc(${bT}% + 2px)`;
-                el.style.transform = ''; 
-                
-                i++;
-                setTimeout(tick, FAST_TICK);
-            };
-            tick();
+                // Path back to -1
+                const steps = [];
+                for (let p = k.fromPos; p >= 0; p--) steps.push(p);
+                steps.push(-1);
+
+                let i = 0;
+                const tick = () => {
+                    if (i >= steps.length) {
+                        finishedCount++;
+                        if (finishedCount === totalPieces) callback && callback();
+                        return;
+                    }
+                    const coord = this._getCoord({ player: k.player, id: k.id, pos: steps[i] });
+                    const bL = (coord.c - 1) * pct;
+                    const bT = (coord.r - 1) * pct;
+                    el.style.left = `calc(${bL}% + 2px)`;
+                    el.style.top  = `calc(${bT}% + 2px)`;
+                    el.style.transform = '';
+                    i++;
+                    setTimeout(tick, FAST_TICK);
+                };
+                tick();
+            }, 420); // wait for flash
         });
     }
 
@@ -763,7 +1136,7 @@ class LudoGame extends BaseGame {
 
                 const inYard = (r<=6&&c<=6)||(r>=10&&c>=10)||(r<=6&&c>=10)||(r>=10&&c<=6);
                 if (inYard) cell.style.border = `0.5px solid ${bg}`;
-                if (isSafe && !isCenter) cell.innerHTML = `<span style="color:white;font-size:clamp(8px,1.5vw,14px);line-height:1;">★</span>`;
+                if (isSafe && !isCenter) cell.innerHTML = `<span class="ludo-safe-star">★</span>`;
                 if (isCenter) { cell.style.border = 'none'; }
 
                 board.appendChild(cell);
@@ -774,8 +1147,16 @@ class LudoGame extends BaseGame {
         const ov = document.createElement('div');
         ov.className = 'ludo-trophy-overlay';
         ov.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:5;left:40%;top:40%;width:20%;height:20%;';
-        ov.innerHTML = `<span class="ludo-trophy-emoji">🏆</span>`;
+        ov.innerHTML = `<span class="ludo-trophy-emoji" style="filter:drop-shadow(0 2px 8px rgba(251,191,36,0.6));">🏆</span>`;
         document.getElementById('ludo-board').appendChild(ov);
+
+        // Particles layer
+        if (!document.getElementById('ludo-particles-layer')) {
+            const pl = document.createElement('div');
+            pl.id = 'ludo-particles-layer';
+            pl.className = 'ludo-particles';
+            document.getElementById('ludo-board').appendChild(pl);
+        }
 
         // White inner yard boxes
         const piecesLayer = document.getElementById('ludo-pieces');
@@ -902,7 +1283,7 @@ class LudoGame extends BaseGame {
         // Dice glow ring
         const glowRing = document.getElementById('ludo-dice-glow-ring');
         if (glowRing) {
-            glowRing.style.boxShadow = `0 0 18px ${cfg.glow}, 0 0 36px ${cfg.glow}`;
+            glowRing.style.boxShadow = `0 0 22px ${cfg.glow}, 0 0 44px ${cfg.glow}`;
             if (state.phase === 'ROLL') glowRing.classList.add('active');
             else glowRing.classList.remove('active');
         }
@@ -913,9 +1294,11 @@ class LudoGame extends BaseGame {
             if (state.phase === 'ROLL') {
                 inst.textContent = isMyTurn ? `Your turn to roll! 🎲` : `${state.players[state.turn]}'s turn to roll...`;
                 inst.style.color = '#fef08a';
+                inst.classList.toggle('my-turn', isMyTurn);
             } else if (state.phase === 'MOVE') {
                 inst.textContent = isMyTurn ? `Pick a piece to move (${state.dice_value}) 🎯` : `${state.players[state.turn]} is moving...`;
-                inst.style.color = '#ffffff';
+                inst.style.color = isMyTurn ? '#ffffff' : '#9ca3af';
+                inst.classList.remove('my-turn');
             }
         }
 
@@ -924,6 +1307,13 @@ class LudoGame extends BaseGame {
             const panel = document.getElementById(`ludo-panel-${color}`);
             if (panel) panel.classList.toggle('active-turn', state.turn === color);
         });
+
+        // Board glow matching current player
+        const boardWrapper = document.querySelector('.ludo-board-wrapper');
+        if (boardWrapper) {
+            boardWrapper.classList.remove('glow-red', 'glow-blue');
+            boardWrapper.classList.add(`glow-${state.turn}`);
+        }
 
         // Show dice value if available
         if (state.dice_value !== null) {
@@ -1005,16 +1395,19 @@ class LudoGame extends BaseGame {
 
         this._diceAnimating = true;
 
+        // Play dice sound
+        LudoSound.play('dice');
+
         // Remove all show/landed classes
         cube.classList.remove('landed');
         cube.classList.remove('rolling');
-        void cube.offsetWidth; // force reflow
+        void cube.offsetWidth;
 
         for (let i = 1; i <= 6; i++) cube.classList.remove(LUDO_DICE_SHOW[i]);
         cube.querySelectorAll('[data-pip]').forEach(p => p.classList.remove('pip-red','pip-blue'));
 
         cube.classList.add('rolling');
-        cube.style.transform = ''; // Clear any dangerous inline transforms
+        cube.style.transform = '';
         if (shadow) { shadow.classList.add('rolling'); }
 
         setTimeout(() => {
@@ -1036,13 +1429,13 @@ class LudoGame extends BaseGame {
         }, 650);
     }
 
-    // ── Step-by-step piece movement animation ──
+    // ── Step-by-step piece movement — light hop per cell ──
     _animatePieceSteps(playerColor, pieceId, fromPos, toPos, callback) {
-        const cfg = LUDO_PLAYERS_CFG[playerColor];
-        const el  = document.getElementById(`ludo-piece-${playerColor}-${pieceId}`);
+        const el = document.getElementById(`ludo-piece-${playerColor}-${pieceId}`);
         if (!el || fromPos === toPos) { callback && callback(); return; }
 
         const pct = 100 / 15;
+        const isEntering = fromPos === -1;
 
         const steps = [];
         let cur = fromPos;
@@ -1053,21 +1446,43 @@ class LudoGame extends BaseGame {
             if (cur === toPos) break;
             if (steps.length > 60) break;
         }
+        if (steps.length === 0) { callback && callback(); return; }
 
+        if (isEntering) LudoSound.play('enter');
+
+        const STEP_MS = 110;  // fast enough to feel snappy, slow enough to read
         let i = 0;
-        const TICK_MS = 140; 
+
         const tick = () => {
-            if (i >= steps.length) { callback && callback(); return; }
-            const fakePiece = steps[i];
-            const coord = this._getCoord(fakePiece);
-            const bL = (coord.c - 1) * pct;
-            const bT = (coord.r - 1) * pct;
-            const isRotated = document.getElementById('ludo-board-wrapper-inner')?.classList.contains('ludo-board-rotated');
-            el.style.left = `calc(${bL}% + 2px)`;
-            el.style.top  = `calc(${bT}% + 2px)`;
-            el.style.transform = '';
+            if (i >= steps.length) {
+                // Final landing: clean up animation class so _renderPieces
+                // can apply stacking offsets (translate) cleanly.
+                el.classList.remove('step-jump');
+                LudoSound.play('move');
+                // Safe-spot chime
+                const landPos = steps[steps.length - 1].pos;
+                const cfg2 = LUDO_PLAYERS_CFG[playerColor];
+                const absPath = (cfg2.startIdx + landPos) % 52;
+                if (LUDO_SAFE.has(absPath) && landPos >= 0 && landPos <= 50) {
+                    setTimeout(() => LudoSound.play('safe'), 100);
+                }
+                callback && callback();
+                return;
+            }
+
+            // Snap position instantly (no CSS transition on left/top)
+            const coord = this._getCoord(steps[i]);
+            el.style.left = `calc(${(coord.c - 1) * pct}% + 2px)`;
+            el.style.top  = `calc(${(coord.r - 1) * pct}% + 2px)`;
+
+            // Restart the jump animation
+            el.classList.remove('step-jump');
+            void el.offsetWidth;   // force reflow so animation restarts
+            el.classList.add('step-jump');
+
+            LudoSound.play('hop');
             i++;
-            setTimeout(tick, TICK_MS);
+            setTimeout(tick, STEP_MS);
         };
         tick();
     }
@@ -1082,7 +1497,9 @@ class LudoGame extends BaseGame {
         const piece = state.pieces.find(p => p.player === playerColor && p.id === pieceId);
         if (!piece || !this._isValidMove(piece, state.dice_value)) return;
 
-        // Store the FROM position so we can animate step-by-step when server responds
+        // Click sound feedback
+        LudoSound.play('move');
+
         this._pendingMove = { player: playerColor, id: pieceId, fromPos: piece.pos };
         this.sendMove('move', { piece_id: pieceId });
     }
@@ -1097,11 +1514,12 @@ class LudoGame extends BaseGame {
         const rollBtn = document.getElementById('ludo-roll-btn');
         if (rollBtn) rollBtn.disabled = true;
 
-        // Visual "kickstart" - only reset animation, don't set inline transform
+        // Visual + sound kickstart
+        LudoSound.play('dice');
         const cube = document.getElementById('ludo-dice-cube');
         if (cube) {
             cube.classList.remove('landed', 'rolling');
-            void cube.offsetHeight; // force reflow
+            void cube.offsetHeight;
             cube.classList.add('rolling');
         }
 
@@ -1124,13 +1542,36 @@ class LudoGame extends BaseGame {
         if (!toast) return;
         toast.textContent = text;
         toast.style.backgroundColor = colorHex;
-        toast.style.boxShadow = `0 8px 30px ${glow}`;
-        toast.style.transform = 'translate(-50%,-50%) scale(1.1)';
+        toast.style.boxShadow = `0 8px 32px ${glow}, inset 0 1px 0 rgba(255,255,255,0.2)`;
+        toast.style.transform = 'translate(-50%,-50%) scale(1.12)';
         toast.style.opacity = '1';
         setTimeout(() => {
             toast.style.opacity = '0';
-            toast.style.transform = 'translate(-50%,-50%) scale(0.5)';
-        }, 1400);
+            toast.style.transform = 'translate(-50%,-50%) scale(0.4)';
+        }, 1600);
+    }
+
+    // ── Particle burst on kill ──
+    _burstParticles(coord, color) {
+        const layer = document.getElementById('ludo-particles-layer');
+        if (!layer) return;
+        const pct = 100 / 15;
+        const cx = ((coord.c - 1) * pct + pct / 2);
+        const cy = ((coord.r - 1) * pct + pct / 2);
+        for (let i = 0; i < 10; i++) {
+            const p = document.createElement('div');
+            p.className = 'ludo-particle';
+            p.style.background = color;
+            p.style.left = `${cx}%`;
+            p.style.top  = `${cy}%`;
+            const angle = (i / 10) * Math.PI * 2;
+            const dist = 60 + Math.random() * 40;
+            p.style.setProperty('--px', `${Math.cos(angle) * dist}px`);
+            p.style.setProperty('--py', `${Math.sin(angle) * dist}px`);
+            p.style.animationDelay = `${Math.random() * 0.1}s`;
+            layer.appendChild(p);
+            setTimeout(() => p.remove(), 900);
+        }
     }
 
     // ── BaseGame hooks ──
@@ -1139,26 +1580,30 @@ class LudoGame extends BaseGame {
         const isDraw   = result.round_winner === 'draw';
 
         const myColor = this._myColor();
-        if (myColor) {
-            const cfg = LUDO_PLAYERS_CFG[myColor];
-            if (isWinner) this._showToast('YOU WIN! 🏆', cfg.hex, cfg.glow);
+        if (isWinner) {
+            LudoSound.play('win');
+            this._showVictoryScreen(true);
+        } else if (!isDraw) {
+            LudoSound.play('lose');
+            this._showVictoryScreen(false);
         }
 
+        // Also update the legacy result overlay (in case it's used)
         const overlay  = document.getElementById('ludo-result-overlay');
         const icon     = document.getElementById('ludo-result-icon');
         const text     = document.getElementById('ludo-result-text');
         const subtext  = document.getElementById('ludo-result-subtext');
-
-        if (isDraw) { icon.textContent='🤝'; text.textContent="It's a Draw!"; }
-        else if (isWinner) { icon.textContent='🏆'; text.textContent='You Win!'; }
-        else { icon.textContent='😔'; text.textContent='You Lose!'; }
-
-        if (result.game_ended) subtext.textContent = 'Returning to lobby...';
-        else subtext.innerHTML = 'Next round in <span id="ludo-next-round-timer">3</span>...';
+        if (overlay && icon && text && subtext) {
+            if (isDraw) { icon.textContent='🤝'; text.textContent="It's a Draw!"; }
+            else if (isWinner) { icon.textContent='🏆'; text.textContent='You Win!'; }
+            else { icon.textContent='😔'; text.textContent='You Lose!'; }
+            if (result.game_ended) subtext.textContent = 'Returning to lobby...';
+            else subtext.innerHTML = 'Next round in <span id="ludo-next-round-timer">3</span>...';
+        }
 
         let delay = 0;
         if (result.reveal_at) delay = Math.max(0, result.reveal_at - Date.now());
-
+        const displayMs = result.display_ms || 3500;
         setTimeout(() => {
             if (overlay) overlay.style.display = 'flex';
             if (!result.game_ended) {
@@ -1170,8 +1615,10 @@ class LudoGame extends BaseGame {
                     if (t <= 0) clearInterval(intv);
                 }, 1000);
             }
-            const displayMs = result.display_ms || 3000;
-            setTimeout(() => { if (overlay) overlay.style.display = 'none'; }, displayMs);
+            setTimeout(() => {
+                if (overlay) overlay.style.display = 'none';
+                this._hideVictoryScreen();
+            }, displayMs);
         }, delay);
     }
 
@@ -1179,30 +1626,113 @@ class LudoGame extends BaseGame {
         const isWinner = result.game_winner === USER;
         const isDraw   = result.game_winner === 'draw';
 
+        if (isWinner) {
+            LudoSound.play('win');
+            this._showVictoryScreen(true, true);
+        } else if (!isDraw) {
+            LudoSound.play('lose');
+            this._showVictoryScreen(false, true);
+        }
+
         const overlay  = document.getElementById('ludo-result-overlay');
         const icon     = document.getElementById('ludo-result-icon');
         const text     = document.getElementById('ludo-result-text');
         const subtext  = document.getElementById('ludo-result-subtext');
-
-        if (isDraw)         { icon.textContent='🤝'; text.textContent='Game Draw!'; }
-        else if (isWinner)  { icon.textContent='🎉'; text.textContent='You Won the Game!'; }
-        else                { icon.textContent='😞'; text.textContent='Game Over'; }
-
-        const scores = result.final_scores;
-        if (scores) {
-            subtext.textContent = `Final: ` + Object.entries(scores).map(([p,s]) => `${p}: ${s}`).join(' - ');
+        if (overlay && icon && text && subtext) {
+            if (isDraw)         { icon.textContent='🤝'; text.textContent='Game Draw!'; }
+            else if (isWinner)  { icon.textContent='🎉'; text.textContent='You Won the Game!'; }
+            else                { icon.textContent='😞'; text.textContent='Game Over'; }
+            const scores = result.final_scores;
+            if (scores) subtext.textContent = 'Final: ' + Object.entries(scores).map(([p,s]) => `${p}: ${s}`).join(' - ');
+            if (overlay) overlay.style.display = 'flex';
         }
-        if (overlay) overlay.style.display = 'flex';
+    }
 
-        // Confetti
-        if (isWinner && window.confetti) {
-            const end = Date.now() + 3000;
-            (function fire() {
-                confetti({ particleCount:5, angle:60, spread:55, origin:{x:0}, zIndex:200 });
-                confetti({ particleCount:5, angle:120, spread:55, origin:{x:1}, zIndex:200 });
-                if (Date.now() < end) requestAnimationFrame(fire);
-            }());
+    // ── Victory / Defeat celebration screen ──
+    _showVictoryScreen(isWin, isFinal = false) {
+        const boardWrapper = document.getElementById('ludo-board-wrapper-inner');
+        if (!boardWrapper) return;
+
+        // Build canvas for confetti
+        let canvas = document.getElementById('ludo-victory-canvas');
+        if (!canvas) {
+            canvas = document.createElement('canvas');
+            canvas.id = 'ludo-victory-canvas';
+            boardWrapper.parentElement.appendChild(canvas);
         }
+        canvas.width  = boardWrapper.offsetWidth  || 400;
+        canvas.height = boardWrapper.offsetHeight || 400;
+        canvas.style.display = 'block';
+
+        // Build victory overlay card
+        let vo = document.getElementById('ludo-victory-overlay');
+        if (!vo) {
+            vo = document.createElement('div');
+            vo.id = 'ludo-victory-overlay';
+            boardWrapper.parentElement.appendChild(vo);
+        }
+        vo.innerHTML = isWin
+            ? `<div class="ludo-victory-trophy">🏆</div>
+               <div class="ludo-victory-text">${isFinal ? 'CHAMPION! 🎉' : 'YOU WIN!'}</div>
+               <div class="ludo-victory-sub">${isFinal ? 'You won the game!' : 'Round won!'}</div>`
+            : `<div class="ludo-victory-trophy" style="filter:grayscale(0.5) drop-shadow(0 0 16px rgba(248,113,113,0.6))">😔</div>
+               <div class="ludo-lose-text">${isFinal ? 'GAME OVER' : 'YOU LOSE'}</div>
+               <div class="ludo-victory-sub">${isFinal ? 'Better luck next time!' : 'Round lost!'}</div>`;
+        vo.style.display = 'flex';
+
+        // Confetti particles (canvas-based, no library)
+        if (isWin) {
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+            const colors = ['#f87171','#60a5fa','#fbbf24','#34d399','#a78bfa','#fb923c'];
+            const particles = Array.from({length: 60}, () => ({
+                x: Math.random() * W,
+                y: Math.random() * H * 0.4 - 20,
+                vx: (Math.random() - 0.5) * 4,
+                vy: Math.random() * 3 + 1.5,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: Math.random() * 7 + 4,
+                rot: Math.random() * Math.PI * 2,
+                rotV: (Math.random() - 0.5) * 0.18,
+                life: 1,
+            }));
+            let frame;
+            const animate = () => {
+                ctx.clearRect(0, 0, W, H);
+                let alive = false;
+                particles.forEach(p => {
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.08;
+                    p.vx *= 0.99;
+                    p.rot += p.rotV;
+                    p.life -= 0.008;
+                    if (p.life <= 0 || p.y > H + 20) return;
+                    alive = true;
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, p.life);
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rot);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
+                    ctx.restore();
+                });
+                if (alive) frame = requestAnimationFrame(animate);
+                else ctx.clearRect(0, 0, W, H);
+            };
+            animate();
+            this._confettiRAF = frame;
+        }
+    }
+
+    _hideVictoryScreen() {
+        const vo = document.getElementById('ludo-victory-overlay');
+        if (vo) vo.style.display = 'none';
+        const canvas = document.getElementById('ludo-victory-canvas');
+        if (canvas) {
+            canvas.style.display = 'none';
+            const ctx = canvas.getContext('2d');
+            if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        if (this._confettiRAF) { cancelAnimationFrame(this._confettiRAF); this._confettiRAF = null; }
     }
 
     showPauseOverlay() {

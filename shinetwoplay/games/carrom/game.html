@@ -434,6 +434,15 @@
             window.addEventListener('resize', () => this._resizeCanvas());
             this._bindControls();
 
+            // ── Reconnect: try to restore saved board state ──
+            if (state.status === 'playing') {
+                const snap = this._loadSnapshot();
+                if (snap) {
+                    this._restoreSnapshot(snap);
+                    return; // skip mode selector, resume immediately
+                }
+            }
+
             // Mode selection — P1 (owner) picks, P2 waits
             this._setupModeSelector();
         }
@@ -574,6 +583,92 @@
 
         _isMyTurn() {
             return this.gameState.currentPlayer === this.myPlayerIdx;
+        }
+
+        // ==================== SNAPSHOT (persist across refresh) ====================
+        _snapKey() {
+            // Key by room code so different games don't conflict
+            // ROOM is a global set by room.html as: const ROOM = "{{ room }}"
+            return 'carrom_snap_' + (typeof ROOM !== 'undefined' ? ROOM : 'room');
+        }
+
+        _saveSnapshot() {
+            try {
+                const gs = this.gameState;
+                const snap = {
+                    mode: gs.mode,
+                    currentPlayer: gs.currentPlayer,
+                    queenPending: gs.queenPending,
+                    queenPendingFor: gs.queenPendingFor,
+                    queenCovered: gs.queenCovered,
+                    p1Pocketed: gs.p1Pocketed.map(p => ({ type: p.type })),
+                    p2Pocketed: gs.p2Pocketed.map(p => ({ type: p.type })),
+                    pieces: gs.pieces.map(p => ({
+                        x: p.x, y: p.y, r: p.radius, type: p.type,
+                        pocketed: p.pocketed
+                    })),
+                    savedAt: Date.now()
+                };
+                localStorage.setItem(this._snapKey(), JSON.stringify(snap));
+            } catch(e) { /* quota or private mode */ }
+        }
+
+        _loadSnapshot() {
+            try {
+                const raw = localStorage.getItem(this._snapKey());
+                if (!raw) return null;
+                const snap = JSON.parse(raw);
+                // Discard if older than 2 hours (stale)
+                if (Date.now() - snap.savedAt > 2 * 60 * 60 * 1000) {
+                    localStorage.removeItem(this._snapKey()); return null;
+                }
+                return snap;
+            } catch(e) { return null; }
+        }
+
+        _clearSnapshot() {
+            try { localStorage.removeItem(this._snapKey()); } catch(e) {}
+        }
+
+        _restoreSnapshot(snap) {
+            // Rebuild Piece objects from saved plain data
+            const gs = this.gameState;
+            gs.mode = snap.mode;
+            gs.currentPlayer = snap.currentPlayer;
+            gs.queenPending = snap.queenPending;
+            gs.queenPendingFor = snap.queenPendingFor;
+            gs.queenCovered = snap.queenCovered;
+
+            gs.pieces = snap.pieces.map(d => {
+                const p = new Piece(d.x, d.y, d.r, d.type);
+                p.pocketed = d.pocketed;
+                return p;
+            });
+
+            // Rebuild pocketed stacks as Piece-like objects (type only needed for scoring)
+            gs.p1Pocketed = snap.p1Pocketed.map(d => ({ type: d.type }));
+            gs.p2Pocketed = snap.p2Pocketed.map(d => ({ type: d.type }));
+
+            this._resetStriker();
+
+            // Jump straight into game, bypassing menu
+            document.getElementById('cr-menu').classList.add('hidden');
+            document.getElementById('cr-gameover').classList.add('hidden');
+            this._updateScoreDisplay();
+            this._updateTurnIndicator();
+            this._gameLoop();
+
+            // Show brief toast so player knows game was restored
+            const toast = document.createElement('div');
+            toast.textContent = '♻️ Game resumed';
+            Object.assign(toast.style, {
+                position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+                background: 'rgba(52,211,153,0.9)', color: '#022c22', fontWeight: '700',
+                padding: '8px 18px', borderRadius: '20px', fontSize: '13px',
+                zIndex: '9999', transition: 'opacity 0.5s'
+            });
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 2200);
         }
 
         // ==================== PIECE INIT ====================
@@ -803,6 +898,9 @@
                 p2_score: this._getScore(2),
                 current_turn: gs.currentPlayer === 1 ? 'P1' : 'P2'
             });
+
+            // Persist board state so refresh/reconnect can restore it
+            this._saveSnapshot();
 
             if (this._checkWinCondition()) return;
         }
@@ -1234,6 +1332,7 @@
         }
 
         _showGameOver(result) {
+            this._clearSnapshot(); // game done — remove persisted state
             const goEl = document.getElementById('cr-gameover');
             const goText = document.getElementById('cr-go-text');
             const emoji = document.getElementById('cr-go-emoji');
@@ -1261,6 +1360,7 @@
         }
 
         _resetForNewRound() {
+            this._clearSnapshot(); // old round snapshot no longer valid
             const prevMode = this.gameState.mode;
             this.gameState = this._freshGameState();
             this.gameState.mode = prevMode;
