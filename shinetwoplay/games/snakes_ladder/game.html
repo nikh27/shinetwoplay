@@ -238,6 +238,43 @@ function slSound(type) {
     try {
         if (!slAudioCtx) slAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (slAudioCtx.state === 'suspended') slAudioCtx.resume();
+        
+        if (type === 'dice') {
+            var impacts = [0, 0.05, 0.10, 0.145, 0.183, 0.215, 0.240, 0.258, 0.272, 0.282, 0.30];
+            var c = slAudioCtx;
+            impacts.forEach(function(t, idx) {
+                var isLast = idx === impacts.length - 1;
+                var dur  = isLast ? 0.10 : 0.020;
+                var vol  = isLast ? 0.55 : 0.22 + idx * 0.025;
+                var buf  = c.createBuffer(1, Math.ceil(c.sampleRate * (dur + 0.01)), c.sampleRate);
+                var data = buf.getChannelData(0);
+                for (var j = 0; j < data.length; j++)
+                    data[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / data.length, 2.2);
+                var src = c.createBufferSource(); src.buffer = buf;
+                var hp  = c.createBiquadFilter();
+                hp.type = 'highpass';
+                hp.frequency.value = isLast ? 180 : 600;
+                var gn  = c.createGain();
+                gn.gain.setValueAtTime(vol, c.currentTime + t);
+                gn.gain.exponentialRampToValueAtTime(0.001, c.currentTime + t + dur + 0.008);
+                src.connect(hp); hp.connect(gn); gn.connect(c.destination);
+                src.start(c.currentTime + t);
+                src.stop(c.currentTime + t + dur + 0.015);
+                if (isLast) {
+                    var thud = c.createOscillator();
+                    var tg   = c.createGain();
+                    thud.type = 'sine';
+                    thud.frequency.setValueAtTime(160, c.currentTime + t);
+                    thud.frequency.exponentialRampToValueAtTime(50, c.currentTime + t + 0.14);
+                    tg.gain.setValueAtTime(0.40, c.currentTime + t);
+                    tg.gain.exponentialRampToValueAtTime(0.001, c.currentTime + t + 0.18);
+                    thud.connect(tg); tg.connect(c.destination);
+                    thud.start(c.currentTime + t); thud.stop(c.currentTime + t + 0.20);
+                }
+            });
+            return;
+        }
+
         var o = slAudioCtx.createOscillator(), g = slAudioCtx.createGain();
         o.connect(g); g.connect(slAudioCtx.destination); g.gain.value = 0.12;
         var now = slAudioCtx.currentTime;
@@ -611,6 +648,8 @@ class SnakesLadderGame extends BaseGame {
 
         cube.classList.add('rolling');
         if (shadow) shadow.classList.add('rolling');
+        
+        slSound('dice');
 
         setTimeout(function() {
             cube.classList.remove('rolling');
