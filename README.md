@@ -190,4 +190,4 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ---
 
-Made with ❤️ by [Nikhil Pandey](https://github.com/nikh27)
+Made with ❤️ by [Panda](https://github.com/nikh27)
