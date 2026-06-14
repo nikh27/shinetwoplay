@@ -119,6 +119,14 @@
 /* ===== Ludo Game - All scoped to .ludo- ===== */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
 
+/* Remove blue tap-highlight on mobile for all ludo elements */
+.ludo-container *,
+.ludo-container *:focus,
+.ludo-container *:active {
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
 .ludo-container {
     display: flex;
     flex-direction: column;
